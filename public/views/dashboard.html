@@ -10,7 +10,32 @@
 </head>
 
 <body>
-    <h1>Dashboard</h1>
+
+    <nav>
+        <p>LOGO</p>
+        <ul>
+            <li>HOME</li>
+            <li>USERS</li>
+            <li>SETTINGS</li>
+        </ul>
+    </nav>
+    <div class="container">
+        <aside>
+            <p>TOOL 1</p>
+        </aside>
+        <main>
+            <h1>DASHBOARD</h1>
+            <!-- TODO display list of cards -->
+            <ul>
+                <?php foreach($cards as $key=>$value): ?>
+                <li>
+                    <?php echo $value['title']; ?>
+                    <img src="<?= $value['imageUrlPath']; ?>">
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </main>
+    </div>
 </body>
 
 </html>

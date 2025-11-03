@@ -2,6 +2,19 @@
 
 class AppController {
 
+    protected static array $instances = [];
+
+    protected function __construct() {}
+
+    public static function getInstance(): static
+    {
+        $class = static::class;
+        if (!isset(self::$instances[$class])) {
+            self::$instances[$class] = new static();
+        }
+        return self::$instances[$class];
+    }
+
     protected function render(string $template = null, array $variables = [])
     {
         $templatePath = 'public/views/'. $template.'.html';

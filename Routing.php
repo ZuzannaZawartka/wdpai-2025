@@ -1,7 +1,14 @@
 <?php
 
 require_once 'src/controllers/SecurityController.php';
+require_once 'src/controllers/UserController.php';
+require_once 'src/controllers/DashboardController.php';
 
+
+//TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
+
+//TODO: w przyszłosci mozemy np /dashboard lub /dashboard/1234 i ten endpoint wyciagnie element o wskazanym id
+//za pomoca regexu
 class Routing{
 
     public static $routes = [
@@ -13,22 +20,54 @@ class Routing{
             "controller" => 'SecurityController',
             "action" => 'register'
         ],
+        'user' => [
+            "controller" => 'UserController',
+            "action" => 'details'
+        ],
+        'dashboard' => [
+            "controller" => 'DashboardController',
+            "action" => 'index'
+        ]
     ];
 
     public static function run(string $path){
-        switch($path){
+        $path = trim($path, '/');
+        $segments = explode('/', $path);
+        
+        // Pobierz pierwszy segment (nazwa routingu)
+        $action = $segments[0] ?? '';
+        
+        // Pobierz parametry (wszystko po pierwszym segmencie)
+        $parameters = array_slice($segments, 1);
+        
+        switch($action){
             case 'dashboard':
-                include 'public/views/dashboard.html';
-                echo "<h2>Dashboard</h2>";
+                $controller = Routing::$routes[$action]['controller'];
+                $method = Routing::$routes[$action]['action'];
+
+                $controller = $controller::getInstance();
+                $controller->$method();
                 break;
             case 'register':
             case 'login':
-                //TODO get id from route
-                $controller = Routing::$routes[$path]['controller'];
-                $action = Routing::$routes[$path]['action'];
-
-                $securityController = new $controller;  //TODO change to singleton
-                $securityController->$action();
+                $controller = Routing::$routes[$action]['controller'];
+                $method = Routing::$routes[$action]['action'];
+                
+                $controller = $controller::getInstance();
+                $controller->$method();
+                break;
+            case 'user':
+                if (empty($parameters)) {
+                    include 'public/views/404.html';
+                    return;
+                }
+                
+                $id = $parameters[0];
+                $controller = Routing::$routes[$action]['controller'];
+                $method = Routing::$routes[$action]['action'];
+            
+                $controller = $controller::getInstance();
+                $controller->$method($id);
                 break;
             default:
                 include 'public/views/404.html';
