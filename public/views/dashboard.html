@@ -14,9 +14,17 @@
     <nav>
         <p>LOGO</p>
         <ul>
-            <li>HOME</li>
-            <li>USERS</li>
-            <li>SETTINGS</li>
+            <li>
+                <div class="active-link">
+                    <a href="#" class="active-text">Dashboardp</a>
+                    <div class="active-underline"></div>
+                </div>
+            </li>
+            <li><a href="#">Sports</a></li>
+            <li><a href="#" class="special-button">Create Event</a></li>
+            <li><a href="#">My Events</a></li>
+            <li><a href="#">Joined Events</a></li>
+            <li><a href="#">Logout</a></li>
         </ul>
     </nav>
     <div class="container">
@@ -29,13 +37,20 @@
             <ul>
                 <?php foreach($cards as $key=>$value): ?>
                 <li>
-                    <?php echo $value['title']; ?>
                     <img src="<?= $value['imageUrlPath']; ?>">
+                    <p>
+                        <?php echo $value['title']; ?>
+                    </p>
                 </li>
                 <?php endforeach; ?>
             </ul>
         </main>
     </div>
+
+    <footer>
+        <p>&copy; 2025 FindRival.</p>
+        <p>Kontakt: info@example.com</p>
+    </footer>
 </body>
 
 </html>
