@@ -15,6 +15,16 @@ class AppController {
         return self::$instances[$class];
     }
 
+     protected function isGet(): bool
+    {
+        return $_SERVER["REQUEST_METHOD"] === 'GET';
+    }
+
+    protected function isPost(): bool
+    {
+        return $_SERVER["REQUEST_METHOD"] === 'POST';
+    }
+
     protected function render(string $template = null, array $variables = [])
     {
         $templatePath = 'public/views/'. $template.'.html';
