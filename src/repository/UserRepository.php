@@ -29,25 +29,20 @@ class UserRepository extends Repository{
         return $user;
     }
 
-    public function createUser(string $email, string $password, string $firstname, string $lastname){
-
+    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname){
         $query = $this->database->connect()->prepare('
-            INSERT INTO users (firstname, lastname, email, password, bio)
-            VALUES (?,?,?,?,?)
+            INSERT INTO users (firstname, lastname, email, password)
+            VALUES (?, ?, ?, ?)
         ');
 
         $query->execute([
-           $firstname,
+            $firstname,
             $lastname,
             $email,
-            $hashedPassword,
-            $bio
+            $hashedPassword
         ]);
 
-        $user = $query->fetch(PDO::FETCH_ASSOC);
-
-        return $user;
-
+        return $query->rowCount() > 0;
     }
 
 }

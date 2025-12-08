@@ -34,7 +34,8 @@ class SecurityController extends AppController {
 
     // Tu można ustawić sesję i przekierować np.: i dodac cookies i token
     // $_SESSION['user_id'] = $user['id'];
-    // header("Location: /dashboard");
+    header("Location: /dashboard");
+    exit();
 }
 
 
@@ -68,7 +69,8 @@ class SecurityController extends AppController {
         );
 
 
-        return $this->render("login", ["messages"=>"ZAREJESTROWANO"]);
+        header("Location: /login");
+        exit();
     }
 
 }

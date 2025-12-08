@@ -27,6 +27,10 @@ class Routing{
         'dashboard' => [
             "controller" => 'DashboardController',
             "action" => 'index'
+        ],
+        'search-cards' => [
+            "controller" => 'DashboardController',
+            "action" => 'search'
         ]
     ];
 
@@ -68,6 +72,13 @@ class Routing{
             
                 $controller = $controller::getInstance();
                 $controller->$method($id);
+                break;
+
+            case 'search-cards':
+                $controller = Routing::$routes[$action]['controller'];
+                $method = Routing::$routes[$action]['action'];
+                $controller = $controller::getInstance();
+                $controller->$method();
                 break;
             default:
                 include 'public/views/404.html';
