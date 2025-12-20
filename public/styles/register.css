@@ -1,3 +1,5 @@
+/* Make the logo smaller only on the registration page */
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -46,6 +48,10 @@ body.register-page {
     margin: 0 auto;
     border-radius: 1em;
     box-shadow: 0 2em 4em -1em rgba(0, 0, 0, 0.15);
+}
+
+.register-page .logo {
+    font-size: 1.2em;
 }
 
 .form-header {
