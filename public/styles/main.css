@@ -1,6 +1,21 @@
 :root {
-    --primary-blue: #1cd2ff;
-    /* Ciemnoniebieski */
+    --primary: #13a4ec;
+    --background-light: #f6f7f8;
+    --text-dark: #0f172a;
+    --text-gray: #64748b;
+    --border-color: #cbd5e1;
+    --white: #ffffff;
+    --main-font: 'Plus Jakarta Sans', sans-serif;
+}
+
+body {
+    font-family: var(--main-font);
+    background-color: var(--background-light);
+    color: var(--text-dark);
+}
+
+.background-overlay {
+    background-image: var(--background-image);
 }
 
 h1 {
@@ -48,16 +63,18 @@ li a {
     align-items: center;
 }
 
+
 .active-text {
-    color: var(--primary-blue);
+    color: var(--primary);
     font-weight: bold;
 }
+
 
 
 .active-underline {
     width: 100%;
     height: 3px;
-    background-color: var(--primary-blue);
+    background-color: var(--primary);
     border-radius: 2px;
 }
 

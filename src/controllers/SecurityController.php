@@ -3,6 +3,7 @@
 require_once 'AppController.php';
 
 require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class SecurityController extends AppController {
 
@@ -42,7 +43,7 @@ class SecurityController extends AppController {
     public function register(){
 
         if($this->isGet()){
-            return $this->render("register");
+            return $this->render("register", ['lang' => get_lang('register')]);
         }
 
         $email = $_POST['email'] ?? '';
