@@ -1,12 +1,69 @@
 :root {
     --primary: #13a4ec;
-    --background-light: #f6f7f8;
+    --background-light: #f0f0f1;
     --text-dark: #0f172a;
-    --text-gray: #64748b;
+    --text-gray: hsl(215, 16%, 47%);
     --border-color: #cbd5e1;
     --white: #ffffff;
     --main-font: 'Plus Jakarta Sans', sans-serif;
+    --regular-font: 'Plus Jakarta Sans Regular', sans-serif;
+    --gap-section: 1.5rem;
+    --orange: orange;
+    --font-size-title: 1.825rem;
+    /* 30px */
+    --font-size-desc: 1.25rem;
+    /* 20px */
+    --font-size-body: 1rem;
+    /* 16px */
+    --font-size-small: 0.85rem;
+    /* ~14px */
+    --font-size-note: 0.75rem;
+    /* 12px */
 }
+
+.font-primary {
+    font-family: var(--main-font);
+}
+
+.font-secondary {
+    font-family: var(--regular-font);
+}
+
+.text-title {
+    font-family: var(--main-font);
+    font-weight: 700;
+    font-size: var(--font-size-title);
+    color: var(--text-dark);
+}
+
+.text-body {
+    font-family: var(--main-font);
+    font-weight: 400;
+    font-size: var(--font-size-small);
+    color: var(--text-gray);
+}
+
+.text-small {
+    font-family: var(--main-font);
+    font-weight: 400;
+    font-size: var(--font-size-small);
+    color: var(--text-gray);
+}
+
+.text-desc {
+    font-family: var(--main-font);
+    font-weight: 400;
+    font-size: var(--font-size-desc);
+    color: var(--text-gray);
+}
+
+.text-note {
+    font-family: var(--main-font);
+    font-weight: 400;
+    font-size: var(--font-size-note);
+    color: var(--text-gray);
+}
+
 
 body {
     font-family: var(--main-font);
@@ -17,6 +74,9 @@ body {
 .background-overlay {
     background-image: var(--background-image);
 }
+
+
+
 
 h1 {
     color: blue;
