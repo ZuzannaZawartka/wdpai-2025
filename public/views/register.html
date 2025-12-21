@@ -1,37 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="public/styles/main.css">
-    <link rel="stylesheet" type="text/css" href="public/styles/login.css">
-    <title>LOGIN</title>
-    <script src="public/scripts/main.js" defer></script>
+    <link rel="stylesheet" type="text/css" href="public/styles/register.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <title>Register - SportMatch</title>
 </head>
 
-<body>
+<body class="register-page">
+    <div class="background-overlay"></div>
 
-    <form method="POST" action="register">
-        <h1>LOGIN</h1>
+    <div class="container">
+        <form method="POST" action="register" class="register-form">
+            <div class="form-header">
+                <?php include __DIR__ . '/partials/logo.html'; ?>
+                <h1>
+                    <span class="text-primary">
+                        <?= $lang['register_title_create'] ?>
+                    </span>
+                    <?= $lang['register_title_account'] ?>
+                </h1>
+                <p>
+                    <?= $lang['register_subtitle'] ?>
+                </p>
+            </div>
 
-        <?php if(isset($messages)): ?>
-        <p class="messages">
-            <?= $messages ?>
-        </p>
-        <?php endif; ?>
+            <?php if(isset($messages)): ?>
+            <div class="messages">
+                <?= $messages ?>
+            </div>
+            <?php endif; ?>
 
-        <input type="email" placeholder="Twój Email" name="email" required>
-        <input type="text" placeholder="Imię" name="firstname" required>
-        <input type="text" placeholder="Nazwisko" name="lastname" required>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>
+                        <?= $lang['first_name'] ?>
+                    </label>
+                    <input type="text" placeholder="<?= $lang['first_name'] ?>" name="firstname" required>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <?= $lang['last_name'] ?>
+                    </label>
+                    <input type="text" placeholder="<?= $lang['last_name'] ?>" name="lastname" required>
+                </div>
+                <div class="input-group full-width">
+                    <label>
+                        <?= $lang['email'] ?>
+                    </label>
+                    <input type="email" placeholder="<?= $lang['email'] ?>" name="email" required>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <?= $lang['password'] ?>
+                    </label>
+                    <input type="password" placeholder="<?= $lang['password'] ?>" name="password" required>
+                </div>
+                <div class="input-group">
+                    <label>
+                        <?= $lang['repeat_password'] ?>
+                    </label>
+                    <input type="password" placeholder="<?= $lang['repeat_password'] ?>" name="password2" required>
+                </div>
+            </div>
 
-        <input type="password" placeholder="Hasło" name="password" required>
+            <button type="submit" class="btn-submit">
+                <?= $lang['register_button'] ?>
+            </button>
 
-        <input type="password" placeholder="Powtórz Hasło" name="password2" required>
-
-        <button type="submit">Register</button>
-
-    </form>
+            <p class="login-link">
+                <?= $lang['already_have_account'] ?> <a href="login">
+                    <?= $lang['login_here'] ?>
+                </a>
+            </p>
+        </form>
+    </div>
 </body>
 
 </html>
