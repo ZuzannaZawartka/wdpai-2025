@@ -41,7 +41,7 @@ class SecurityController extends AppController {
         }
 
         // Basic email format check (still return generic message)
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!$this->isValidEmail($email)) {
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
 
@@ -92,7 +92,7 @@ class SecurityController extends AppController {
         if (mb_strlen($email, 'UTF-8') === 0 || mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH) {
             $errors[] = "Email musi mieć maksymalnie " . self::MAX_EMAIL_LENGTH . " znaków";
         }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        if (!$this->isValidEmail($email)) {
             $errors[] = "Niepoprawny format email";
         }
         if (mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH || mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH) {

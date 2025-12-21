@@ -76,6 +76,18 @@ class AppController {
         return password_verify($password, $hash);
     }
 
+    // Email format validation helper (server-side)
+    protected function isValidEmail(string $email): bool
+    {
+        // Normalize and validate
+        $normalized = mb_strtolower(trim($email), 'UTF-8');
+        // Basic length guard (align with typical limits, actual caps enforced in controller)
+        if ($normalized === '' || mb_strlen($normalized, 'UTF-8') > 254) {
+            return false;
+        }
+        return filter_var($normalized, FILTER_VALIDATE_EMAIL) !== false;
+    }
+
     public static function getInstance(): static
     {
         $class = static::class;
