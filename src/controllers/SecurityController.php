@@ -43,7 +43,7 @@ class SecurityController extends AppController {
     public function register(){
 
         if($this->isGet()){
-            return $this->render("register", ['lang' => get_lang('register')]);
+            return $this->render("register");
         }
 
         $email = $_POST['email'] ?? '';

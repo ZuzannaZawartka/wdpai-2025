@@ -1,0 +1,15 @@
+.auth-link {
+    text-align: center;
+    margin-top: var(--gap-section);
+    color: var(--text-gray);
+}
+
+.a-link {
+    color: var(--primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.a-link:hover {
+    text-decoration: underline;
+}

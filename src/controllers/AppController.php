@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class AppController {
 
@@ -32,6 +33,9 @@ class AppController {
         $output = "";
                  
         if(file_exists($templatePath)){
+            if (!isset($variables['lang']) && is_string($template) && $template !== '') {
+                $variables['lang'] = get_lang($template);
+            }
             extract($variables);
             
             ob_start();

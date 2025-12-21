@@ -4,32 +4,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="public/styles/main.css">
-    <link rel="stylesheet" type="text/css" href="public/styles/login.css">
-    <title>LOGIN</title>
-    <script src="public/scripts/main.js" defer></script>
+    <title>SportMatch - Login</title>
+    <link rel="stylesheet" type="text/css" href="/public/styles/main.css">
+    <link rel="stylesheet" type="text/css" href="/public/styles/login.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
+
 </head>
 
 <body>
+    <main class="login-grid">
+        <div class="login-image"></div>
 
-    <form method="POST" action="login">
-        <h1>LOGIN</h1>
+        <div class="login-form">
+            <div class="form-container">
+                <?php include __DIR__ . '/components/logo.html'; ?>
+                <div class="form-header">
+                    <h1 class="text-title">
+                        <span class="text-primary">
+                            <?= $lang['login_title_welcome_part_one'] ?>
+                        </span>
+                        <?= $lang['login_title_welcome_part_two'] ?>
+                        <?= $lang['login_title_back'] ?>
+                    </h1>
+                    <p class="text-body">
+                        <?= $lang['login_subtitle'] ?>
+                    </p>
+                </div>
+                <form class="form" method="POST" action="/login">
+                    <div class="input-grid">
+                        <div class="input-group">
+                            <label class="text-body">
+                                <?= $lang['email'] ?>
+                            </label>
+                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email">
 
-        <?php if(isset($messages)): ?>
-        <p class="messages">
-            <?= $messages ?>
-        </p>
-        <?php endif; ?>
-
-        <input type="email" placeholder="Twój Email" name="email" required>
-
-        <input type="password" placeholder="Twoje hasło" name="password" required>
-
-        <button type="submit">Login</button>
-
-        <a href="/register">zarejestruj się</a>
-
-    </form>
+                        </div>
+                        <div class="input-group">
+                            <label class="text-body">
+                                <?= $lang['password'] ?>
+                            </label>
+                            <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>"
+                                name="password">
+                        </div>
+                    </div>
+                    <a class="forgot a-link text-small" href="#">
+                        <?= $lang['forgot_password'] ?>
+                    </a>
+                    <button type="submit" class="btn-submit btn-common">
+                        <?= $lang['login_button'] ?>
+                    </button>
+                    <div class="divider">
+                        <span></span>
+                        <p class="text-small">
+                            <?= $lang['or_continue_with'] ?>
+                        </p>
+                        <span></span>
+                    </div>
+                    <div class="socials">
+                        <button>G</button>
+                        <button>GH</button>
+                        <button>A</button>
+                    </div>
+                    <p class="auth-link text-small">
+                        <?= $lang['dont_have_account'] ?>
+                        <a class="a-link" href="/register">
+                            <?= $lang['register_here'] ?>
+                        </a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
 </body>
 
 </html>

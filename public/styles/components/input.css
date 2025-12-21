@@ -6,7 +6,7 @@
     font-size: var(--font-size-small);
     font-family: inherit;
     transition: all 0.2s;
-    background: var(--background-light);
+    background: var(--background-light-grey);
     color: var(--text-dark);
 }
 
@@ -14,6 +14,10 @@
 .input-common::placeholder {
     color: var(--text-gray);
     opacity: 1;
+}
+
+.input-common {
+    background-color: var(--background-light-grey);
 }
 
 
