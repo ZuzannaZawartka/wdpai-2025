@@ -22,6 +22,12 @@ class SecurityController extends AppController {
     public function login() {
 
         $this->ensureSession();
+        // Enforce allowed methods
+        if (!$this->isGet() && !$this->isPost()) {
+            header('HTTP/1.1 405 Method Not Allowed');
+            header('Allow: GET, POST');
+            return $this->render("login");
+        }
         if(!$this->isPost()){
             return $this->render("login");
         }
@@ -29,6 +35,7 @@ class SecurityController extends AppController {
         // CSRF validation
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
+            header('HTTP/1.1 403 Forbidden');
             return $this->render("login", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
         }
 
@@ -37,28 +44,38 @@ class SecurityController extends AppController {
 
         // Basic server-side length validation to prevent oversized inputs
         if (mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH || mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH || mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH) {
+            header('HTTP/1.1 400 Bad Request');
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
 
         // Basic email format check (still return generic message)
         if (!$this->isValidEmail($email)) {
+            header('HTTP/1.1 400 Bad Request');
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
 
-        $user = $this->userRepository->getUserByEmail($email);
+        try {
+            $user = $this->userRepository->getUserByEmail($email);
+        } catch (Throwable $e) {
+            header('HTTP/1.1 500 Internal Server Error');
+            return $this->render("login", ["messages" => "Wewnętrzny błąd serwera"]);
+        }
 
         if(!$user){
+            header('HTTP/1.1 401 Unauthorized');
             return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
 
         if(!$this->verifyPassword($password, $user['password'])){
+            header('HTTP/1.1 401 Unauthorized');
             return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
         $this->setAuthContext((int)$user['id'], $user['email']);
 
-        header("Location: /dashboard");
+        // Use 303 See Other to avoid re-POST on refresh
+        header("Location: /dashboard", true, 303);
         exit();
     }
 
@@ -66,12 +83,19 @@ class SecurityController extends AppController {
     public function register(){
 
         $this->ensureSession();
+        // Enforce allowed methods
+        if (!$this->isGet() && !$this->isPost()) {
+            header('HTTP/1.1 405 Method Not Allowed');
+            header('Allow: GET, POST');
+            return $this->render("register");
+        }
         if($this->isGet()){
             return $this->render("register");
         }
         // CSRF validation
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
+            header('HTTP/1.1 403 Forbidden');
             return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
         }
 
@@ -101,25 +125,43 @@ class SecurityController extends AppController {
         if ($password !== $password2) {
             $errors[] = "Hasła nie są identyczne";
         }
-        if ($this->userRepository->getUserByEmail($email)) {
-            // Neutral message to avoid user enumeration via register form
-            $errors[] = "Nie można utworzyć konta z podanymi danymi";
+        $emailExists = false;
+        try {
+            if ($this->userRepository->getUserByEmail($email)) {
+                // Neutral message to avoid user enumeration via register form
+                $errors[] = "Nie można utworzyć konta z podanymi danymi";
+                $emailExists = true;
+            }
+        } catch (Throwable $e) {
+            header('HTTP/1.1 500 Internal Server Error');
+            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera"]);
         }
+
         if (!empty($errors)) {
+            if ($emailExists) {
+                header('HTTP/1.1 409 Conflict');
+            } else {
+                header('HTTP/1.1 400 Bad Request');
+            }
             return $this->render("register", ["messages" => implode('<br>', $errors)]);
         }
 
         $hashedPassword = $this->hashPassword($password);
 
-        $this->userRepository->createUser(
-            $email,
-            $hashedPassword,
-            $firstname,
-            $lastname
-        );
+        try {
+            $this->userRepository->createUser(
+                $email,
+                $hashedPassword,
+                $firstname,
+                $lastname
+            );
+        } catch (Throwable $e) {
+            header('HTTP/1.1 500 Internal Server Error');
+            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera"]);
+        }
 
-
-        header("Location: /login");
+        // Use 303 See Other to avoid re-POST on refresh
+        header("Location: /login", true, 303);
         exit();
     }
 
