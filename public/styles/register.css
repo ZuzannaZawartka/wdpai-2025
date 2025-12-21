@@ -66,15 +66,6 @@ body.register-page {
     margin-bottom: var(--gap-section);
 }
 
-.messages {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    padding: 1em;
-    border-radius: 0.5em;
-    margin-bottom: 1.5em;
-    font-size: 0.9em;
-}
-
 @media (max-width: 640px) {
     .input-grid {
         grid-template-columns: 1fr;

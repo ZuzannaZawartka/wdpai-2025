@@ -16,6 +16,8 @@
 
     <div class="container">
         <form method="POST" action="register" class="register-form">
+            <input type="hidden" name="csrf_token"
+                value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
             <div class="form-header">
                 <?php include __DIR__ . '/components/logo.html'; ?>
                 <h1 class="text-title">

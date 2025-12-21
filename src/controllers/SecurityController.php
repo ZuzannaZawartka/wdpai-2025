@@ -21,8 +21,15 @@ class SecurityController extends AppController {
 
     public function login() {
 
+        $this->ensureSession();
         if(!$this->isPost()){
             return $this->render("login");
+        }
+        
+        // CSRF validation
+        $csrf = $_POST['csrf_token'] ?? '';
+        if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
+            return $this->render("login", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
         }
 
         $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
@@ -58,8 +65,14 @@ class SecurityController extends AppController {
 
     public function register(){
 
+        $this->ensureSession();
         if($this->isGet()){
             return $this->render("register");
+        }
+        // CSRF validation
+        $csrf = $_POST['csrf_token'] ?? '';
+        if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
+            return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
         }
 
         $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
