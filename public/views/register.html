@@ -17,14 +17,14 @@
     <div class="container">
         <form method="POST" action="register" class="register-form">
             <div class="form-header">
-                <?php include __DIR__ . '/partials/logo.html'; ?>
-                <h1>
+                <?php include __DIR__ . '/components/logo.html'; ?>
+                <h1 class="text-title">
                     <span class="text-primary">
                         <?= $lang['register_title_create'] ?>
                     </span>
                     <?= $lang['register_title_account'] ?>
                 </h1>
-                <p>
+                <p class="text-body">
                     <?= $lang['register_subtitle'] ?>
                 </p>
             </div>
@@ -37,42 +37,46 @@
 
             <div class="input-grid">
                 <div class="input-group">
-                    <label>
+                    <label class="text-body">
                         <?= $lang['first_name'] ?>
                     </label>
-                    <input type="text" placeholder="<?= $lang['first_name'] ?>" name="firstname" required>
+                    <input type="text" class="input-common" placeholder="<?= $lang['first_name'] ?>" name="firstname"
+                        required>
                 </div>
                 <div class="input-group">
-                    <label>
+                    <label class="text-body">
                         <?= $lang['last_name'] ?>
                     </label>
-                    <input type="text" placeholder="<?= $lang['last_name'] ?>" name="lastname" required>
+                    <input type="text" class="input-common" placeholder="<?= $lang['last_name'] ?>" name="lastname"
+                        required>
                 </div>
                 <div class="input-group full-width">
-                    <label>
+                    <label class="text-body">
                         <?= $lang['email'] ?>
                     </label>
-                    <input type="email" placeholder="<?= $lang['email'] ?>" name="email" required>
+                    <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email" required>
                 </div>
                 <div class="input-group">
-                    <label>
+                    <label class="text-body">
                         <?= $lang['password'] ?>
                     </label>
-                    <input type="password" placeholder="<?= $lang['password'] ?>" name="password" required>
+                    <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>" name="password"
+                        required>
                 </div>
                 <div class="input-group">
-                    <label>
+                    <label class="text-body">
                         <?= $lang['repeat_password'] ?>
                     </label>
-                    <input type="password" placeholder="<?= $lang['repeat_password'] ?>" name="password2" required>
+                    <input type="password" class="input-common" placeholder="<?= $lang['repeat_password'] ?>"
+                        name="password2" required>
                 </div>
             </div>
 
-            <button type="submit" class="btn-submit">
+            <button type="submit" class="btn-submit btn-common">
                 <?= $lang['register_button'] ?>
             </button>
 
-            <p class="login-link">
+            <p class="login-link text-small">
                 <?= $lang['already_have_account'] ?> <a href="login">
                     <?= $lang['login_here'] ?>
                 </a>
