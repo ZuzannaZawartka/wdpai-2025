@@ -1,57 +1,91 @@
+@import url('components/button.css');
+@import url('components/input-group.css');
+@import url('components/link.css');
+
+html,
 body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    height: 100%;
 }
 
-form {
-    background-color: bisque;
-    border-radius: 1rem;
-    padding: 1.5rem;
-    width: 45vw;
+.login-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100vw;
+    height: 100vh;
+}
+
+.login-image {
+    height: 100vh;
     display: flex;
-    flex-direction: column;
-    justify-content: center;
     align-items: center;
-    gap: 1.5rem;
-    box-shadow: rgba(255, 255, 255, 0.1) 0px 1px 1px 0px inset, rgba(50, 50, 93, 0.25) 0px 50px 100px -20px, rgba(0, 0, 0, 0.3) 0px 30px 60px -30px;
+    justify-content: center;
+    background-image: url('/public/images/login-background.png');
+    background-size: cover;
+    background-position: center;
 }
 
 
-input,
-button {
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    transition: transform 0.3s ease-in-out;
-    display: block;
+.login-form {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-container {
     width: 100%;
+    max-width: 28.125em;
+    padding: 2em;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
 }
 
-button {
+.form-header {
+    margin-bottom: var(--gap-section);
+}
+
+.input-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1em;
+}
+
+.forgot {
+    display: block;
+    margin-top: 0.5em;
+    text-align: right;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin: 1.5em 0;
+}
+
+.divider span {
+    flex: 1;
+    height: 0.0625em;
+}
+
+.socials {
+    display: flex;
+    justify-content: center;
+    gap: 1em;
+    margin-bottom: 1em;
+}
+
+.socials button {
+    width: 3em;
+    height: 3em;
+    border-radius: 50%;
     border: none;
+    background-color: #e5e7eb;
     cursor: pointer;
     font-weight: bold;
-    color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    background: linear-gradient(145deg, #ff7e5f, #feb47b);
 }
 
-button:hover {
-    transform: scale(1.05);
-    filter: brightness(1.1);
-}
-
-
-input:focus {
-    border-color: #ff7e5f;
-    outline: none;
-    box-shadow: 0 0 5px rgba(255, 126, 95, 0.5);
-}
-
-@media screen and(max-width: 480px) {
-    form {
-        width: 100vw;
-    }
+.socials button:hover {
+    opacity: 0.85;
 }

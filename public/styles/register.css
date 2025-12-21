@@ -1,5 +1,6 @@
 @import url('components/button.css');
 @import url('components/input-group.css');
+@import url('components/link.css');
 
 * {
     box-sizing: border-box;
@@ -53,8 +54,8 @@ body.register-page {
 
 .input-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5em;
+    grid-template-columns: 1fr;
+    gap: 1em;
 }
 
 .full-width {
@@ -65,24 +66,6 @@ body.register-page {
     margin-bottom: var(--gap-section);
 }
 
-
-.login-link {
-    text-align: center;
-    margin-top: 1.5em;
-    font-size: 0.9em;
-    color: var(--text-gray);
-}
-
-.login-link a {
-    color: var(--primary);
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.login-link a:hover {
-    text-decoration: underline;
-}
-
 .messages {
     background-color: #fee2e2;
     color: #b91c1c;
@@ -91,11 +74,6 @@ body.register-page {
     margin-bottom: 1.5em;
     font-size: 0.9em;
 }
-
-.text-primary {
-    color: var(--primary);
-}
-
 
 @media (max-width: 640px) {
     .input-grid {
