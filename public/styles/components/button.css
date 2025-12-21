@@ -1,0 +1,23 @@
+.btn-common {
+    width: 100%;
+    background-color: var(--primary);
+    color: white;
+    padding: 1em;
+    border: none;
+    border-radius: 0.5em;
+    font-size: var(--font-size-body);
+    font-weight: 700;
+    cursor: pointer;
+    margin-top: 2em;
+    transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 1em 1.5em -0.3em rgba(19, 164, 236, 0.3);
+}
+
+.btn-common:hover {
+    transform: scale(1.02);
+    background-color: var(--primary);
+}
+
+.btn-common:active {
+    transform: scale(1);
+}
