@@ -58,6 +58,21 @@ class AppController {
         }
     }
 
+    // Password hashing helper: prefers Argon2id if available, otherwise bcrypt
+    protected function hashPassword(string $password): string
+    {
+        if (defined('PASSWORD_ARGON2ID')) {
+            return password_hash($password, PASSWORD_ARGON2ID);
+        }
+        return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+    }
+
+    // Password verification helper
+    protected function verifyPassword(string $password, string $hash): bool
+    {
+        return password_verify($password, $hash);
+    }
+
     public static function getInstance(): static
     {
         $class = static::class;

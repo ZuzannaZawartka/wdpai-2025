@@ -60,7 +60,7 @@ class SecurityController extends AppController {
             return $this->render("register", ["messages"=>"Użytkownik o podanym emailu już istnieje"]);
         }
 
-        $hashedPassword = password_hash($password, PASSWORD_BCRYPT);
+        $hashedPassword = $this->hashPassword($password);
 
         $this->userRepository->createUser(
             $email,
