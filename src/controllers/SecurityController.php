@@ -7,6 +7,12 @@ require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class SecurityController extends AppController {
 
+    private const MAX_EMAIL_LENGTH = 150;
+    private const MIN_PASSWORD_LENGTH = 8;
+    private const MAX_PASSWORD_LENGTH = 128;
+    private const MAX_NAME_LENGTH = 100;
+    private const MIN_NAME_LENGTH = 2;
+
     private UserRepository $userRepository;
 
     public function __construct() {
@@ -19,18 +25,28 @@ class SecurityController extends AppController {
             return $this->render("login");
         }
 
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
+        $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
+        $password = trim($_POST['password'] ?? '');
+
+        // Basic server-side length validation to prevent oversized inputs
+        if (mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH || mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH || mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH) {
+            return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
+        }
+
+        // Basic email format check (still return generic message)
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
+        }
 
         $user = $this->userRepository->getUserByEmail($email);
 
         if(!$user){
-            return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
+            return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
 
-        if(!password_verify($password, $user['password'])){
-            return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
+        if(!$this->verifyPassword($password, $user['password'])){
+            return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
         $this->setAuthContext((int)$user['id'], $user['email']);
@@ -46,18 +62,38 @@ class SecurityController extends AppController {
             return $this->render("register");
         }
 
-        $email = $_POST['email'] ?? '';
-        $password = $_POST['password'] ?? '';
-        $password2 = $_POST['password2'] ?? '';
-        $firstname = $_POST['firstname'] ?? '';
-        $lastname = $_POST['lastname'] ?? '';
+        $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
+        $password = trim($_POST['password'] ?? '');
+        $password2 = trim($_POST['password2'] ?? '');
+        $firstname = trim($_POST['firstname'] ?? '');
+        $lastname = trim($_POST['lastname'] ?? '');
 
-        if($password !== $password2){
-            return $this->render("register", ["messages"=>"Hasła nie są identyczne"]);
+        // Validation aligned with DB schema and security guidelines
+        $errors = [];
+        if (mb_strlen($firstname, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($firstname, 'UTF-8') > self::MAX_NAME_LENGTH) {
+            $errors[] = "Imię musi mieć " . self::MIN_NAME_LENGTH . "–" . self::MAX_NAME_LENGTH . " znaków";
         }
-
-        if($this->userRepository->getUserByEmail($email)){
-            return $this->render("register", ["messages"=>"Użytkownik o podanym emailu już istnieje"]);
+        if (mb_strlen($lastname, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($lastname, 'UTF-8') > self::MAX_NAME_LENGTH) {
+            $errors[] = "Nazwisko musi mieć " . self::MIN_NAME_LENGTH . "–" . self::MAX_NAME_LENGTH . " znaków";
+        }
+        if (mb_strlen($email, 'UTF-8') === 0 || mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH) {
+            $errors[] = "Email musi mieć maksymalnie " . self::MAX_EMAIL_LENGTH . " znaków";
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = "Niepoprawny format email";
+        }
+        if (mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH || mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH) {
+            $errors[] = "Hasło musi mieć " . self::MIN_PASSWORD_LENGTH . "–" . self::MAX_PASSWORD_LENGTH . " znaków";
+        }
+        if ($password !== $password2) {
+            $errors[] = "Hasła nie są identyczne";
+        }
+        if ($this->userRepository->getUserByEmail($email)) {
+            // Neutral message to avoid user enumeration via register form
+            $errors[] = "Nie można utworzyć konta z podanymi danymi";
+        }
+        if (!empty($errors)) {
+            return $this->render("register", ["messages" => implode('<br>', $errors)]);
         }
 
         $hashedPassword = $this->hashPassword($password);

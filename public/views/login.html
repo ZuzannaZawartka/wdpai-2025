@@ -37,7 +37,8 @@
                             <label class="text-body">
                                 <?= $lang['email'] ?>
                             </label>
-                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email">
+                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email"
+                                required maxlength="150">
 
                         </div>
                         <div class="input-group">
@@ -45,7 +46,7 @@
                                 <?= $lang['password'] ?>
                             </label>
                             <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>"
-                                name="password">
+                                name="password" required minlength="8" maxlength="128">
                         </div>
                     </div>
                     <a class="forgot a-link text-small" href="#">
