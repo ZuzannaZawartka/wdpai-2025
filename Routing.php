@@ -14,23 +14,33 @@ class Routing{
     public static $routes = [
         'login' => [
             "controller" => 'SecurityController',
-            "action" => 'login'
+            "action" => 'login',
+            "auth" => false
         ],
         'register' => [
             "controller" => 'SecurityController',
-            "action" => 'register'
+            "action" => 'register',
+            "auth" => false
+        ],
+        'logout' => [
+            "controller" => 'SecurityController',
+            "action" => 'logout',
+            "auth" => true
         ],
         'user' => [
             "controller" => 'UserController',
-            "action" => 'details'
+            "action" => 'details',
+            "auth" => true
         ],
         'dashboard' => [
             "controller" => 'DashboardController',
-            "action" => 'index'
+            "action" => 'index',
+            "auth" => true
         ],
         'search-cards' => [
             "controller" => 'DashboardController',
-            "action" => 'search'
+            "action" => 'search',
+            "auth" => true
         ]
     ];
 
@@ -38,52 +48,41 @@ class Routing{
         $path = trim($path, '/');
         $segments = explode('/', $path);
         
-        // Pobierz pierwszy segment (nazwa routingu)
         $action = $segments[0] ?? '';
         
-        // Pobierz parametry (wszystko po pierwszym segmencie)
         $parameters = array_slice($segments, 1);
         
         switch($action){
-            case 'dashboard':
-                $controller = Routing::$routes[$action]['controller'];
-                $method = Routing::$routes[$action]['action'];
-
-                $controller = $controller::getInstance();
-                $controller->$method();
-                break;
-            case 'register':
-            case 'login':
-                $controller = Routing::$routes[$action]['controller'];
-                $method = Routing::$routes[$action]['action'];
-                
-                $controller = $controller::getInstance();
-                $controller->$method();
-                break;
             case 'user':
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;
                 }
-                
-                $id = $parameters[0];
-                $controller = Routing::$routes[$action]['controller'];
-                $method = Routing::$routes[$action]['action'];
-            
-                $controller = $controller::getInstance();
-                $controller->$method($id);
-                break;
-
-            case 'search-cards':
-                $controller = Routing::$routes[$action]['controller'];
-                $method = Routing::$routes[$action]['action'];
-                $controller = $controller::getInstance();
-                $controller->$method();
+                self::dispatch($action, [$parameters[0]]);
                 break;
             default:
-                include 'public/views/404.html';
-                echo "<h2>404</h2>";
+                self::dispatch($action);
                 break;
         }
+    }
+
+    private static function dispatch(string $action, array $parameters = []): void
+    {
+        if (!isset(self::$routes[$action])) {
+            include 'public/views/404.html';
+            echo "<h2>404</h2>";
+            return;
+        }
+
+        $controllerClass = self::$routes[$action]['controller'];
+        $method = self::$routes[$action]['action'];
+
+        $controller = $controllerClass::getInstance();
+
+        // Check authentication if required, and if it is, enforce it
+        if (!empty(self::$routes[$action]['auth'])) {
+            $controller->requireAuth();
+        }
+        call_user_func_array([$controller, $method], $parameters);
     }
 }

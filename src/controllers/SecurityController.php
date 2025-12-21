@@ -15,29 +15,29 @@ class SecurityController extends AppController {
 
     public function login() {
 
-    if(!$this->isPost()){
-        return $this->render("login");
+        if(!$this->isPost()){
+            return $this->render("login");
+        }
+
+        $email = $_POST['email'] ?? '';
+        $password = $_POST['password'] ?? '';
+
+        $user = $this->userRepository->getUserByEmail($email);
+
+        if(!$user){
+            return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
+        }
+
+
+        if(!password_verify($password, $user['password'])){
+            return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
+        }
+
+        $this->setAuthContext((int)$user['id'], $user['email']);
+
+        header("Location: /dashboard");
+        exit();
     }
-
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    $user = $this->userRepository->getUserByEmail($email);
-
-    if(!$user){
-        return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
-    }
-
-
-    if(!password_verify($password, $user['password'])){
-        return $this->render("login", ["messages"=>"Niepoprawny email lub hasło"]);
-    }
-
-    // Tu można ustawić sesję i przekierować np.: i dodac cookies i token
-    // $_SESSION['user_id'] = $user['id'];
-    header("Location: /dashboard");
-    exit();
-}
 
 
     public function register(){
@@ -69,6 +69,23 @@ class SecurityController extends AppController {
             $lastname
         );
 
+
+        header("Location: /login");
+        exit();
+    }
+
+    public function logout(): void
+    {
+        $this->ensureSession();
+
+        $_SESSION = [];
+
+        if (ini_get('session.use_cookies')) {
+            $params = session_get_cookie_params();
+            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        }
+
+        session_destroy();
 
         header("Location: /login");
         exit();
