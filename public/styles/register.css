@@ -1,9 +1,6 @@
-<<<<<<< Updated upstream
-=======
 @import url('components/button.css');
 @import url('components/input-group.css');
 
->>>>>>> Stashed changes
 * {
     box-sizing: border-box;
     margin: 0;
@@ -54,26 +51,7 @@ body.register-page {
     box-shadow: 0 2em 4em -1em rgba(0, 0, 0, 0.15);
 }
 
-<<<<<<< Updated upstream
-.form-header {
-    margin-bottom: 2em;
-}
 
-.form-header h1 {
-    font-size: 2.25em;
-    font-weight: 800;
-    color: var(--text-dark);
-    letter-spacing: -0.033em;
-}
-
-.form-header p {
-    color: var(--text-gray);
-    margin-top: 0.5em;
-}
-
-
-=======
->>>>>>> Stashed changes
 .input-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
