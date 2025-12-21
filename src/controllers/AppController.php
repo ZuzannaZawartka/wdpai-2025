@@ -11,13 +11,19 @@ class AppController {
     protected function ensureSession(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+            // Detect HTTPS natively or behind reverse proxy
+            $secure = (
+                (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
+                (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
+                ((isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443'))
+            );
             session_set_cookie_params([
                 'lifetime' => 0,
                 'path' => '/',
                 'domain' => '',
                 'secure' => $secure,
                 'httponly' => true,
+                 //sameSite to 'Lax' to allow some cross-site requests 
                 'samesite' => 'Lax'
             ]);
             session_start();
