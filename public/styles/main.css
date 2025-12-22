@@ -83,3 +83,12 @@ body {
 .background-overlay {
     background-image: var(--background-image);
 }
+
+.messages {
+    background-color: #fee2e2;
+    color: #b91c1c;
+    padding: 1em;
+    border-radius: 0.5em;
+    margin-bottom: 1.5em;
+    font-size: 0.9em;
+}

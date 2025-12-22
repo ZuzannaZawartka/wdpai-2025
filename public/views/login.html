@@ -31,13 +31,22 @@
                         <?= $lang['login_subtitle'] ?>
                     </p>
                 </div>
+                <?php if(isset($messages)): ?>
+                <div class="messages">
+                    <?= $messages ?>
+                </div>
+                <?php endif; ?>
+
                 <form class="form" method="POST" action="/login">
+                    <input type="hidden" name="csrf_token"
+                        value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
                     <div class="input-grid">
                         <div class="input-group">
                             <label class="text-body">
                                 <?= $lang['email'] ?>
                             </label>
-                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email">
+                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email"
+                                required maxlength="150">
 
                         </div>
                         <div class="input-group">
@@ -45,7 +54,7 @@
                                 <?= $lang['password'] ?>
                             </label>
                             <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>"
-                                name="password">
+                                name="password" required minlength="8" maxlength="128">
                         </div>
                     </div>
                     <a class="forgot a-link text-small" href="#">

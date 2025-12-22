@@ -16,6 +16,8 @@
 
     <div class="container">
         <form method="POST" action="register" class="register-form">
+            <input type="hidden" name="csrf_token"
+                value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
             <div class="form-header">
                 <?php include __DIR__ . '/components/logo.html'; ?>
                 <h1 class="text-title">
@@ -41,34 +43,35 @@
                         <?= $lang['first_name'] ?>
                     </label>
                     <input type="text" class="input-common" placeholder="<?= $lang['first_name'] ?>" name="firstname"
-                        required>
+                        required maxlength="100" minlength="2">
                 </div>
                 <div class="input-group">
                     <label class="text-body">
                         <?= $lang['last_name'] ?>
                     </label>
                     <input type="text" class="input-common" placeholder="<?= $lang['last_name'] ?>" name="lastname"
-                        required>
+                        required maxlength="100" minlength="2">
                 </div>
                 <div class="input-group full-width">
                     <label class="text-body">
                         <?= $lang['email'] ?>
                     </label>
-                    <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email" required>
+                    <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email" required
+                        maxlength="150">
                 </div>
                 <div class="input-group">
                     <label class="text-body">
                         <?= $lang['password'] ?>
                     </label>
                     <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>" name="password"
-                        required>
+                        required minlength="8" maxlength="128">
                 </div>
                 <div class="input-group">
                     <label class="text-body">
                         <?= $lang['repeat_password'] ?>
                     </label>
                     <input type="password" class="input-common" placeholder="<?= $lang['repeat_password'] ?>"
-                        name="password2" required>
+                        name="password2" required minlength="8" maxlength="128">
                 </div>
             </div>
 
