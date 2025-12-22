@@ -17,16 +17,24 @@ class AppController {
                 (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
                 ((isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443'))
             );
-            session_set_cookie_params([
-                'lifetime' => 0,
-                'path' => '/',
-                'domain' => '',
-                'secure' => $secure,
-                'httponly' => true,
-                 //sameSite to 'Lax' to allow some cross-site requests 
-                'samesite' => 'Lax'
-            ]);
-            session_start();
+            // If headers already sent (e.g., due to a prior warning), avoid changing cookie params
+            if (!headers_sent()) {
+                session_set_cookie_params([
+                    'lifetime' => 0,
+                    'path' => '/',
+                    'domain' => '',
+                    'secure' => $secure,
+                    'httponly' => true,
+                    //sameSite to 'Lax' to allow some cross-site requests 
+                    'samesite' => 'Lax'
+                ]);
+            }
+            if (!headers_sent()) {
+                session_start();
+            } else {
+                // Attempt to start session even if headers were sent; may fail silently but avoids warnings
+                @session_start();
+            }
             if (empty($_SESSION['csrf_token'])) {
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }

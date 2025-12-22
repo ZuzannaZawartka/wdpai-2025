@@ -18,3 +18,12 @@ VALUES (
     TRUE
 );
  
+-- Global login attempts tracking (per email + IP)
+CREATE TABLE IF NOT EXISTS login_attempts (
+    email VARCHAR(150) NOT NULL,
+    ip_hash VARCHAR(64) NOT NULL,
+    count INTEGER NOT NULL DEFAULT 0,
+    lock_until BIGINT NOT NULL DEFAULT 0,
+    last_attempt BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (email, ip_hash)
+);

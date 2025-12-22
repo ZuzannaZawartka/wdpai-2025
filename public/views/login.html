@@ -32,11 +32,11 @@
                     </p>
                 </div>
                 <?php if(isset($messages)): ?>
-                    <div class="messages">
-                        <?= $messages ?>
-                    </div>
+                <div class="messages">
+                    <?= $messages ?>
+                </div>
                 <?php endif; ?>
-                
+
                 <form class="form" method="POST" action="/login">
                     <input type="hidden" name="csrf_token"
                         value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
