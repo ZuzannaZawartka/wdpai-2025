@@ -1,4 +1,6 @@
 @import url('components/button.css');
+@import url('components/link.css');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined');
 
 :root {
     --primary: #13a4ec;
@@ -17,18 +19,23 @@
     /* Button variants */
     --button-muted-bg: #e5e7eb;
     --button-muted-fg: #475569;
+    /* Panel gradient colors */
+    --panel-bg-start: rgba(19, 164, 236, 0.06);
+    --panel-bg-end: rgba(255, 87, 34, 0.06);
     /* Header/Nav */
     --nav-link-fg: #475569;
     --nav-link-hover-fg: var(--text-dark);
-    --font-size-title: 1.825rem;
+    --font-size-title: 2rem;
+
+    --font-size-subtitle: 1.2rem;
     /* 30px */
-    --font-size-desc: 1.25rem;
+    --font-size-desc: 1rem;
     /* 20px */
-    --font-size-body: 1rem;
+    --font-size-body: 0.8rem;
     /* 16px */
-    --font-size-small: 0.85rem;
+    --font-size-small: 0.7rem;
     /* ~14px */
-    --font-size-note: 0.75rem;
+    --font-size-note: 0.6rem;
     /* 12px */
 }
 
@@ -70,10 +77,59 @@
     color: var(--text-gray);
 }
 
+.text-title-large {
+    font-family: var(--main-font);
+    font-weight: 800;
+    font-size: var(--font-size-title);
+    color: var(--text-dark);
+}
+
+
+/* Card/Page title utility */
+.text-title {
+    font-family: var(--main-font);
+    font-weight: 800;
+    font-size: var(--font-size-subtitle);
+    color: var(--text-dark);
+}
+
+
+/* Card/Page title utility */
+.text-title-smaller {
+    font-family: var(--main-font);
+    font-weight: 800;
+    font-size: var(--font-size-desc);
+    color: var(--text-dark);
+}
+
+
+
+.text-size-body {
+    font-size: var(--font-size-body);
+}
+
+.text-size-small {
+    font-size: var(--font-size-small);
+}
+
+/* Compact strong text used for tile labels and compact buttons */
+.text-compact-strong {
+    font-size: var(--font-size-note);
+    font-weight: 700;
+}
+
 body {
     font-family: var(--main-font);
     background-color: var(--white);
     color: var(--text-dark);
+}
+
+/* Shared page container */
+.site-main {
+    width: 100%;
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem;
 }
 
 .background-overlay {
@@ -87,4 +143,18 @@ body {
     border-radius: 0.5em;
     margin-bottom: 1.5em;
     font-size: 0.9em;
+}
+
+/* Reusable subtle gradient panel */
+.panel {
+    background: linear-gradient(135deg, var(--panel-bg-start) 0%, var(--panel-bg-end) 100%);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+}
+
+/* Global material icon class */
+.material {
+    font-family: 'Material Symbols Outlined';
+    color: var(--primary);
+
 }

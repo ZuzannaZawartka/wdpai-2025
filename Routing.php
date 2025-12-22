@@ -3,6 +3,7 @@
 require_once 'src/controllers/SecurityController.php';
 require_once 'src/controllers/UserController.php';
 require_once 'src/controllers/DashboardController.php';
+require_once 'src/controllers/SportsController.php';
 
 
 //TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
@@ -34,6 +35,11 @@ class Routing{
         ],
         'dashboard' => [
             "controller" => 'DashboardController',
+            "action" => 'index',
+            "auth" => true
+        ],
+        'sports' => [
+            "controller" => 'SportsController',
             "action" => 'index',
             "auth" => true
         ],

@@ -22,7 +22,6 @@
     transform: scale(1);
 }
 
-
 .button {
     display: inline-flex;
     align-items: center;
@@ -32,6 +31,8 @@
     border-radius: 0.5rem;
     font-weight: 700;
     text-decoration: none;
+    border: none;
+    font-family: var(--main-font);
 }
 
 .button.primary {

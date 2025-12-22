@@ -4,12 +4,13 @@
 <section class="hero">
     <div class="hero-grid">
         <div class="hero-copy">
-            <h1>Unleash Your Inner Athlete</h1>
-            <p>Discover local sports events and connect with fellow enthusiasts. Your next game is just a click away.
+            <h1 class="text-title-large">Unleash Your Inner Athlete</h1>
+            <p class="text-desc">Discover local sports events and connect with fellow enthusiasts. Your next game is
+                just a click away.
             </p>
             <div class="actions">
-                <a href="#" class="button primary">Find Your Next Game</a>
-                <a href="#" class="button accent with-icon"><span class="icon">＋</span> Create Event</a>
+                <a href="#" class="button primary text-size-small">Find Your Next Game</a>
+                <a href="#" class="button accent with-icon text-size-small"><span class="icon">＋</span> Create Event</a>
             </div>
         </div>
         <div class="hero-art">
@@ -32,89 +33,92 @@
     </div>
     <div class="backdrop"></div>
     <div class="container pad">
-        <section class="section">
-            <div class="section-head">
-                <h2>Your Upcoming Events</h2>
-                <a class="link" href="#">View All</a>
-            </div>
-            <div class="cards two-col">
-                <?php $upcoming = $upcomingEvents ?? []; foreach ($upcoming as $ev): ?>
-                <article class="card">
-                    <div class="card-media" style="background-image:url('<?= htmlspecialchars($ev['imageUrl']) ?>')">
-                    </div>
-                    <div class="card-body">
-                        <h3>
-                            <?= htmlspecialchars($ev['title']) ?>
-                        </h3>
-                        <p class="meta">
-                            <?= htmlspecialchars($ev['dateText']) ?>
-                        </p>
-                        <p class="meta">
-                            <?= htmlspecialchars($ev['location']) ?>
-                        </p>
-                        <a href="#" class="button muted block">View Details</a>
-                    </div>
-                </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
+        <div class="panel">
+            <section class="section compact">
+                <div class="section-head">
+                    <h2 class="text-title">Your Upcoming Events</h2>
+                    <a class="a-link text-size-small" href="#">View All</a>
+                </div>
+                <div class="cards two-col">
+                    <?php $upcoming = $upcomingEvents ?? []; foreach ($upcoming as $ev): ?>
+                    <article class="card">
+                        <div class="card-media"
+                            style="background-image:url('<?= htmlspecialchars($ev['imageUrl']) ?>')">
+                        </div>
+                        <div class="card-body">
+                            <h3 class="text-title-smaller">
+                                <?= htmlspecialchars($ev['title']) ?>
+                            </h3>
+                            <p class="meta text-small">
+                                <?= htmlspecialchars($ev['dateText']) ?>
+                            </p>
+                            <p class="meta text-small">
+                                <?= htmlspecialchars($ev['location']) ?>
+                            </p>
+                            <a href="#" class="button muted block text-size-small">View Details</a>
+                        </div>
+                    </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
 
-        <section class="section">
-            <div class="section-head">
-                <h2>Your favourite sports</h2>
-                <a class="link" href="#">Manage sports</a>
-            </div>
-            <div class="grid-quick">
-                <?php $fav = $favouriteSports ?? []; foreach ($fav as $s): ?>
-                <a href="#" class="tile">
-                    <div class="tile-icon">
-                        <?= htmlspecialchars($s['icon']) ?>
-                    </div>
-                    <div>
-                        <h3>
-                            <?= htmlspecialchars($s['name']) ?>
-                        </h3>
-                        <p>
-                            <?= htmlspecialchars($s['nearbyText']) ?>
-                        </p>
-                    </div>
-                </a>
-                <?php endforeach; ?>
-                <a href="#" class="tile add">
-                    <div class="tile-add">＋</div>
-                    <p>Add Sport</p>
-                </a>
-            </div>
-        </section>
+            <section class="section">
+                <div class="section-head">
+                    <h2 class="text-title">Your favourite sports</h2>
+                </div>
+                <div class="grid-quick">
+                    <?php $fav = $favouriteSports ?? []; foreach ($fav as $s): ?>
+                    <a href="#" class="tile">
+                        <div class="tile-icon">
+                            <?= htmlspecialchars($s['icon']) ?>
+                        </div>
+                        <div>
+                            <h3 class="text-title-smaller">
+                                <?= htmlspecialchars($s['name']) ?>
+                            </h3>
+                            <p class="text-small">
+                                <?= htmlspecialchars($s['nearbyText']) ?>
+                            </p>
+                        </div>
+                    </a>
+                    <?php endforeach; ?>
+                    <a href="#" class="tile add">
+                        <div class="tile-add text-size-small">＋</div>
+                        <p class="text-small">Add Sport</p>
+                    </a>
+                </div>
+            </section>
 
-        <section class="section">
-            <div class="section-head">
-                <h2>Personalized Suggestions</h2>
-                <a class="link" href="#">See More</a>
-            </div>
-            <div class="cards three-col">
-                <?php $recs = $suggestions ?? []; foreach ($recs as $rec): ?>
-                <article class="card">
-                    <div class="card-media" style="background-image:url('<?= htmlspecialchars($rec['imageUrl']) ?>')">
-                    </div>
-                    <div class="card-body">
-                        <h3>
-                            <?= htmlspecialchars($rec['title']) ?>
-                        </h3>
-                        <p class="meta">
-                            <?= htmlspecialchars($rec['sport']) ?>
-                        </p>
-                        <p class="meta">
-                            <?= htmlspecialchars($rec['distanceText']) ?>
-                        </p>
-                        <a href="#" class="button primary block">
-                            <?= htmlspecialchars($rec['cta']) ?>
-                        </a>
-                    </div>
-                </article>
-                <?php endforeach; ?>
-            </div>
-        </section>
+            <section class="section">
+                <div class="section-head">
+                    <h2 class="text-title">Personalized Suggestions</h2>
+                    <a class="a-link text-size-small" href="#">See More</a>
+                </div>
+                <div class="cards three-col">
+                    <?php $recs = $suggestions ?? []; foreach ($recs as $rec): ?>
+                    <article class="card">
+                        <div class="card-media"
+                            style="background-image:url('<?= htmlspecialchars($rec['imageUrl']) ?>')">
+                        </div>
+                        <div class="card-body">
+                            <h3 class="text-title-smaller">
+                                <?= htmlspecialchars($rec['title']) ?>
+                            </h3>
+                            <p class="meta text-small">
+                                <?= htmlspecialchars($rec['sport']) ?>
+                            </p>
+                            <p class="meta text-small">
+                                <?= htmlspecialchars($rec['distanceText']) ?>
+                            </p>
+                            <a href="#" class="button text-size-small primary block">
+                                <?= htmlspecialchars($rec['cta']) ?>
+                            </a>
+                        </div>
+                    </article>
+                    <?php endforeach; ?>
+                </div>
+            </section>
+        </div>
     </div>
 </section>
 
