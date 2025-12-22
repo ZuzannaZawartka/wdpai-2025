@@ -1,56 +1,144 @@
-<!DOCTYPE html>
-<html lang="en">
+<?php $pageTitle = 'SportMatch Dashboard'; $activeNav = $activeNav ?? 'dashboard'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="public/styles/main.css">
-    <link rel="stylesheet" href="public/styles/dashboard.css">
-    <title>dashboard</title>
-</head>
-
-<body>
-
-    <nav>
-        <p>LOGO</p>
-        <ul>
-            <li>
-                <div class="active-link">
-                    <a href="#" class="active-text">Dashboardp</a>
-                    <div class="active-underline"></div>
-                </div>
-            </li>
-            <li><a href="#">Sports</a></li>
-            <li><a href="#" class="special-button">Create Event</a></li>
-            <li><a href="#">My Events</a></li>
-            <li><a href="#">Joined Events</a></li>
-            <li><a href="#">Logout</a></li>
-        </ul>
-    </nav>
-    <div class="container">
-        <aside>
-            <p>TOOL 1</p>
-        </aside>
-        <main>
-            <h1>DASHBOARD</h1>
-            <!-- TODO display list of cards -->
-            <ul>
-                <?php foreach($cards as $key=>$value): ?>
-                <li>
-                    <img src="<?= $value['imageUrlPath']; ?>">
-                    <p>
-                        <?php echo $value['title']; ?>
-                    </p>
-                </li>
-                <?php endforeach; ?>
-            </ul>
-        </main>
+<section class="hero">
+    <div class="hero-grid">
+        <div class="hero-copy">
+            <h1>Unleash Your Inner Athlete</h1>
+            <p>Discover local sports events and connect with fellow enthusiasts. Your next game is just a click away.
+            </p>
+            <div class="actions">
+                <a href="#" class="button primary">Find Your Next Game</a>
+                <a href="#" class="button accent with-icon"><span class="icon">＋</span> Create Event</a>
+            </div>
+        </div>
+        <div class="hero-art">
+            <svg class="animated-graphic" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#13a4ec" />
+                        <stop offset="100%" stop-color="#ff5722" />
+                    </linearGradient>
+                </defs>
+                <path d="M 50 150 Q 150 50 250 150 T 450 150" fill="none" stroke="url(#grad1)" stroke-width="4" />
+                <path d="M 50 160 Q 150 260 250 160 T 450 160" fill="none" stroke="url(#grad1)" stroke-width="4" />
+                <path d="M 250 50 L 250 250" fill="none" stroke="url(#grad1)" stroke-linecap="round" stroke-width="2" />
+                <path d="M 150 100 L 350 200" fill="none" stroke="url(#grad1)" stroke-linecap="round"
+                    stroke-width="2" />
+                <path d="M 150 200 L 350 100" fill="none" stroke="url(#grad1)" stroke-linecap="round"
+                    stroke-width="2" />
+            </svg>
+        </div>
     </div>
+    <div class="backdrop"></div>
+    <div class="container pad">
+        <section class="section">
+            <div class="section-head">
+                <h2>Your Upcoming Events</h2>
+                <a class="link" href="#">View All</a>
+            </div>
+            <div class="cards two-col">
+                <article class="card">
+                    <div class="card-media"
+                        style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuCmy1gDuoaQ2m54IbrTok-N86x8u72EZg6LQ3qJwaunla_-e47P5owxKHeGKhZ0xP5Hn2pGMrreNUKzZ3omSHLAV2gFavO_wlfgwum4qiL7s6af1c2weF9FbNF0FbtXcLUXN33_tiZrYcG0OccgfqDBhFxCOxnQXhOwbaR40d8Od_JEGe2qawcNe0vcB4XyoLxybcdgN4TPNROZDBvL08zsbepu8en_-veyNyddbclkPiZ2JoNIyP32DXYsd1SDWsnxCgBBtsuH0iHN')">
+                    </div>
+                    <div class="card-body">
+                        <h3>Soccer Game</h3>
+                        <p class="meta">Sat, Aug 10, 10:00 AM</p>
+                        <p class="meta">Central Park</p>
+                        <a href="#" class="button muted block">View Details</a>
+                    </div>
+                </article>
+                <article class="card">
+                    <div class="card-media"
+                        style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuATJMSJMJqt5eU4JmCJzZzOW_IX3fUkoW8x71Ydl6rGfaUVy7HFVD1Gi_k--HsroBXxFGUq8pjuVI3G2ZQTSB7D--eG6AQ2BHGx4B_BR7gqCss-O6jjPzgs0DmYOgAYAL0WnluZE5txNzh6570GXjjer5IRapb2qtTfmCiPHOSF3Wi_mTQZN-9M-3RVnx-sR1Eh4GoJxs4g34I4Ls_bIidJ2fyTVwYqhN82KAVKRh4xSdio--0vVwbKDO779K74mmDRkovstP5CZMfp')">
+                    </div>
+                    <div class="card-body">
+                        <h3>Basketball Pickup</h3>
+                        <p class="meta">Sun, Aug 11, 2:00 PM</p>
+                        <p class="meta">City Arena</p>
+                        <a href="#" class="button muted block">View Details</a>
+                    </div>
+                </article>
+            </div>
+        </section>
 
-    <footer>
-        <p>&copy; 2025 FindRival.</p>
-        <p>Kontakt: info@example.com</p>
-    </footer>
-</body>
+        <section class="section">
+            <div class="section-head">
+                <h2>Your favourite sports</h2>
+                <a class="link" href="#">Manage sports</a>
+            </div>
+            <div class="grid-quick">
+                <a href="#" class="tile">
+                    <div class="tile-icon">🏃</div>
+                    <div>
+                        <h3>Running</h3>
+                        <p>12 events nearby</p>
+                    </div>
+                </a>
+                <a href="#" class="tile">
+                    <div class="tile-icon">🚴</div>
+                    <div>
+                        <h3>Cycling</h3>
+                        <p>8 events nearby</p>
+                    </div>
+                </a>
+                <a href="#" class="tile">
+                    <div class="tile-icon">🎾</div>
+                    <div>
+                        <h3>Tennis</h3>
+                        <p>15 events nearby</p>
+                    </div>
+                </a>
+                <a href="#" class="tile add">
+                    <div class="tile-add">＋</div>
+                    <p>Add Sport</p>
+                </a>
+            </div>
+        </section>
 
-</html>
+        <section class="section">
+            <div class="section-head">
+                <h2>Personalized Suggestions</h2>
+                <a class="link" href="#">See More</a>
+            </div>
+            <div class="cards three-col">
+                <article class="card">
+                    <div class="card-media"
+                        style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuDBN4upX-dD3omhsHhGASurq2bQv8P05U2al7p0_6T8GJyXb5vvHwuEKLE3Aaxx7VnVURvJVTJ4Q48_-sqClJDzrxi-nIv6sxsgqt1RslKEjWhqlVBzAoWogk_ucJPIEhvMzYlC1EGUkmVPlR1hB_uUH19RZ7asJL23s5cjan5wOrxbnTetcPbDtGB22HyRDk457AEzNom2w09rRj7wOnzVqp3tIaD2bIUTvQniNLyaDTBDQ9l2ijS1GC94aEGV6_-cQOPgWgejHCDk')">
+                    </div>
+                    <div class="card-body">
+                        <h3>Weekly Running Club</h3>
+                        <p class="meta">Running</p>
+                        <p class="meta">River Trail (2km away)</p>
+                        <a href="#" class="button primary block">Join Match</a>
+                    </div>
+                </article>
+                <article class="card">
+                    <div class="card-media"
+                        style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuAGCAqyYqW55OTcWiaX-4FMNzaR4kmyE7LETdG4imPjzKV1LqEy2y-2ss6bNhcaKGLv8F4nwsnQgtVnVS6Ilw-3MTsx25gYt3iWfG0fLhcwYLLRCVQPkyGcrMO7EUGLsrqDm8WyD3lQ0sej8vCpbCpIfjGQhJG7H4q5LhTk1yXRWtBZBi3ygcCpMXElit8RGUIULLKvIz5t6rAjtSouRQz9jwb5NAUyNnqsVmttyXAvIeFFBKwPgjMMKLCPyNb1QxZ-WD-Ft3xgI5SI')">
+                    </div>
+                    <div class="card-body">
+                        <h3>Mountain Biking</h3>
+                        <p class="meta">Cycling</p>
+                        <p class="meta">Hillside Trails (5km away)</p>
+                        <a href="#" class="button primary block">Join Match</a>
+                    </div>
+                </article>
+                <article class="card">
+                    <div class="card-media"
+                        style="background-image:url('https://lh3.googleusercontent.com/aida-public/AB6AXuCOdQng9qujhWHOAXiXeGemeWZRiFWZLM6d-1bjEItXNzJR0DhrmEE3_ulCj4x5pIVliCBsKTuhCQpliQh4pAMqx6_Z-v7sc2KH_73rlEE9UUDPFVS03PWZB3xYNwjq-46u37VzCUCGbQuPVczvaHEgCU00M4QyMmHU0R3PeD8sV2scqSwdvoCQvct8G8-AM6CKpnKXxyv6YN4-KxwqyjEf-_J1F0AZI2cAykEm9CrnlqqM02Ub-lgo7RX1YuHNMPKP-MLGtlXRzQ5W')">
+                    </div>
+                    <div class="card-body">
+                        <h3>Tennis Tournament</h3>
+                        <p class="meta">Tennis</p>
+                        <p class="meta">Community Courts (1km away)</p>
+                        <a href="#" class="button primary block">Join Match</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </div>
+</section>
+
+<?php include __DIR__ . '/components/footer.html'; ?>

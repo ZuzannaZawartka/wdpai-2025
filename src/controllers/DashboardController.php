@@ -67,13 +67,7 @@ class DashboardController extends AppController {
 
         }
 
-        $userRepository = new UserRepository();
-        $users = $userRepository->getUsers();
-
-        var_dump($users);
-
-
-        $this->render("dashboard",  ['cards' => $cards]);
+        $this->render("dashboard",  ['cards' => $cards, 'activeNav' => 'dashboard', 'pageTitle' => 'SportMatch Dashboard']);
     }
 
     public function search()  {

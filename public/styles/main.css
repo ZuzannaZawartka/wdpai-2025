@@ -1,3 +1,5 @@
+@import url('components/button.css');
+
 :root {
     --primary: #13a4ec;
     --background-light-grey: #f0f0f1;
@@ -8,7 +10,16 @@
     --main-font: 'Plus Jakarta Sans', sans-serif;
     --regular-font: 'Plus Jakarta Sans Regular', sans-serif;
     --gap-section: 1.5rem;
+    --accent: #ff5722;
+    --bg-light: #f6f7f8;
+    --bg-dark: #101c22;
     --orange: orange;
+    /* Button variants */
+    --button-muted-bg: #e5e7eb;
+    --button-muted-fg: #475569;
+    /* Header/Nav */
+    --nav-link-fg: #475569;
+    --nav-link-hover-fg: var(--text-dark);
     --font-size-title: 1.825rem;
     /* 30px */
     --font-size-desc: 1.25rem;
@@ -29,21 +40,6 @@
 
 .text-primary {
     color: var(--primary);
-}
-
-.font-primary {
-    font-family: var(--main-font);
-}
-
-.font-secondary {
-    font-family: var(--regular-font);
-}
-
-.text-title {
-    font-family: var(--main-font);
-    font-weight: 700;
-    font-size: var(--font-size-title);
-    color: var(--text-dark);
 }
 
 .text-body {

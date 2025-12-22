@@ -1,0 +1,28 @@
+.site-footer {
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    margin-top: auto;
+}
+
+.footer-inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.footer-inner a {
+    text-decoration: none;
+}
+
+.footer-inner a:hover {
+    color: var(--primary);
+}
+
+.footer-links {
+    display: flex;
+    gap: 16px;
+}

@@ -21,3 +21,44 @@
 .btn-common:active {
     transform: scale(1);
 }
+
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 2.5rem;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.button.primary {
+    background: var(--primary);
+    color: var(--white);
+}
+
+.button.accent {
+    background: var(--accent);
+    color: var(--white);
+}
+
+.button.muted {
+    background: var(--button-muted-bg);
+    color: var(--button-muted-fg);
+}
+
+.button.block {
+    display: flex;
+    width: 100%;
+}
+
+.button:hover {
+    filter: brightness(0.95);
+}
+
+/* Icon spacing helper when buttons include icons */
+.with-icon .icon {
+    margin-right: 0.5rem;
+}

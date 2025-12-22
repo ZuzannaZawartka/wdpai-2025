@@ -1,17 +1,17 @@
 .logo {
     font-size: 1.1em;
-    font-weight: bold;
+    font-weight: 700;
     letter-spacing: 0em;
     display: flex;
     align-items: center;
-    margin-bottom: 0.5em;
+    margin-bottom: 1em;
     font-family: var(--main-font);
 }
 
 .logo-dot {
-    font-size: 0.5em;
-    margin: 0 0.01em;
-    font-weight: 600;
+    font-size: 0.6em;
+    margin: 0 0.2em;
+    font-weight: 700;
     line-height: 1;
     vertical-align: middle;
     display: inline-block;
