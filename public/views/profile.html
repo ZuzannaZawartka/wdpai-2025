@@ -1,0 +1,179 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="profile-page sports-page">
+    <div class="section">
+        <div class="text-title-large">Profile Settings</div>
+        <p class="text-desc">Manage your personal details and favorite sports.</p>
+    </div>
+
+    <div class="section panel">
+        <!-- Profile form -->
+        <form class="form" method="post" action="#">
+
+
+            <div class="form-grid">
+                <div class="field input-group full">
+                    <label class="text-small" for="avatarFile">Avatar</label>
+                    <div class="avatar-row">
+                        <div class="avatar-container">
+                            <div id="avatarCircle" class="avatar" role="img" aria-label="Current avatar"
+                                data-avatar-url="<?= isset($user['avatar']) ? htmlspecialchars($user['avatar']) : '' ?>">
+                            </div>
+                            <button type="button" class="avatar-edit-btn" aria-label="Edit avatar">
+                                <span class="material">edit</span>
+                            </button>
+                        </div>
+                        <div class="avatar-info">
+                            <div class="text-title-smaller">Your Photo</div>
+                            <p class="text-note">This will be displayed on your profile.</p>
+                        </div>
+                        <input id="avatarFile" name="avatar" type="file" accept="image/*" hidden />
+                    </div>
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="firstName">First Name</label>
+                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="lastName">Last Name</label>
+                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan" />
+                </div>
+                <div class="field input-group full">
+                    <label class="text-small" for="email">Email</label>
+                    <input id="email" name="email" type="email" class="input-common"
+                        placeholder="e.g., alex@example.com" />
+                </div>
+
+                <div class="field input-group full">
+                    <label class="text-small" for="location">Location</label>
+                    <div class="filters-bar">
+                        <div class="control with-icon has-action">
+                            <span class="material">location_on</span>
+                            <input id="location" name="location" type="text" class="input-common"
+                                placeholder="Enter Location" />
+                            <button type="button" class="icon-btn pick-map" aria-label="Pick location on map">
+                                <span class="material">my_location</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+
+                <div class="field input-group full">
+                    <label class="text-small">Favorite Sports</label>
+                    <div class="grid-quick">
+                        <div class="tile selectable">
+                            <button type="button" class="button danger text-size-small remove-btn"
+                                aria-label="Remove Running">
+                                <span class="material">close</span>
+                            </button>
+                            <div class="tile-icon">
+                                <span class="material">directions_run</span>
+                            </div>
+                            <h3 class="text-compact-strong">Running</h3>
+                        </div>
+                        <div class="tile selectable">
+                            <button type="button" class="button danger text-size-small remove-btn"
+                                aria-label="Remove Tennis">
+                                <span class="material">close</span>
+                            </button>
+                            <div class="tile-icon">
+                                <span class="material">sports_tennis</span>
+                            </div>
+                            <h3 class="text-compact-strong">Tennis</h3>
+                        </div>
+                        <label class="tile selectable">
+                            <div class="tile-icon">
+                                <span class="material">add</span>
+                            </div>
+                            <h3 class="text-compact-strong">Add More</h3>
+                        </label>
+                    </div>
+
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="/dashboard" class="button danger text-size-small">Cancel</a>
+                <button type="submit" class="button primary text-size-small">Save Changes</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Map modal for picking location -->
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Leaflet for map picking -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    (function () {
+        const modal = document.getElementById('mapModal');
+        const openBtns = document.querySelectorAll('.pick-map');
+        const closeBtn = modal?.querySelector('.close-map');
+        const applyBtn = modal?.querySelector('.apply-map');
+        const locInput = document.getElementById('location');
+
+        let map, marker, chosenLatLng;
+
+        function ensureMap() {
+            if (map) { map.invalidateSize(); return; }
+            map = L.map('map').setView([52.2297, 21.0122], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            map.on('click', (e) => {
+                chosenLatLng = e.latlng;
+                if (!marker) { marker = L.marker(e.latlng).addTo(map); }
+                else { marker.setLatLng(e.latlng); }
+            });
+        }
+        function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(ensureMap, 0); }
+        function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
+        function applyLocation(e) {
+            e?.preventDefault();
+            if (chosenLatLng && locInput) {
+                locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+                locInput.readOnly = true;
+            }
+            closeModal();
+        }
+        openBtns?.forEach(btn => btn.addEventListener('click', openModal));
+        closeBtn?.addEventListener('click', closeModal);
+        applyBtn?.addEventListener('click', applyLocation);
+        modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+
+        // Avatar preview and actions
+        const avatarInput = document.getElementById('avatarFile');
+        const avatarCircle = document.getElementById('avatarCircle');
+        const initialAvatar = avatarCircle?.getAttribute('data-avatar-url');
+
+        if (initialAvatar) {
+            avatarCircle.style.backgroundImage = `url('${initialAvatar}')`;
+        }
+        const editBtn = document.querySelector('.avatar-edit-btn');
+
+        avatarInput?.addEventListener('change', function () {
+            const file = this.files?.[0];
+            if (file && avatarCircle) {
+                const url = URL.createObjectURL(file);
+                avatarCircle.style.backgroundImage = `url('${url}')`;
+            }
+        });
+
+        editBtn?.addEventListener('click', () => avatarInput?.click());
+
+        // Avatar save handled with the main form submit
+    })();
+</script>
+
+<?php include __DIR__ . '/components/footer.html'; ?>

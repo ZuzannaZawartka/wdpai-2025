@@ -17,7 +17,7 @@
     <?php if ($active === 'dashboard'): ?>
     <link rel="stylesheet" href="/public/styles/dashboard.css" />
     <?php endif; ?>
-    <?php if (isset($activeNav) && ($activeNav === 'sports' || $activeNav === 'joined' || $activeNav === 'my')): ?>
+    <?php if (isset($activeNav) && ($activeNav === 'sports' || $activeNav === 'joined' || $activeNav === 'my' || $activeNav === 'profile')): ?>
     <link rel="stylesheet" href="/public/styles/sports.css" />
     <?php endif; ?>
     <?php if (isset($activeNav) && $activeNav === 'joined'): ?>
@@ -26,8 +26,12 @@
     <?php if (isset($activeNav) && $activeNav === 'my'): ?>
     <link rel="stylesheet" href="/public/styles/my.css" />
     <?php endif; ?>
-    <?php if (isset($activeNav) && $activeNav === 'create'): ?>
+    <?php if (isset($activeNav) && ($activeNav === 'create' || $activeNav === 'profile')): ?>
     <link rel="stylesheet" href="/public/styles/create.css" />
+    <?php endif; ?>
+
+    <?php if (isset($activeNav) && $activeNav === 'profile'): ?>
+    <link rel="stylesheet" href="/public/styles/profile.css" />
     <?php endif; ?>
 </head>
 
@@ -50,7 +54,7 @@
                 </nav>
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>
-                    <div class="avatar" role="img" aria-label="User profile picture"></div>
+                    <a href="/profile" class="avatar" role="img" aria-label="User profile picture"></a>
                 </div>
             </div>
         </header>
