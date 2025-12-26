@@ -1,0 +1,75 @@
+.profile-page .avatar {
+    background-image: url('/public/images/avatar-placeholder.png');
+    width: 6rem;
+    height: 6rem;
+    border-radius: 9999px;
+    background-size: cover;
+    background-position: center;
+    border: 0.25rem solid var(--white);
+    box-shadow: 0 0 0 0.125rem var(--primary);
+}
+
+.profile-page .avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.profile-page .avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.profile-page .avatar-edit-btn {
+    position: absolute;
+    right: 0.25rem;
+    bottom: 0.25rem;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-gray);
+    cursor: pointer;
+}
+
+.profile-page .avatar-edit-btn:hover {
+    color: var(--primary);
+}
+
+.profile-page .avatar-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.profile-page .avatar-actions {
+    margin-top: 0.25rem;
+}
+
+.profile-page .tile .remove-btn {
+    position: absolute;
+    right: 0.4rem;
+    top: 0.4rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-page .tile .remove-btn .material {
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.profile-page .tile-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
