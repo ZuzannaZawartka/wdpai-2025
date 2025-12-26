@@ -9,7 +9,7 @@
     <div class="section panel filters-bar">
         <div class="control with-icon">
             <span class="material">workspace_premium</span>
-            <select class="text-body">
+            <select class="input-common">
                 <option selected>Any Skill Level</option>
                 <option>Beginner</option>
                 <option>Intermediate</option>
@@ -18,14 +18,14 @@
         </div>
         <div class="control with-icon has-action">
             <span class="material">location_on</span>
-            <input type="text" class="text-body" placeholder="Enter Location" />
+            <input type="text" class="input-common" placeholder="Enter Location" />
             <button type="button" class="icon-btn pick-map" aria-label="Wybierz lokalizację na mapie">
                 <span class="material">my_location</span>
             </button>
         </div>
         <div class="control with-icon radius">
             <span class="material">straighten</span>
-            <input type="range" min="1" max="50" value="10" aria-label="Radius in kilometers" />
+            <input type="range" class="input-range" min="1" max="50" value="10" aria-label="Radius in kilometers" />
             <span class="range-display text-small">10 km</span>
         </div>
 
@@ -152,7 +152,7 @@
                             <?= htmlspecialchars($m['level']) ?>
                         </span>
                     </div>
-                    <button type="button" class="button primary">View Details</button>
+                    <button type="button" class="button primary text-size-small">View Details</button>
                 </div>
                 <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
             </div>

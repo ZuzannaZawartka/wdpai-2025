@@ -1,0 +1,58 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Joined Events'; $activeNav = $activeNav ?? 'joined'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="sports-page">
+    <div class="section">
+        <div class="text-title-large">Joined Events</div>
+        <p class="text-desc">Here are the events you've signed up for. Manage your participation here.</p>
+    </div>
+
+    <div class="section panel matches">
+        <?php 
+            $list = isset($joinedMatches) ? $joinedMatches : ($matches ?? []);
+        ?>
+        <?php if (!empty($list)): ?>
+        <?php foreach($list as $m): ?>
+        <article class="match">
+            <div class="match-body">
+                <div class="copy">
+                    <div class="text-title-smaller">
+                        <?= htmlspecialchars($m['title']) ?>
+                    </div>
+                    <p class="text-small">
+                        <?= htmlspecialchars($m['datetime']) ?>
+                    </p>
+                    <p class="text-body">
+                        <?= htmlspecialchars($m['desc']) ?>
+                    </p>
+                    <div class="meta-row text-small">
+                        <span>👥
+                            <?= htmlspecialchars($m['players']) ?>
+                        </span>
+                        <?php if (isset($m['level'])): ?>
+                        <span class="level" style="--level-color: <?= htmlspecialchars($m['levelColor'] ?? '#999') ?>;">
+                            <?= htmlspecialchars($m['level']) ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="actions">
+                        <button type="button" class="button primary text-size-small">View Details</button>
+                        <a href="#" class="a-link danger text-size-small">Cancel Participation</a>
+                    </div>
+                </div>
+                <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
+            </div>
+        </article>
+        <?php endforeach; ?>
+        <?php else: ?>
+        <div class="empty-panel empty-dashed">
+            <span class="material">event_busy</span>
+            <div class="text-title-smaller">You haven't joined any events yet.</div>
+            <p class="text-body">Time to find your next game and get in on the action!</p>
+            <a href="/sports" class="button primary text-size-small">Find a Match</a>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<?php include __DIR__ . '/components/footer.html'; ?>

@@ -17,8 +17,17 @@
     <?php if ($active === 'dashboard'): ?>
     <link rel="stylesheet" href="/public/styles/dashboard.css" />
     <?php endif; ?>
-    <?php if (isset($activeNav) && $activeNav === 'sports'): ?>
+    <?php if (isset($activeNav) && ($activeNav === 'sports' || $activeNav === 'joined' || $activeNav === 'my')): ?>
     <link rel="stylesheet" href="/public/styles/sports.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'joined'): ?>
+    <link rel="stylesheet" href="/public/styles/joined.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'my'): ?>
+    <link rel="stylesheet" href="/public/styles/my.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'create'): ?>
+    <link rel="stylesheet" href="/public/styles/create.css" />
     <?php endif; ?>
 </head>
 
@@ -34,10 +43,10 @@
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
                     <a class="nav-link search-tile with-icon text-compact-strong button accent <?= $active==='create' ? 'active' : '' ?>"
-                        href="#">Create
+                        href="/create">Create
                         Event</a>
-                    <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="#">My Events</a>
-                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="#">Joined Events</a>
+                    <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
+                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>
                 </nav>
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>

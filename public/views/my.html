@@ -1,0 +1,55 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - My Events'; $activeNav = $activeNav ?? 'my'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="sports-page">
+    <div class="section">
+        <div class="text-title-large">My Created Events</div>
+        <p class="text-desc">Manage the events you've created. You can edit event details or delete them if they are
+            canceled.</p>
+    </div>
+
+    <div class="section panel matches">
+        <?php 
+            $list = isset($myEvents) ? $myEvents : [];
+        ?>
+        <?php if (!empty($list)): ?>
+        <?php foreach($list as $m): ?>
+        <article class="match">
+            <div class="match-body">
+                <div class="copy">
+                    <div class="text-title-smaller">
+                        <?= htmlspecialchars($m['title']) ?>
+                    </div>
+                    <div class="meta-row text-small">
+                        <span>
+                            <?= htmlspecialchars($m['datetime']) ?>
+                        </span>
+                        <span>👥
+                            <?= htmlspecialchars($m['players']) ?>
+                        </span>
+                        <?php if (isset($m['level'])): ?>
+                        <span class="level" style="--level-color: <?= htmlspecialchars($m['levelColor'] ?? '#999') ?>;">
+                            <?= htmlspecialchars($m['level']) ?>
+                        </span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="my-actions">
+                    <button type="button" class="button accent text-size-small">Edit</button>
+                    <button type="button" class="button danger text-size-small">Delete</button>
+                </div>
+            </div>
+        </article>
+        <?php endforeach; ?>
+        <?php else: ?>
+        <div class="empty-panel empty-dashed">
+            <span class="material">event_busy</span>
+            <div class="text-title-smaller">You haven't created any events yet.</div>
+            <p class="text-body">Ready to get a game going?</p>
+            <a href="#" class="button accent text-size-small">Create a Match</a>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<?php include __DIR__ . '/components/footer.html'; ?>
