@@ -40,9 +40,20 @@
     color: var(--white);
 }
 
+.button.danger {
+    background: var(--danger);
+    color: var(--white);
+}
+
 .button.accent {
     background: var(--accent);
     color: var(--white);
+}
+
+
+.button.edit {
+    background: var(--button-muted-bg);
+    color: var(--button-muted-fg);
 }
 
 .button.muted {
