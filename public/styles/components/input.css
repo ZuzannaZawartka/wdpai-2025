@@ -1,13 +1,14 @@
 .input-common {
-    height: 3rem;
-    padding: 0 1rem;
-    border: 0;
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
-    font-size: var(--font-size-small);
-    font-family: inherit;
-    transition: all 0.2s;
-    background: var(--background-light-grey);
+    border: 1px solid var(--border-color);
+    background: color-mix(in oklab, var(--bg-light) 60%, white);
     color: var(--text-dark);
+    font-size: var(--font-size-small);
+    font-family: var(--main-font);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 
@@ -17,12 +18,114 @@
 }
 
 .input-common {
-    background-color: var(--background-light-grey);
+    background-color: color-mix(in oklab, var(--bg-light) 60%, white);
 }
-
 
 .input-common:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 0.25rem rgba(19, 164, 236, 0.2);
+    box-shadow: 0 0 0 0.2rem rgba(19, 164, 236, 0.18);
+}
+
+textarea.input-common {
+    min-height: 8rem;
+    resize: vertical;
+}
+
+input[type="file"].input-common::file-selector-button {
+    margin-right: 0.5rem;
+    border: 1px solid var(--border-color);
+    background: var(--white);
+    color: var(--text-dark);
+    border-radius: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    font-size: var(--font-size-small);
+    font-family: var(--main-font);
+    cursor: pointer;
+}
+
+input[type="file"].input-common::file-selector-button:hover {
+    background: color-mix(in oklab, var(--bg-light) 60%, white);
+}
+
+select.input-common {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-color: color-mix(in oklab, var(--bg-light) 60%, white);
+}
+
+
+input[type="number"].input-common::-webkit-outer-spin-button,
+input[type="number"].input-common::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"].input-common {
+    -moz-appearance: textfield;
+}
+
+input[type="date"].input-common,
+input[type="datetime-local"].input-common {
+    color: var(--text-dark);
+}
+
+.input-range {
+    width: 100%;
+    height: 2.5rem;
+    background-image: linear-gradient(var(--primary), var(--primary)), linear-gradient(var(--border-color), var(--border-color));
+    background-repeat: no-repeat;
+    background-size: calc(var(--range-pct, 20) * 1%) 0.375rem, 100% 0.375rem;
+    background-position: 0 50%, 0 50%;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.input-range:focus-visible {
+    box-shadow: 0 0 0 3px rgba(19, 164, 236, .25);
+    border-radius: 0.5rem;
+}
+
+.input-range::-webkit-slider-runnable-track {
+    height: 0.375rem;
+    background: transparent;
+    border-radius: 9999px;
+}
+
+.input-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    background: var(--white);
+    border: 2px solid var(--primary);
+    border-radius: 9999px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
+    margin-top: -0.3125rem;
+}
+
+.input-range::-moz-range-track {
+    height: 0.375rem;
+    background: var(--border-color);
+    border: none;
+    border-radius: 9999px;
+}
+
+.input-range::-moz-range-progress {
+    height: 0.375rem;
+    background: var(--primary);
+    border-radius: 9999px;
+}
+
+.input-range::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    background: var(--white);
+    border: 2px solid var(--primary);
+    border-radius: 9999px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .1);
 }

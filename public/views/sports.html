@@ -1,0 +1,164 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Sports'; $activeNav = $activeNav ?? 'sports'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="sports-page">
+    <div class="section">
+        <div class="text-title-large">Find your next game</div>
+    </div>
+
+    <div class="section panel filters-bar">
+        <div class="control with-icon">
+            <span class="material">workspace_premium</span>
+            <select class="input-common">
+                <option selected>Any Skill Level</option>
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Advanced</option>
+            </select>
+        </div>
+        <div class="control with-icon has-action">
+            <span class="material">location_on</span>
+            <input type="text" class="input-common" placeholder="Enter Location" />
+            <button type="button" class="icon-btn pick-map" aria-label="Wybierz lokalizację na mapie">
+                <span class="material">my_location</span>
+            </button>
+        </div>
+        <div class="control with-icon radius">
+            <span class="material">straighten</span>
+            <input type="range" class="input-range" min="1" max="50" value="10" aria-label="Radius in kilometers" />
+            <span class="range-display text-small">10 km</span>
+        </div>
+
+    </div>
+
+    <div class="section select-row">
+        <div class="grid-quick">
+            <?php $selected = $selectedSports ?? []; foreach(($sportsGrid ?? []) as $s): ?>
+            <label class="tile selectable">
+                <input type="checkbox" <?=in_array($s['name'], $selected, true) ? 'checked' : '' ?> />
+                <div class="tile-icon material">
+                    <?= htmlspecialchars($s['icon']) ?>
+                </div>
+                <div>
+                    <h3 class="text-compact-strong">
+                        <?= htmlspecialchars($s['name']) ?>
+                    </h3>
+                </div>
+            </label>
+            <?php endforeach; ?>
+        </div>
+        <button type="button" class="button primary text-size-small">
+            <span>Search Events</span>
+        </button>
+    </div>
+
+    <!-- Map modal for picking location -->
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet for map picking -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        (function () {
+            const modal = document.getElementById('mapModal');
+            const openBtn = document.querySelector('.pick-map');
+            const closeBtn = modal?.querySelector('.close-map');
+            const applyBtn = modal?.querySelector('.apply-map');
+            const locInput = document.querySelector('.filters-bar .control input[placeholder="Enter Location"]');
+            const radiusEl = document.querySelector('.filters-bar .control.radius input[type="range"]');
+            const radiusDisplay = document.querySelector('.filters-bar .control.radius .range-display');
+            let map, marker, chosenLatLng;
+
+            function ensureMap() {
+                if (map) { map.invalidateSize(); return; }
+                map = L.map('map').setView([52.2297, 21.0122], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; OpenStreetMap'
+                }).addTo(map);
+                map.on('click', (e) => {
+                    chosenLatLng = e.latlng;
+                    if (!marker) { marker = L.marker(e.latlng).addTo(map); }
+                    else { marker.setLatLng(e.latlng); }
+                });
+            }
+
+            function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(() => ensureMap(), 0); }
+            function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
+            function applyLocation(e) {
+                e?.preventDefault();
+                if (chosenLatLng && locInput) {
+                    locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+                    // Make location read-only to indicate it's chosen from map
+                    locInput.readOnly = true;
+                    // Visually indicate the icon button is applied
+                    if (openBtn) {
+                        openBtn.classList.add('applied');
+                    }
+                }
+                closeModal();
+            }
+
+            openBtn?.addEventListener('click', openModal);
+            closeBtn?.addEventListener('click', closeModal);
+            applyBtn?.addEventListener('click', applyLocation);
+            modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+
+            // Radius display live update
+            function updateRadiusDisplay() {
+                if (radiusEl && radiusDisplay) {
+                    radiusDisplay.textContent = `${radiusEl.value} km`;
+                    const min = Number(radiusEl.min || 0);
+                    const max = Number(radiusEl.max || 100);
+                    const val = Number(radiusEl.value || min);
+                    const pct = ((val - min) / (max - min)) * 100;
+                    // Use numeric value for --range-pct, CSS multiplies by 1%
+                    radiusEl.style.setProperty('--range-pct', `${pct}`);
+                }
+            }
+            radiusEl?.addEventListener('input', updateRadiusDisplay);
+            updateRadiusDisplay();
+        })();
+    </script>
+
+    <div class="section panel matches">
+        <?php foreach(($matches ?? []) as $m): ?>
+        <article class="match">
+            <div class="match-body">
+                <div class="copy">
+                    <div class="text-title-smaller">
+                        <?= htmlspecialchars($m['title']) ?>
+                    </div>
+                    <p class="text-small">
+                        <?= htmlspecialchars($m['datetime']) ?>
+                    </p>
+                    <p class="text-body">
+                        <?= htmlspecialchars($m['desc']) ?>
+                    </p>
+                    <div class="meta-row text-small">
+                        <span>👥
+                            <?= htmlspecialchars($m['players']) ?>
+                        </span>
+                        <span class="level" style="--level-color: <?= htmlspecialchars($m['levelColor']) ?>;">
+                            <?= htmlspecialchars($m['level']) ?>
+                        </span>
+                    </div>
+                    <button type="button" class="button primary text-size-small">View Details</button>
+                </div>
+                <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
+            </div>
+        </article>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<?php include __DIR__ . '/components/footer.html'; ?>

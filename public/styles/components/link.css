@@ -13,3 +13,7 @@
 .a-link:hover {
     text-decoration: underline;
 }
+
+.a-link.danger {
+    color: var(--danger);
+}

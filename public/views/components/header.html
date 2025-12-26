@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>
+        <?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard' ?>
+    </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="/public/styles/main.css" />
+    <link rel="stylesheet" href="/public/styles/components/header.css" />
+    <?php $active = $activeNav ?? 'dashboard'; ?>
+    <?php if ($active === 'dashboard'): ?>
+    <link rel="stylesheet" href="/public/styles/dashboard.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && ($activeNav === 'sports' || $activeNav === 'joined' || $activeNav === 'my')): ?>
+    <link rel="stylesheet" href="/public/styles/sports.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'joined'): ?>
+    <link rel="stylesheet" href="/public/styles/joined.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'my'): ?>
+    <link rel="stylesheet" href="/public/styles/my.css" />
+    <?php endif; ?>
+    <?php if (isset($activeNav) && $activeNav === 'create'): ?>
+    <link rel="stylesheet" href="/public/styles/create.css" />
+    <?php endif; ?>
+</head>
+
+<body class="app">
+    <div class="layout">
+        <header class="site-header">
+            <div class="header-inner">
+                <div class="brand">
+                    <?php include __DIR__ . '/../components/logo.html'; ?>
+                </div>
+                <nav class="site-nav">
+                    <?php $active = $activeNav ?? 'dashboard'; ?>
+                    <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
+                    <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
+                    <a class="nav-link search-tile with-icon text-compact-strong button accent <?= $active==='create' ? 'active' : '' ?>"
+                        href="/create">Create
+                        Event</a>
+                    <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
+                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>
+                </nav>
+                <div class="user-area">
+                    <a class="logout" href="/logout">Logout</a>
+                    <div class="avatar" role="img" aria-label="User profile picture"></div>
+                </div>
+            </div>
+        </header>
+        <main class="site-main">
