@@ -61,6 +61,11 @@ class Routing{
             "action" => 'index',
             "auth" => true
         ],
+        'profile' => [
+            "controller" => 'UserController',
+            "action" => 'profile',
+            "auth" => true
+        ],
         'search-cards' => [
             "controller" => 'DashboardController',
             "action" => 'search',
