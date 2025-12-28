@@ -1,0 +1,104 @@
+.event-page .section {
+    margin-bottom: var(--gap-section);
+}
+
+.event-page .hero-map {
+    width: 100%;
+    height: 24rem;
+    border-radius: 0.75rem;
+    margin-bottom: 1rem;
+    overflow: hidden;
+}
+
+.hero-map-empty {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border: 1px dashed var(--border-color);
+    background: var(--white);
+}
+
+.location-preview {
+    margin: 0;
+    height: 100%;
+}
+
+.mini-map-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.event-page .details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+@media (min-width: 48rem) {
+    .event-page .details-grid {
+        grid-template-columns: 2fr 1fr;
+    }
+}
+
+.event-page .card.panel {
+    padding: 1rem;
+}
+
+.event-page .card.panel p.text-body {
+    margin-top: 0.5rem;
+}
+
+.event-page .card.panel .grid-info {
+    margin-top: 1rem;
+}
+
+.icon-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.grid-info {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.5rem 1rem;
+    align-items: center;
+}
+
+.organizer-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+.organizer-avatar {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 9999px;
+    object-fit: cover;
+}
+
+.participants-stats {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.event-page .join-actions .button {
+    width: 100%;
+}
+
+.event-page .details-grid .right .card+.card {
+    margin-top: 1rem;
+}
+
+.event-page .details-grid .right .join-actions {
+    margin-top: 1rem;
+}
