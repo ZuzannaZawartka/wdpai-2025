@@ -8,6 +8,7 @@ require_once 'src/controllers/JoinedController.php';
 require_once 'src/controllers/MyController.php';
 require_once 'src/controllers/CreateController.php';
 require_once 'src/controllers/EventController.php';
+require_once 'src/controllers/EditController.php';
 
 
 //TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
@@ -77,6 +78,12 @@ class Routing{
             "action" => 'details',
             "auth" => true
         ]
+        ,
+        'edit' => [
+            "controller" => 'EditController',
+            "action" => 'edit',
+            "auth" => true
+        ]
     ];
 
     public static function run(string $path){
@@ -96,6 +103,13 @@ class Routing{
                 self::dispatch($action, [$parameters[0]]);
                 break;
             case 'event':
+                if (empty($parameters)) {
+                    include 'public/views/404.html';
+                    return;
+                }
+                self::dispatch($action, [$parameters[0]]);
+                break;
+            case 'edit':
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;

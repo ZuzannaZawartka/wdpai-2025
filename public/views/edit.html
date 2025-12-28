@@ -1,0 +1,241 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Edit Event'; $activeNav = $activeNav ?? 'edit'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="create-page">
+    <div class="section">
+        <div class="text-title-large">Edit Event</div>
+        <p class="text-desc">Update your match details. Location, date, skill and participants can be adjusted. Click
+            save when done.</p>
+    </div>
+
+    <div class="section panel">
+        <!-- Selected location preview (matches form width) -->
+        <div class="hero-map">
+            <div id="locationEmpty" class="hero-map-empty">
+                <span class="material">location_on</span>
+                <div class="text-small">No location selected</div>
+            </div>
+            <div id="locationPreview" class="location-preview" hidden>
+                <div id="locationMap" class="mini-map-canvas" aria-label="Selected location preview"></div>
+            </div>
+        </div>
+
+        <form class="form" method="post" action="#" enctype="multipart/form-data">
+            <div class="form-grid">
+                <div class="field input-group">
+                    <label class="text-small" for="title">Event Name</label>
+                    <input id="title" name="title" type="text" class="input-common"
+                        placeholder="e.g., Morning Basketball Game"
+                        value="<?= htmlspecialchars($event['title'] ?? '') ?>" />
+                </div>
+
+                <div class="field input-group">
+                    <label class="text-small" for="datetime">Date & Time</label>
+                    <div class="control with-icon">
+                        <input id="datetime" name="datetime" type="datetime-local" class="input-common"
+                            value="<?= htmlspecialchars($event['datetime'] ?? '') ?>" />
+                    </div>
+                </div>
+
+                <div class="field input-group">
+                    <label class="text-small" for="location">Location</label>
+                    <div class="control faux-input">
+                        <button type="button" class="pick-map text-size-small" aria-label="Pick location on map">Choose
+                            on map</button>
+                    </div>
+                    <input id="location" name="location" type="hidden"
+                        value="<?= htmlspecialchars($event['location'] ?? '') ?>" />
+                </div>
+
+                <div class="field input-group file-field">
+                    <label class="text-small" for="image">Event Image</label>
+                    <input id="image" name="image" type="file" accept="image/*" class="input-common" />
+                </div>
+
+                <div class="field input-group full">
+                    <label class="text-small">Skill Level</label>
+                    <div class="radio-tiles">
+                        <?php $levelsFromCtrl = $skillLevels ?? ['Advanced','Intermediate','Beginner','For Fun','Just Started']; foreach($levelsFromCtrl as $lvl): ?>
+                        <label class="tile">
+                            <input type="radio" name="skill" value="<?= htmlspecialchars($lvl) ?>"
+                                <?=($event['skillLevel'] ?? '' )===$lvl ? 'checked' : '' ?> />
+                            <span>
+                                <?= htmlspecialchars($lvl) ?>
+                            </span>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <div class="field input-group full">
+                    <label class="text-small">Participants</label>
+                    <div class="radio-tiles compact" id="participantsType">
+                        <label class="tile">
+                            <input type="radio" name="participantsType" value="specific"
+                                <?=(($event['participants']['type'] ?? '' )==='specific' ) ? 'checked' : '' ?> />
+                            <span>Specific Number</span>
+                        </label>
+                        <label class="tile">
+                            <input type="radio" name="participantsType" value="minimum"
+                                <?=(($event['participants']['type'] ?? '' )==='minimum' ) ? 'checked' : '' ?> />
+                            <span>Minimum</span>
+                        </label>
+                        <label class="tile">
+                            <input type="radio" name="participantsType" value="range"
+                                <?=(($event['participants']['type'] ?? 'range' )==='range' ) ? 'checked' : '' ?> />
+                            <span>Range</span>
+                        </label>
+                    </div>
+                    <div class="participants-inputs">
+                        <div class="row" data-mode="specific">
+                            <label class="text-small" for="playersSpecific">Players</label>
+                            <input id="playersSpecific" name="playersSpecific" type="number" min="1" step="1"
+                                class="input-common" placeholder="e.g., 10"
+                                value="<?= htmlspecialchars((string)($event['participants']['specific'] ?? '')) ?>" />
+                        </div>
+                        <div class="row hidden" data-mode="minimum">
+                            <label class="text-small" for="playersMin">Minimum Players</label>
+                            <input id="playersMin" name="playersMin" type="number" min="1" step="1" class="input-common"
+                                placeholder="e.g., 6"
+                                value="<?= htmlspecialchars((string)($event['participants']['minimum'] ?? '')) ?>" />
+                        </div>
+                        <div class="row hidden" data-mode="range">
+                            <div class="half">
+                                <label class="text-small" for="playersRangeMin">Min Players</label>
+                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="1" step="1"
+                                    class="input-common" placeholder="e.g., 6"
+                                    value="<?= htmlspecialchars((string)($event['participants']['rangeMin'] ?? '')) ?>" />
+                            </div>
+                            <div class="half">
+                                <label class="text-small" for="playersRangeMax">Max Players</label>
+                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="1" step="1"
+                                    class="input-common" placeholder="e.g., 12"
+                                    value="<?= htmlspecialchars((string)($event['participants']['rangeMax'] ?? '')) ?>" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field input-group full">
+                    <label class="text-small" for="desc">Description</label>
+                    <textarea id="desc" name="desc" class="input-common" rows="5"
+                        placeholder="Add details participants should know..."></textarea>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <a href="/my" class="button danger text-size-small">Cancel</a>
+                <button type="submit" class="button primary text-size-small">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    (function () {
+        const modal = document.getElementById('mapModal');
+        const openBtns = document.querySelectorAll('.pick-map');
+        const closeBtn = modal?.querySelector('.close-map');
+        const applyBtn = modal?.querySelector('.apply-map');
+        const locInput = document.getElementById('location');
+        const imgInput = document.getElementById('image');
+        const locPreviewWrap = document.getElementById('locationPreview');
+        const locPreviewEl = document.getElementById('locationMap');
+        const locEmptyEl = document.getElementById('locationEmpty');
+
+        let map, marker, chosenLatLng;
+        let locMap, locMarker;
+
+        function ensureMap() {
+            if (map) { map.invalidateSize(); return; }
+            map = L.map('map').setView([52.2297, 21.0122], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            map.on('click', (e) => {
+                chosenLatLng = e.latlng;
+                if (!marker) { marker = L.marker(e.latlng).addTo(map); }
+                else { marker.setLatLng(e.latlng); }
+            });
+        }
+        function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(ensureMap, 0); }
+        function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
+        function applyLocation(e) {
+            e?.preventDefault();
+            if (chosenLatLng && locInput) {
+                locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+                locInput.readOnly = true;
+                if (locEmptyEl && locEmptyEl.parentNode) {
+                    locEmptyEl.parentNode.removeChild(locEmptyEl);
+                }
+                if (locPreviewWrap && locPreviewEl) {
+                    locPreviewWrap.removeAttribute('hidden');
+                    ensureLocationPreview(chosenLatLng);
+                }
+            }
+            closeModal();
+        }
+        openBtns?.forEach(btn => btn.addEventListener('click', openModal));
+        closeBtn?.addEventListener('click', closeModal);
+        applyBtn?.addEventListener('click', applyLocation);
+        modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+
+        // Participants mode toggle
+        const typeWrap = document.getElementById('participantsType');
+        const rows = document.querySelectorAll('.participants-inputs .row');
+        function updateParticipants() {
+            const val = typeWrap.querySelector('input[name="participantsType"]:checked')?.value;
+            rows.forEach(r => {
+                const mode = r.getAttribute('data-mode');
+                if (mode === val) { r.classList.remove('hidden'); }
+                else { r.classList.add('hidden'); }
+            });
+        }
+        typeWrap?.addEventListener('change', updateParticipants);
+
+        updateParticipants();
+        const initialLoc = (locInput?.value || '').trim();
+        if (initialLoc) {
+            const m = initialLoc.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+            if (m) {
+                const lat = parseFloat(m[1]);
+                const lng = parseFloat(m[2]);
+                if (locPreviewWrap) { locPreviewWrap.removeAttribute('hidden'); }
+                if (locEmptyEl && locEmptyEl.parentNode) { locEmptyEl.parentNode.removeChild(locEmptyEl); }
+                ensureLocationPreview({ lat, lng });
+            }
+        }
+
+        function ensureLocationPreview(latlng) {
+            if (!locMap) {
+                locMap = L.map('locationMap', {
+                    zoomControl: false,
+                    attributionControl: false,
+                    scrollWheelZoom: false,
+                    dragging: false,
+                    doubleClickZoom: false,
+                    boxZoom: false,
+                    keyboard: false
+                });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(locMap);
+            }
+            locMap.setView([latlng.lat, latlng.lng], 14);
+            if (!locMarker) { locMarker = L.marker([latlng.lat, latlng.lng]).addTo(locMap); }
+            else { locMarker.setLatLng([latlng.lat, latlng.lng]); }
+            setTimeout(() => locMap.invalidateSize(), 0);
+        }
+    })();
+</script>
+
+<?php include __DIR__ . '/components/footer.html'; ?>
