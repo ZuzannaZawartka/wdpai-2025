@@ -1,0 +1,188 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Match Details'; $activeNav = $activeNav ?? 'sports'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+<link rel="stylesheet" href="/public/styles/event.css" />
+
+<section class="event-page">
+    <div class="section">
+        <div class="text-title-large">
+            <?= htmlspecialchars($event['title'] ?? 'Match Details') ?>
+        </div>
+        <div class="text-body icon-row">
+            <span class="material">location_on</span>
+            <span>
+                <?= htmlspecialchars($event['location'] ?? '') ?>
+            </span>
+        </div>
+    </div>
+
+    <div class="section panel">
+        <div class="hero-map" aria-label="Map preview" data-location="<?= htmlspecialchars($event['coords'] ?? ($event['location'] ?? '')) ?>">
+            <div id="eventLocationEmpty" class="hero-map-empty">
+                <span class="material">location_on</span>
+                <div class="text-small">No location available</div>
+            </div>
+            <div id="eventLocationPreview" class="location-preview" hidden>
+                <div id="eventLocationMap" class="mini-map-canvas" aria-label="Event location preview"></div>
+            </div>
+        </div>
+
+        <div class="details-grid">
+            <div class="left">
+                <div class="card panel">
+                    <div class="text-title">Match Details</div>
+                    <p class="text-body">A friendly game of football for intermediate
+                        players. Bring your own boots and water. We'll play 6-a-side with rotating goalkeepers. Please
+                        be on time as we have a limited booking.</p>
+                    <div class="grid-info">
+                        <div class="icon-row">
+                            <span class="material">event</span>
+                            <span class="text-small">Date &amp; Time</span>
+                        </div>
+                        <div class="text-small">
+                            <?= htmlspecialchars($event['dateTime'] ?? '') ?>
+                        </div>
+                        <div class="icon-row">
+                            <span class="material">signal_cellular_alt</span>
+                            <span class="text-small">Skill Level</span>
+                        </div>
+                        <div class="text-small">
+                            <?= htmlspecialchars($event['skillLevel'] ?? '') ?>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="revealed-info" class="card panel" hidden>
+                    <div class="text-title">Location &amp; Contact</div>
+                    <div class="grid-info">
+                        <div class="icon-row">
+                            <span class="material">pin_drop</span>
+                            <span class="text-small">Exact Location</span>
+                        </div>
+                        <div class="text-small">Great Lawn, Central Park, New York, NY</div>
+                        <div class="icon-row">
+                            <span class="material">contact_mail</span>
+                            <span class="text-small">Contact Organizer</span>
+                        </div>
+                        <div class="text-small">john.doe@email.com</div>
+                    </div>
+                </div>
+            </div>
+            <div class="right">
+                <div class="card panel">
+                    <div class="text-title">Organizer</div>
+                    <div class="organizer-info">
+                        <img src="<?= htmlspecialchars($event['organizer']['avatar'] ?? '') ?>" alt="Organizer avatar"
+                            class="organizer-avatar" />
+                        <div>
+                            <div class="text-title-smaller">
+                                <?= htmlspecialchars($event['organizer']['name'] ?? '') ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card panel">
+                    <div class="text-title">Participants</div>
+                    <div class="participants-stats">
+                        <span class="material">groups</span>
+                        <div class="text-small">
+                            <?= (int)($event['participants']['current'] ?? 0) ?>
+                        </div>
+                        <div class="text-small">/
+                            <?= (int)($event['participants']['max'] ?? 0) ?> joined
+                        </div>
+                    </div>
+                    <div class="text-note">
+                        <span class="text-compact-strong">Minimum needed:</span>
+                        <?= (int)($event['participants']['minNeeded'] ?? 0) ?> players
+                    </div>
+                </div>
+                <div class="join-actions">
+                    <button id="joinBtn" class="button accent">Join Match</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    (function () {
+        
+        const wrap = document.querySelector('.hero-map');
+        const locStr = wrap?.getAttribute('data-location')?.trim();
+        const emptyEl = document.getElementById('eventLocationEmpty');
+        const previewWrap = document.getElementById('eventLocationPreview');
+        const canvasEl = document.getElementById('eventLocationMap');
+
+        let map, marker;
+
+        function ensurePreview(lat, lng) {
+            if (!previewWrap || !canvasEl) return;
+            previewWrap.removeAttribute('hidden');
+            if (emptyEl && emptyEl.parentNode) {
+                emptyEl.parentNode.removeChild(emptyEl);
+            }
+            if (!map) {
+                map = L.map('eventLocationMap', {
+                    zoomControl: false,
+                    attributionControl: false,
+                    scrollWheelZoom: false,
+                    dragging: false,
+                    doubleClickZoom: false,
+                    boxZoom: false,
+                    keyboard: false
+                });
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            }
+            map.setView([lat, lng], 14);
+            if (!marker) { marker = L.marker([lat, lng]).addTo(map); }
+            else { marker.setLatLng([lat, lng]); }
+            setTimeout(() => map.invalidateSize(), 0);
+        }
+
+        function tryParseLatLng(s) {
+            if (!s) return null;
+            const m = s.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+            if (!m) return null;
+            const lat = parseFloat(m[1]);
+            const lng = parseFloat(m[2]);
+            if (isFinite(lat) && isFinite(lng)) return { lat, lng };
+            return null;
+        }
+
+        async function geocode(name) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(name)}&format=json&limit=1`;
+                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                if (!res.ok) return null;
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const { lat, lon } = data[0];
+                    return { lat: parseFloat(lat), lng: parseFloat(lon) };
+                }
+            } catch (_) { }
+            return null;
+        }
+
+        (async function initEventMap() {
+            if (!wrap || !locStr) return; 
+            const coords = tryParseLatLng(locStr) || await geocode(locStr);
+            if (coords) ensurePreview(coords.lat, coords.lng);
+        })();
+
+        const joinBtn = document.getElementById('joinBtn');
+        const revealed = document.getElementById('revealed-info');
+        let joined = false;
+        joinBtn?.addEventListener('click', function () {
+            if (!joined) {
+                revealed?.removeAttribute('hidden');
+                this.textContent = 'Joined';
+                this.disabled = true;
+                joined = true;
+            }
+        });
+    })();
+</script>
+
+<?php include __DIR__ . '/components/footer.html'; ?>
