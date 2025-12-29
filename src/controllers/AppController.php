@@ -48,6 +48,19 @@ class AppController {
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
     }
 
+    // Shared helpers to access current auth context
+    protected function getCurrentUserId(): ?int
+    {
+        $this->ensureSession();
+        return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
+    }
+
+    protected function getCurrentUserEmail(): string
+    {
+        $this->ensureSession();
+        return isset($_SESSION['user_email']) ? (string)$_SESSION['user_email'] : '';
+    }
+
     // Redirects to /login if user is not authenticated
     public function requireAuth(): void
     {
