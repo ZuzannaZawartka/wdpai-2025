@@ -33,6 +33,9 @@
     <?php if (isset($activeNav) && $activeNav === 'profile'): ?>
     <link rel="stylesheet" href="/public/styles/profile.css" />
     <?php endif; ?>
+
+    <!-- Ensure modal styles load last to override page-specific rules -->
+    <link rel="stylesheet" href="/public/styles/components/modal.css" />
 </head>
 
 <body class="app">

@@ -1,7 +1,14 @@
 <?php
 
 class MockRepository {
-    private const CURRENT_USER_ID = 1001;
+    private const DEFAULT_USER_ID = 1001;
+
+    private static function currentUserId(): int {
+        if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id'])) {
+            return (int)$_SESSION['user_id'];
+        }
+        return self::DEFAULT_USER_ID;
+    }
 
     // Mock users catalog to resolve organizer by ownerId
     public static function users(): array {
@@ -129,7 +136,7 @@ class MockRepository {
                 'levelId' => 2,
                 'imageUrl' => 'https://picsum.photos/seed/futsal-scrimmage/800/600',
                 'desc' => 'Small court futsal, bring indoor shoes.',
-                'ownerId' => self::CURRENT_USER_ID,
+                'ownerId' => self::currentUserId(),
                 'maxPlayers' => 10,
                 'minNeeded' => 6
             ],
@@ -144,7 +151,7 @@ class MockRepository {
                 'levelId' => 1,
                 'imageUrl' => 'https://picsum.photos/seed/casual-tennis/800/600',
                 'desc' => 'Relaxed rally; practice serves and volleys.',
-                'ownerId' => self::CURRENT_USER_ID,
+                'ownerId' => self::currentUserId(),
                 'maxPlayers' => 4,
                 'minNeeded' => 2
             ],
@@ -166,7 +173,7 @@ class MockRepository {
 
     // Dashboard upcoming = nearest two joined
     public static function upcomingEvents(): array {
-        $joined = self::joinedMatches(self::CURRENT_USER_ID);
+        $joined = self::joinedMatches(self::currentUserId());
         usort($joined, function($a, $b) {
             $da = isset($a['isoDate']) ? strtotime($a['isoDate']) : 0;
             $db = isset($b['isoDate']) ? strtotime($b['isoDate']) : 0;
@@ -215,7 +222,7 @@ class MockRepository {
     }
 
     public static function favouriteSports(int $currentUserId = null): array {
-        $uid = $currentUserId ?? self::CURRENT_USER_ID;
+        $uid = $currentUserId ?? self::currentUserId();
         // User-specific favourites (mocked). Fallback to a default set.
         $byUser = [
             1001 => ['Running', 'Cycling', 'Tennis'],
@@ -258,7 +265,7 @@ class MockRepository {
     }
 
     public static function sportsMatches(int $currentUserId = null, array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
-        $uid = $currentUserId ?? self::CURRENT_USER_ID;
+        $uid = $currentUserId ?? self::currentUserId();
         $catalog = self::sportsCatalog(); // id => name
         $levels = self::levels();
         $events = array_filter(self::events(), function($ev) use ($uid, $catalog, $levels, $selectedSports, $level, $center, $radiusKm) {
@@ -317,7 +324,7 @@ class MockRepository {
     }
 
     public static function joinedMatches(int $currentUserId = null): array {
-        $uid = $currentUserId ?? self::CURRENT_USER_ID;
+        $uid = $currentUserId ?? self::currentUserId();
         $parts = self::eventParticipants();
         $events = array_filter(self::events(), function($ev) use ($uid, $parts) {
             return in_array($uid, $parts[$ev['id']] ?? [], true);
@@ -344,7 +351,7 @@ class MockRepository {
     }
 
     public static function myEvents(int $currentUserId = null): array {
-        $uid = $currentUserId ?? self::CURRENT_USER_ID;
+        $uid = $currentUserId ?? self::currentUserId();
         $events = array_filter(self::events(), function($ev) use ($uid) {
             return ($ev['ownerId'] ?? null) === $uid;
         });
