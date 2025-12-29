@@ -135,8 +135,9 @@ class Routing{
 
         $controller = $controllerClass::getInstance();
 
-        // Check authentication if required, and if it is, enforce it
-        if (!empty(self::$routes[$action]['auth'])) {
+        // Default: require auth unless route explicitly sets auth=false
+        $requiresAuth = !array_key_exists('auth', self::$routes[$action]) || !empty(self::$routes[$action]['auth']);
+        if ($requiresAuth) {
             $controller->requireAuth();
         }
         call_user_func_array([$controller, $method], $parameters);
