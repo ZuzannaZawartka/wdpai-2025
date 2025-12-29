@@ -32,7 +32,7 @@ class UserController extends AppController {
             'email' => $email,
             'location' => '',
             'sports' => [],
-            'avatar' => (defined('DEFAULT_AVATAR') ? DEFAULT_AVATAR : '/public/images/avatar-placeholder.jpg')
+            'avatar' => DEFAULT_AVATAR
         ];
 
         if (is_array($dbUser)) {
