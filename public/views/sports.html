@@ -9,24 +9,38 @@
     <div class="section panel filters-bar">
         <div class="control with-icon">
             <span class="material">workspace_premium</span>
-            <select class="input-common">
-                <option selected>Any Skill Level</option>
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Advanced</option>
+            <?php $selectedLevel = $selectedLevel ?? 'Any'; ?>
+            <select id="levelSelect" name="level" class="input-common">
+                <option value="Any" <?=($selectedLevel==='Any' ) ? 'selected' : '' ?>>Any Skill Level</option>
+                <option value="Beginner" <?=($selectedLevel==='Beginner' ) ? 'selected' : '' ?>>Beginner</option>
+                <option value="Intermediate" <?=($selectedLevel==='Intermediate' ) ? 'selected' : '' ?>>Intermediate
+                </option>
+                <option value="Advanced" <?=($selectedLevel==='Advanced' ) ? 'selected' : '' ?>>Advanced</option>
             </select>
         </div>
         <div class="control with-icon has-action">
             <span class="material">location_on</span>
-            <input type="text" class="input-common" placeholder="Enter Location" />
+            <?php $selectedLoc = $selectedLoc ?? ''; ?>
+            <input id="filterLocation" name="loc" type="text" class="input-common" placeholder="Enter Location"
+                value="<?= htmlspecialchars($selectedLoc) ?>" />
             <button type="button" class="icon-btn pick-map" aria-label="Wybierz lokalizację na mapie">
                 <span class="material">my_location</span>
             </button>
         </div>
         <div class="control with-icon radius">
             <span class="material">straighten</span>
-            <input type="range" class="input-range" min="1" max="50" value="10" aria-label="Radius in kilometers" />
-            <span class="range-display text-small">10 km</span>
+            <?php $radiusKm = isset($radiusKm) ? (int)$radiusKm : 10; ?>
+            <input id="radiusRange" name="radius" type="range" class="input-range" min="1" max="50"
+                value="<?= $radiusKm ?>" aria-label="Radius in kilometers" />
+            <span class="range-display text-small">
+                <?= (int)$radiusKm ?> km
+            </span>
+        </div>
+        <div class="control">
+            <a href="/sports" id="clearLocation" class="a-link text-size-small">Clear location</a>
+        </div>
+        <div class="control" style="margin-left:auto">
+            <a href="/sports" id="clearAllFilters" class="a-link text-size-small">Clear all</a>
         </div>
 
     </div>
@@ -35,7 +49,8 @@
         <div class="grid-quick">
             <?php $selected = $selectedSports ?? []; foreach(($sportsGrid ?? []) as $s): ?>
             <label class="tile selectable">
-                <input type="checkbox" <?=in_array($s['name'], $selected, true) ? 'checked' : '' ?> />
+                <input type="checkbox" name="sport[]" value="<?= htmlspecialchars($s['name']) ?>"
+                    <?=in_array($s['name'], $selected, true) ? 'checked' : '' ?> />
                 <div class="tile-icon material">
                     <?= htmlspecialchars($s['icon']) ?>
                 </div>
@@ -47,7 +62,7 @@
             </label>
             <?php endforeach; ?>
         </div>
-        <button type="button" class="button primary text-size-small">
+        <button type="button" id="applySportsFilter" class="button primary text-size-small">
             <span>Search Events</span>
         </button>
     </div>
@@ -73,8 +88,8 @@
             const openBtn = document.querySelector('.pick-map');
             const closeBtn = modal?.querySelector('.close-map');
             const applyBtn = modal?.querySelector('.apply-map');
-            const locInput = document.querySelector('.filters-bar .control input[placeholder="Enter Location"]');
-            const radiusEl = document.querySelector('.filters-bar .control.radius input[type="range"]');
+            const locInput = document.getElementById('filterLocation');
+            const radiusEl = document.getElementById('radiusRange');
             const radiusDisplay = document.querySelector('.filters-bar .control.radius .range-display');
             let map, marker, chosenLatLng;
 
@@ -127,6 +142,54 @@
             }
             radiusEl?.addEventListener('input', updateRadiusDisplay);
             updateRadiusDisplay();
+        })();
+    </script>
+    <script>
+        (function () {
+            const btn = document.getElementById('applySportsFilter');
+            btn?.addEventListener('click', function (e) {
+                e.preventDefault();
+                const checked = Array.from(document.querySelectorAll('.select-row input[name="sport[]"]:checked'));
+                const params = new URLSearchParams();
+                checked.forEach(input => params.append('sport[]', input.value));
+                const level = document.getElementById('levelSelect')?.value;
+                if (level && level !== 'Any') {
+                    params.set('level', level);
+                }
+                const locVal = document.getElementById('filterLocation')?.value?.trim();
+                if (locVal) {
+                    params.set('loc', locVal);
+                    const r = document.getElementById('radiusRange')?.value;
+                    if (r) params.set('radius', r);
+                }
+                const qs = params.toString();
+                const url = qs ? ('/sports?' + qs) : '/sports';
+                window.location.assign(url);
+            });
+
+            // Clear location only (preserve sports and level)
+            const clearLoc = document.getElementById('clearLocation');
+            clearLoc?.addEventListener('click', function (e) {
+                e.preventDefault();
+                const checked = Array.from(document.querySelectorAll('.select-row input[name="sport[]"]:checked'));
+                const params = new URLSearchParams();
+                checked.forEach(input => params.append('sport[]', input.value));
+                const level = document.getElementById('levelSelect')?.value;
+                if (level && level !== 'Any') {
+                    params.set('level', level);
+                }
+                // Do not include loc/radius
+                const qs = params.toString();
+                const url = qs ? ('/sports?' + qs) : '/sports';
+                window.location.assign(url);
+            });
+
+            // Clear all filters
+            const clearAll = document.getElementById('clearAllFilters');
+            clearAll?.addEventListener('click', function (e) {
+                e.preventDefault();
+                window.location.assign('/sports');
+            });
         })();
     </script>
 

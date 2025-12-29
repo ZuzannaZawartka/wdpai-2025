@@ -15,8 +15,9 @@ class DashboardController extends AppController {
 
 
     public function index(?int $id =null) {
+        $currentUserId = $this->getCurrentUserId();
         $upcomingEvents = MockRepository::upcomingEvents();
-        $favouriteSports = MockRepository::favouriteSports();
+        $favouriteSports = MockRepository::favouriteSports($currentUserId ?? null);
         $suggestions = MockRepository::suggestions();
 
         $this->render("dashboard",  [

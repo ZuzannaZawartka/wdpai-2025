@@ -214,18 +214,79 @@ class MockRepository {
         ];
     }
 
-    public static function favouriteSports(): array {
-        return [
-            [ 'icon' => '🏃', 'name' => 'Running', 'nearbyText' => '12 events nearby' ],
-            [ 'icon' => '🚴', 'name' => 'Cycling', 'nearbyText' => '8 events nearby' ],
-            [ 'icon' => '🎾', 'name' => 'Tennis', 'nearbyText' => '15 events nearby' ],
+    public static function favouriteSports(int $currentUserId = null): array {
+        $uid = $currentUserId ?? self::CURRENT_USER_ID;
+        // User-specific favourites (mocked). Fallback to a default set.
+        $byUser = [
+            1001 => ['Running', 'Cycling', 'Tennis'],
+            2001 => ['Soccer', 'Tennis', 'Running'],
+            2002 => ['Basketball', 'Cycling', 'Soccer'],
+            2003 => ['Tennis', 'Running', 'Yoga'],
         ];
+        $icons = [
+            'Running' => '🏃',
+            'Cycling' => '🚴',
+            'Tennis'  => '🎾',
+            'Soccer'  => '⚽',
+            'Basketball' => '🏀',
+            'Yoga' => '🧘',
+            'Volleyball' => '🏐',
+            'Gym' => '🏋️',
+            'Other' => '➕',
+        ];
+
+        // Count nearby events per sport using mock events()
+        $catalog = self::sportsCatalog(); // id => name
+        $nameToId = array_flip($catalog);
+        $counts = [];
+        foreach (self::events() as $ev) {
+            $sid = $ev['sportId'] ?? null;
+            $name = $sid && isset($catalog[$sid]) ? $catalog[$sid] : null;
+            if ($name) { $counts[$name] = ($counts[$name] ?? 0) + 1; }
+        }
+
+        $list = $byUser[$uid] ?? ['Running', 'Cycling', 'Tennis'];
+        return array_map(function($name) use ($icons, $counts) {
+            $nearby = $counts[$name] ?? 0;
+            $nearbyText = $nearby > 0 ? ("{$nearby} events nearby") : 'No events nearby';
+            return [
+                'icon' => $icons[$name] ?? '➕',
+                'name' => $name,
+                'nearbyText' => $nearbyText,
+            ];
+        }, $list);
     }
 
-    public static function sportsMatches(int $currentUserId = null): array {
+    public static function sportsMatches(int $currentUserId = null, array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
         $uid = $currentUserId ?? self::CURRENT_USER_ID;
-        $events = array_filter(self::events(), function($ev) use ($uid) {
-            return ($ev['ownerId'] ?? null) !== $uid;
+        $catalog = self::sportsCatalog(); // id => name
+        $levels = self::levels();
+        $events = array_filter(self::events(), function($ev) use ($uid, $catalog, $levels, $selectedSports, $level, $center, $radiusKm) {
+            if (($ev['ownerId'] ?? null) === $uid) { return false; }
+            // Sports filter
+            if (!empty($selectedSports)) {
+                $sid = $ev['sportId'] ?? null;
+                $name = $sid && isset($catalog[$sid]) ? $catalog[$sid] : null;
+                if (!$name || !in_array($name, $selectedSports, true)) { return false; }
+            }
+            // Level filter
+            if ($level !== null) {
+                $lid = $ev['levelId'] ?? null;
+                $lname = $lid && isset($levels[$lid]) ? $levels[$lid] : null;
+                if ($lname !== $level) { return false; }
+            }
+            // Location radius filter
+            if ($center && $radiusKm !== null) {
+                $coords = $ev['coords'] ?? '';
+                if (!is_string($coords) || $coords === '') { return false; }
+                $parts = array_map('trim', explode(',', $coords));
+                if (count($parts) !== 2) { return false; }
+                $lat2 = (float)$parts[0];
+                $lng2 = (float)$parts[1];
+                $dist = self::distanceKm((float)$center[0], (float)$center[1], $lat2, $lng2);
+                if (!is_finite($dist) || $dist > $radiusKm) { return false; }
+            }
+            return true;
         });
         $levels = self::levels();
         $colors = self::levelColors();
@@ -244,6 +305,15 @@ class MockRepository {
                 'imageUrl' => $ev['imageUrl'] ?? ''
             ];
         }, array_values($events));
+    }
+
+    private static function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float {
+        $R = 6371.0; // km
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        return $R * $c;
     }
 
     public static function joinedMatches(int $currentUserId = null): array {
