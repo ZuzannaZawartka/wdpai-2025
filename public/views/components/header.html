@@ -54,7 +54,8 @@
                 </nav>
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>
-                    <a href="/profile" class="avatar" role="img" aria-label="User profile picture"></a>
+                    <a href="/profile" class="avatar" role="img" aria-label="User profile picture"
+                        style="background-image: url('<?= isset($user['avatar']) && $user['avatar'] ? htmlspecialchars($user['avatar']) : (defined('DEFAULT_AVATAR') ? DEFAULT_AVATAR : '/public/images/avatar-placeholder.jpg') ?>')"></a>
                 </div>
             </div>
         </header>

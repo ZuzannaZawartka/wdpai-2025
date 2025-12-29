@@ -35,7 +35,7 @@
                     </div>
                 </div>
                 <div class="my-actions">
-                    <button type="button" class="button accent text-size-small">Edit</button>
+                    <a href="/edit/<?= (int)($m['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button type="button" class="button danger text-size-small">Delete</button>
                 </div>
             </div>
@@ -46,7 +46,7 @@
             <span class="material">event_busy</span>
             <div class="text-title-smaller">You haven't created any events yet.</div>
             <p class="text-body">Ready to get a game going?</p>
-            <a href="#" class="button accent text-size-small">Create a Match</a>
+            <a href="/create" class="button accent text-size-small">Create a Match</a>
         </div>
         <?php endif; ?>
     </div>

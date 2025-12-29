@@ -9,8 +9,8 @@
                 just a click away.
             </p>
             <div class="actions">
-                <a href="#" class="button primary text-size-small">Find Your Next Game</a>
-                <a href="#" class="button accent with-icon text-size-small"><span class="icon">＋</span> Create Event</a>
+                <a href="/sports" class="button primary text-size-small">Find Your Next Game</a>
+                <a href="/create" class="button accent with-icon text-size-small"><span class="icon">＋</span> Create Event</a>
             </div>
         </div>
         <div class="hero-art">
@@ -37,7 +37,7 @@
             <section class="section compact">
                 <div class="section-head">
                     <h2 class="text-title">Your Upcoming Events</h2>
-                    <a class="a-link text-size-small" href="#">View All</a>
+                    <a class="a-link text-size-small" href="/sports">View All</a>
                 </div>
                 <div class="cards two-col">
                     <?php $upcoming = $upcomingEvents ?? []; foreach ($upcoming as $ev): ?>
@@ -55,7 +55,7 @@
                             <p class="meta text-small">
                                 <?= htmlspecialchars($ev['location']) ?>
                             </p>
-                            <a href="#" class="button muted block text-size-small">View Details</a>
+                            <a href="/event/<?= (int)($ev['id'] ?? 0) ?>" class="button muted block text-size-small">View Details</a>
                         </div>
                     </article>
                     <?php endforeach; ?>
@@ -68,7 +68,7 @@
                 </div>
                 <div class="grid-quick">
                     <?php $fav = $favouriteSports ?? []; foreach ($fav as $s): ?>
-                    <a href="#" class="tile">
+                    <a href="/sports" class="tile">
                         <div class="tile-icon">
                             <?= htmlspecialchars($s['icon']) ?>
                         </div>
@@ -82,7 +82,7 @@
                         </div>
                     </a>
                     <?php endforeach; ?>
-                    <a href="#" class="tile add">
+                    <a href="/sports" class="tile add">
                         <div class="tile-add text-size-small">＋</div>
                         <p class="text-small">Add Sport</p>
                     </a>
@@ -92,7 +92,7 @@
             <section class="section">
                 <div class="section-head">
                     <h2 class="text-title">Personalized Suggestions</h2>
-                    <a class="a-link text-size-small" href="#">See More</a>
+                    <a class="a-link text-size-small" href="/sports">See More</a>
                 </div>
                 <div class="cards three-col">
                     <?php $recs = $suggestions ?? []; foreach ($recs as $rec): ?>
@@ -110,7 +110,7 @@
                             <p class="meta text-small">
                                 <?= htmlspecialchars($rec['distanceText']) ?>
                             </p>
-                            <a href="#" class="button text-size-small primary block">
+                            <a href="/event/<?= (int)($rec['id'] ?? 0) ?>" class="button text-size-small primary block">
                                 <?= htmlspecialchars($rec['cta']) ?>
                             </a>
                         </div>

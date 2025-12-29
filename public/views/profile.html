@@ -33,16 +33,19 @@
                 </div>
                 <div class="field input-group">
                     <label class="text-small" for="firstName">First Name</label>
-                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex" />
+                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex"
+                        value="<?= isset($user['firstName']) ? htmlspecialchars($user['firstName']) : '' ?>" />
                 </div>
                 <div class="field input-group">
                     <label class="text-small" for="lastName">Last Name</label>
-                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan" />
+                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan"
+                        value="<?= isset($user['lastName']) ? htmlspecialchars($user['lastName']) : '' ?>" />
                 </div>
                 <div class="field input-group full">
                     <label class="text-small" for="email">Email</label>
                     <input id="email" name="email" type="email" class="input-common"
-                        placeholder="e.g., alex@example.com" />
+                        placeholder="e.g., alex@example.com"
+                        value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" />
                 </div>
 
                 <div class="field input-group full">
@@ -51,7 +54,8 @@
                         <div class="control with-icon has-action">
                             <span class="material">location_on</span>
                             <input id="location" name="location" type="text" class="input-common"
-                                placeholder="Enter Location" />
+                                placeholder="Enter Location"
+                                value="<?= isset($user['location']) ? htmlspecialchars($user['location']) : '' ?>" />
                             <button type="button" class="icon-btn pick-map" aria-label="Pick location on map">
                                 <span class="material">my_location</span>
                             </button>
