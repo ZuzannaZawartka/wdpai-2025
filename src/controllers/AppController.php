@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
+// Load global config to ensure constants like DEFAULT_AVATAR are available in views
+require_once __DIR__ . '/../../config.php';
 
 class AppController {
 
