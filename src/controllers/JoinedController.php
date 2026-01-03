@@ -7,7 +7,10 @@ class JoinedController extends AppController {
 
     public function index(): void
     {
-        $joinedMatches = MockRepository::joinedMatches();
+        $this->ensureSession();
+        $userId = $this->getCurrentUserId();
+        
+        $joinedMatches = MockRepository::joinedMatches($userId);
 
         $this->render('joined', [
             'pageTitle' => 'SportMatch - Joined Events',

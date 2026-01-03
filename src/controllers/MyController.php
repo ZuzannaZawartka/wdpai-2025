@@ -50,18 +50,10 @@ class MyController extends AppController {
         }
 
         $currentUserId = $this->getCurrentUserId();
-        // Prefer DB-backed events; fallback to mock if DB not available
+        // Always use mock for now (DB not yet synced with mock edits)
         $myEvents = [];
         if ($currentUserId) {
-            try {
-                $repo = new EventRepository();
-                $myEvents = $repo->getMyEvents($currentUserId);
-                if (empty($myEvents)) {
-                    $myEvents = MockRepository::myEvents($currentUserId);
-                }
-            } catch (Throwable $e) {
-                $myEvents = MockRepository::myEvents($currentUserId);
-            }
+            $myEvents = MockRepository::myEvents($currentUserId);
         } else {
             $myEvents = MockRepository::myEvents(null);
         }

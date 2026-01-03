@@ -1,26 +1,77 @@
 <?php
 
 class MockRepository {
-    private const DEFAULT_USER_ID = 1001;
 
-    private static function currentUserId(): int {
+    private static ?array $eventsData = null;
+
+    private static function ensureSession(): void {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            @session_start();
+        }
+    }
+
+    private static function currentUserId(): ?int {
         if (session_status() === PHP_SESSION_ACTIVE && isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id'])) {
             return (int)$_SESSION['user_id'];
         }
-        return self::DEFAULT_USER_ID;
+        return null;
     }
 
-    // Mock users catalog to resolve organizer by ownerId
     public static function users(): array {
         return [
-            1001 => [ 'name' => 'John Doe', 'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8' ],
-            2001 => [ 'name' => 'Alex Smith', 'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8' ],
-            2002 => [ 'name' => 'Jamie Lee', 'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8' ],
-            2003 => [ 'name' => 'Taylor King', 'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8' ],
+            41 => [
+                'id' => 41,
+                'firstName' => 'John',
+                'lastName' => 'Doe',
+                'email' => 'a@example.com',
+                'birthDate' => '1990-05-15',
+                'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8',
+                'location' => ['lat' => 40.7580, 'lng' => -73.9855],
+                'favouriteSports' => [1, 3, 4]
+            ],
+            1001 => [
+                'id' => 1001,
+                'firstName' => 'John',
+                'lastName' => 'Doe',
+                'email' => 'john.doe@example.com',
+                'birthDate' => '1988-03-20',
+                'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8',
+                'location' => ['lat' => 40.7128, 'lng' => -74.0060],
+                'favouriteSports' => [1, 3, 4]
+            ],
+            2001 => [
+                'id' => 2001,
+                'firstName' => 'Alex',
+                'lastName' => 'Smith',
+                'email' => 'alex.smith@example.com',
+                'birthDate' => '1992-07-10',
+                'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8',
+                'location' => ['lat' => 40.7589, 'lng' => -73.9851],
+                'favouriteSports' => [1, 3, 4]
+            ],
+            2002 => [
+                'id' => 2002,
+                'firstName' => 'Jamie',
+                'lastName' => 'Lee',
+                'email' => 'jamie.lee@example.com',
+                'birthDate' => '1995-11-22',
+                'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8',
+                'location' => ['lat' => 40.7549, 'lng' => -73.9840],
+                'favouriteSports' => [2, 5, 1]
+            ],
+            2003 => [
+                'id' => 2003,
+                'firstName' => 'Taylor',
+                'lastName' => 'King',
+                'email' => 'taylor.king@example.com',
+                'birthDate' => '1993-01-08',
+                'avatar' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuBAScERWuqlLWv7xDKAkq0vfJxFdtSjQSK-FBJ1endTel7Mo7aFi0qPk4gxnCNCb1jcOw5bTCZJiVDLAQBhlpBj8U1-gi_i4oGP1rXh5zh8C2QBXlIswW7gAzNq7lyqcg86rnO-VrLXkVrwY09NH7MSdq5pIlpsLh7-jmorWShz4aYci8ypqMqV2CSd1MG9qj87bzPvc2crbK3BFhR1PbJfg5TBMCDu4WMtUeUa_ztoq4KYvLtAfafiy448mlV76OCmMn4-TgmdbJx8',
+                'location' => ['lat' => 40.7614, 'lng' => -73.9776],
+                'favouriteSports' => [3, 4]
+            ],
         ];
     }
 
-    // Catalogs
     public static function levels(): array {
         return [
             1 => 'Beginner',
@@ -39,30 +90,57 @@ class MockRepository {
 
     public static function sportsCatalog(): array {
         return [
-            1 => 'Soccer',
-            2 => 'Basketball',
-            3 => 'Tennis',
-            4 => 'Running',
-            5 => 'Cycling',
+            1 => [
+                'id' => 1,
+                'name' => 'Soccer',
+                'icon' => '⚽',
+            ],
+            2 => [
+                'id' => 2,
+                'name' => 'Basketball',
+                'icon' => '🏀',
+            ],
+            3 => [
+                'id' => 3,
+                'name' => 'Tennis',
+                'icon' => '🎾',
+            ],
+            4 => [
+                'id' => 4,
+                'name' => 'Running',
+                'icon' => '🏃',
+            ],
+            5 => [
+                'id' => 5,
+                'name' => 'Cycling',
+                'icon' => '🚴',
+            ],
         ];
     }
 
     // Unified events dataset with owner and normalized level/sport references
     public static function events(): array {
-        return [
-            [
-                'id' => 1,
-                'title' => 'Riverfront 7v7 Soccer',
-                'isoDate' => '2025-11-02T09:30:00',
-                'dateText' => 'Sun, Nov 2, 9:30 AM',
-                'location' => 'Riverfront Field, New York, NY',
-                'coords' => '40.7005, -74.0120',
-                'sportId' => 1,
-                'levelId' => 2,
-                'imageUrl' => 'https://picsum.photos/seed/river-soccer/800/600',
-                'desc' => 'Friendly small-sided match by the river.',
-                'ownerId' => 2001,
-                'maxPlayers' => 12,
+        self::ensureSession();
+
+        if (self::$eventsData === null && isset($_SESSION['mock_events']) && is_array($_SESSION['mock_events'])) {
+            self::$eventsData = $_SESSION['mock_events'];
+        }
+
+        if (self::$eventsData === null) {
+            self::$eventsData = [
+                [
+                    'id' => 1,
+                    'title' => 'Riverfront 7v7 Soccer',
+                    'isoDate' => '2025-11-02T09:30:00',
+                    'dateText' => 'Sun, Nov 2, 9:30 AM',
+                    'location' => 'Riverfront Field, New York, NY',
+                    'coords' => '40.7005, -74.0120',
+                    'sportId' => 1,
+                    'levelId' => 2,
+                    'imageUrl' => 'https://picsum.photos/seed/river-soccer/800/600',
+                    'desc' => 'Friendly small-sided match by the river.',
+                    'ownerId' => 2001,
+                    'maxPlayers' => 12,
                 'minNeeded' => 6
             ],
             [
@@ -136,7 +214,7 @@ class MockRepository {
                 'levelId' => 2,
                 'imageUrl' => 'https://picsum.photos/seed/futsal-scrimmage/800/600',
                 'desc' => 'Small court futsal, bring indoor shoes.',
-                'ownerId' => self::currentUserId(),
+                'ownerId' => 41,
                 'maxPlayers' => 10,
                 'minNeeded' => 6
             ],
@@ -151,29 +229,37 @@ class MockRepository {
                 'levelId' => 1,
                 'imageUrl' => 'https://picsum.photos/seed/casual-tennis/800/600',
                 'desc' => 'Relaxed rally; practice serves and volleys.',
-                'ownerId' => self::currentUserId(),
+                'ownerId' => 41,
                 'maxPlayers' => 4,
                 'minNeeded' => 2
             ],
-        ];
+            ];
+
+            // Persist in session so edits survive across requests/workers
+            $_SESSION['mock_events'] = self::$eventsData;
+        }
+        return self::$eventsData;
     }
 
     // Separate participants mapping (join-table style)
     public static function eventParticipants(): array {
         return [
-            1 => [1002, 1003, 1004, 1006],
+            1 => [41, 1002, 1003, 1004, 1006],
             2 => [1007, 1008, 1009, 1010, 1011, 1012, 1013],
-            3 => [1015, 1016],
-            4 => [1002, 1003, 1004, 1005, 1006, 1001],
-            5 => [1003, 1007, 1008, 1009, 1010, 1011, 1012, 1013, 1001],
+            3 => [41, 1015, 1016],
+            4 => [41, 1002, 1003, 1004, 1005, 1006],
+            5 => [41, 1003, 1007, 1008, 1009, 1010, 1011, 1012, 1013],
             6 => [1002, 1003, 1004],
-            7 => [1015],
+            7 => [41, 1015],
         ];
     }
 
     // Dashboard upcoming = nearest two joined
-    public static function upcomingEvents(): array {
-        $joined = self::joinedMatches(self::currentUserId());
+    public static function upcomingEvents(?int $currentUserId = null): array {
+        if ($currentUserId === null) {
+            return [];
+        }
+        $joined = self::joinedMatches($currentUserId);
         usort($joined, function($a, $b) {
             $da = isset($a['isoDate']) ? strtotime($a['isoDate']) : 0;
             $db = isset($b['isoDate']) ? strtotime($b['isoDate']) : 0;
@@ -221,47 +307,35 @@ class MockRepository {
         ];
     }
 
-    public static function favouriteSports(int $currentUserId = null): array {
+    public static function favouriteSports(?int $currentUserId = null): array {
         $uid = $currentUserId ?? self::currentUserId();
-        // User-specific favourites (mocked). Fallback to a default set.
-        $byUser = [
-            1001 => ['Running', 'Cycling', 'Tennis'],
-            2001 => ['Soccer', 'Tennis', 'Running'],
-            2002 => ['Basketball', 'Cycling', 'Soccer'],
-            2003 => ['Tennis', 'Running', 'Yoga'],
-        ];
-        $icons = [
-            'Running' => '🏃',
-            'Cycling' => '🚴',
-            'Tennis'  => '🎾',
-            'Soccer'  => '⚽',
-            'Basketball' => '🏀',
-            'Yoga' => '🧘',
-            'Volleyball' => '🏐',
-            'Gym' => '🏋️',
-            'Other' => '➕',
-        ];
-
-        // Count nearby events per sport using mock events()
-        $catalog = self::sportsCatalog(); // id => name
-        $nameToId = array_flip($catalog);
+        
+        $users = self::users();
+        $userFavourites = $users[$uid]['favouriteSports'] ?? [];
+        
+        $catalog = self::sportsCatalog();
+        
         $counts = [];
         foreach (self::events() as $ev) {
             $sid = $ev['sportId'] ?? null;
-            $name = $sid && isset($catalog[$sid]) ? $catalog[$sid] : null;
-            if ($name) { $counts[$name] = ($counts[$name] ?? 0) + 1; }
+            if ($sid && in_array($sid, $userFavourites, true)) {
+                $counts[$sid] = ($counts[$sid] ?? 0) + 1;
+            }
         }
-
-        $list = $byUser[$uid] ?? ['Running', 'Cycling', 'Tennis'];
-        return array_map(function($name) use ($icons, $counts) {
-            $nearby = $counts[$name] ?? 0;
+        
+        return array_map(function($sportId) use ($catalog, $counts) {
+            $sport = $catalog[$sportId] ?? null;
+            if (!$sport) return null;
+            
+            $nearby = $counts[$sportId] ?? 0;
             $nearbyText = $nearby > 0 ? ("{$nearby} events nearby") : 'No events nearby';
+            
             return [
-                'icon' => $icons[$name] ?? '➕',
-                'name' => $name,
+                'icon' => $sport['icon'],
+                'name' => $sport['name'],
                 'nearbyText' => $nearbyText,
             ];
-        }, $list);
+        }, $userFavourites);
     }
 
     public static function sportsMatches(int $currentUserId = null, array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
@@ -299,17 +373,27 @@ class MockRepository {
         $colors = self::levelColors();
         $participants = self::eventParticipants();
         return array_map(function($ev) use ($levels, $colors, $participants) {
-            $current = count($participants[$ev['id']] ?? []);
-            $playersText = $current . '/' . ($ev['maxPlayers'] ?? $current) . ' Players';
+            $current = count($participants[$ev['id']]);
+            // Handle different participant types
+            if ($ev['maxPlayers'] === null) {
+                // Minimum mode - show "min+ Players"
+                $playersText = $ev['minNeeded'] . '+ Players';
+            } elseif ($ev['minNeeded'] === $ev['maxPlayers']) {
+                // Specific mode - show "exact Players"
+                $playersText = $ev['minNeeded'] . ' Players';
+            } else {
+                // Range mode - show "current/min-max Players"
+                $playersText = $current . '/' . $ev['minNeeded'] . '-' . $ev['maxPlayers'] . ' Players';
+            }
             return [
                 'id' => $ev['id'],
                 'title' => $ev['title'],
                 'datetime' => $ev['dateText'],
-                'desc' => $ev['desc'] ?? '',
+                'desc' => $ev['desc'],
                 'players' => $playersText,
-                'level' => $levels[$ev['levelId']] ?? 'Intermediate',
-                'levelColor' => $colors[$ev['levelId']] ?? '#eab308',
-                'imageUrl' => $ev['imageUrl'] ?? ''
+                'level' => $levels[$ev['levelId']],
+                'levelColor' => $colors[$ev['levelId']],
+                'imageUrl' => $ev['imageUrl']
             ];
         }, array_values($events));
     }
@@ -323,7 +407,7 @@ class MockRepository {
         return $R * $c;
     }
 
-    public static function joinedMatches(int $currentUserId = null): array {
+    public static function joinedMatches(?int $currentUserId = null): array {
         $uid = $currentUserId ?? self::currentUserId();
         $parts = self::eventParticipants();
         $events = array_filter(self::events(), function($ev) use ($uid, $parts) {
@@ -332,8 +416,8 @@ class MockRepository {
         $levels = self::levels();
         $colors = self::levelColors();
         return array_map(function($ev) use ($levels, $colors, $parts) {
-            $current = count($parts[$ev['id']] ?? []);
-            $playersText = $current . '/' . ($ev['maxPlayers'] ?? $current) . ' Players';
+            $current = count($parts[$ev['id']]);
+            $playersText = $current . '/' . $ev['maxPlayers'] . ' Players';
             return [
                 'id' => $ev['id'],
                 'title' => $ev['title'],
@@ -341,11 +425,11 @@ class MockRepository {
                 'dateText' => $ev['dateText'],
                 'isoDate' => $ev['isoDate'],
                 'location' => $ev['location'],
-                'desc' => $ev['desc'] ?? '',
+                'desc' => $ev['desc'],
                 'players' => $playersText,
-                'level' => $levels[$ev['levelId']] ?? 'Intermediate',
-                'levelColor' => $colors[$ev['levelId']] ?? '#eab308',
-                'imageUrl' => $ev['imageUrl'] ?? ''
+                'level' => $levels[$ev['levelId']],
+                'levelColor' => $colors[$ev['levelId']],
+                'imageUrl' => $ev['imageUrl']
             ];
         }, array_values($events));
     }
@@ -359,16 +443,26 @@ class MockRepository {
         $colors = self::levelColors();
         $participants = self::eventParticipants();
         return array_map(function($ev) use ($levels, $colors, $participants) {
-            $current = count($participants[$ev['id']] ?? []);
-            $playersText = $current . '/' . ($ev['maxPlayers'] ?? $current) . ' Players';
+            $current = count($participants[$ev['id']]);
+            // Handle different participant types
+            if ($ev['maxPlayers'] === null) {
+                // Minimum mode - show "min+ Players"
+                $playersText = $ev['minNeeded'] . '+ Players';
+            } elseif ($ev['minNeeded'] === $ev['maxPlayers']) {
+                // Specific mode - show "exact Players"
+                $playersText = $ev['minNeeded'] . ' Players';
+            } else {
+                // Range mode - show "current/min-max Players"
+                $playersText = $current . '/' . $ev['minNeeded'] . '-' . $ev['maxPlayers'] . ' Players';
+            }
             return [
                 'id' => $ev['id'],
                 'title' => $ev['title'],
                 'datetime' => $ev['dateText'],
                 'players' => $playersText,
-                'level' => $levels[$ev['levelId']] ?? 'Intermediate',
-                'levelColor' => $colors[$ev['levelId']] ?? '#eab308',
-                'imageUrl' => $ev['imageUrl'] ?? ''
+                'level' => $levels[$ev['levelId']],
+                'levelColor' => $colors[$ev['levelId']],
+                'imageUrl' => $ev['imageUrl']
             ];
         }, array_values($events));
     }
@@ -385,19 +479,71 @@ class MockRepository {
                 return [
                     'id' => $ev['id'],
                     'title' => $ev['title'],
-                    'location' => $ev['location'] ?? (self::sportsCatalog()[$ev['sportId']] ?? 'Unknown location'),
-                    'coords' => $ev['coords'] ?? null,
-                    'dateTime' => $ev['dateText'] ?? 'TBD',
-                    'skillLevel' => $levels[$ev['levelId']] ?? 'Intermediate',
+                    'location' => $ev['location'],
+                    'coords' => $ev['coords'],
+                    'dateTime' => $ev['isoDate'],
+                    'skillLevel' => $levels[$ev['levelId']],
+                    'desc' => $ev['desc'] ?? '',
                     'organizer' => $organizer,
                     'participants' => [
                         'current' => $current,
-                        'max' => $ev['maxPlayers'] ?? $current,
-                        'minNeeded' => $ev['minNeeded'] ?? 0
+                        'max' => $ev['maxPlayers'],
+                        'minNeeded' => $ev['minNeeded']
                     ],
                 ];
             }
         }
         return null;
+    }
+
+    public static function updateEvent(int $id, array $updates): bool
+    {
+        self::ensureSession();
+
+        // Ensure events data is initialized
+        if (self::$eventsData === null) {
+            self::events();
+        }
+        
+        // Update the event in the array
+        foreach (self::$eventsData as &$ev) {
+            if (($ev['id'] ?? 0) === $id) {
+                if (isset($updates['title'])) $ev['title'] = $updates['title'];
+                if (isset($updates['dateText'])) $ev['dateText'] = $updates['dateText'];
+                if (isset($updates['isoDate'])) $ev['isoDate'] = $updates['isoDate'];
+                if (isset($updates['coords'])) $ev['coords'] = $updates['coords'];
+                if (isset($updates['levelId'])) $ev['levelId'] = $updates['levelId'];
+                if (array_key_exists('maxPlayers', $updates)) $ev['maxPlayers'] = $updates['maxPlayers'];
+                if (array_key_exists('minNeeded', $updates)) $ev['minNeeded'] = $updates['minNeeded'];
+                if (array_key_exists('desc', $updates)) $ev['desc'] = $updates['desc'];
+
+                // Persist in session so reads on other requests see the change
+                $_SESSION['mock_events'] = self::$eventsData;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static function addEvent(array $eventData): ?int
+    {
+        self::ensureSession();
+        $events = self::events();
+        
+        // Find max ID
+        $maxId = 0;
+        foreach ($events as $ev) {
+            if (($ev['id'] ?? 0) > $maxId) {
+                $maxId = $ev['id'];
+            }
+        }
+        
+        $newId = $maxId + 1;
+        $newEvent = array_merge($eventData, ['id' => $newId]);
+        
+        self::$eventsData[] = $newEvent;
+        $_SESSION['mock_events'] = self::$eventsData;
+        
+        return $newId;
     }
 }

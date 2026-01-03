@@ -51,7 +51,7 @@ class AppController {
     }
 
     // Shared helpers to access current auth context
-    protected function getCurrentUserId(): ?int
+    public function getCurrentUserId(): ?int
     {
         $this->ensureSession();
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;

@@ -4,20 +4,34 @@ CREATE TABLE users (
     lastname VARCHAR(100) NOT NULL,
     email VARCHAR(150) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL,
+    birth_date DATE,
+    avatar_url TEXT,
+    latitude DECIMAL(9,6),
+    longitude DECIMAL(9,6),
     bio TEXT,
     enabled BOOLEAN DEFAULT TRUE
 );
 
-INSERT INTO users (firstname, lastname, email, password, bio, enabled)
+INSERT INTO users (firstname, lastname, email, password, birth_date, latitude, longitude, bio, enabled)
 VALUES (
     'Jan',
     'Kowalski',
     'jan.kowalski@example.com',
     '$2b$10$ZbzQrqD1vDhLJpYe/vzSbeDJHTUnVPCpwlXclkiFa8dO5gOAfg8tq',
+    '1990-05-15',
+    40.7580,
+    -73.9855,
     'Lubi programować w JS i PL/SQL.',
     TRUE
 );
  
+-- User favourite sports
+CREATE TABLE IF NOT EXISTS user_favourite_sports (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    sport_id INTEGER NOT NULL REFERENCES sports(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, sport_id)
+);
+
 -- Global login attempts tracking (per email + IP)
 CREATE TABLE IF NOT EXISTS login_attempts (
     email VARCHAR(150) NOT NULL,

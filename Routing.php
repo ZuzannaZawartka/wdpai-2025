@@ -82,7 +82,8 @@ class Routing{
         'edit' => [
             "controller" => 'EditController',
             "action" => 'edit',
-            "auth" => true
+            "auth" => true,
+            "requiresOwnership" => 'event'
         ]
     ];
 
@@ -114,7 +115,14 @@ class Routing{
                     include 'public/views/404.html';
                     return;
                 }
-                self::dispatch($action, [$parameters[0]]);
+                // Check if this is edit/save or edit/{id}
+                if ($parameters[0] === 'save' && !empty($parameters[1])) {
+                    // edit/save/{id}
+                    self::dispatch($action, ['save', $parameters[1]]);
+                } else {
+                    // edit/{id}
+                    self::dispatch($action, [$parameters[0]]);
+                }
                 break;
             default:
                 self::dispatch($action);
@@ -132,6 +140,12 @@ class Routing{
 
         $controllerClass = self::$routes[$action]['controller'];
         $method = self::$routes[$action]['action'];
+        
+        // Check if this is a save action
+        if (!empty($parameters) && $parameters[0] === 'save') {
+            $method = 'save';
+            array_shift($parameters); // Remove 'save' from parameters
+        }
 
         $controller = $controllerClass::getInstance();
 
@@ -140,6 +154,47 @@ class Routing{
         if ($requiresAuth) {
             $controller->requireAuth();
         }
+        
+        // Check ownership if required
+        if (isset(self::$routes[$action]['requiresOwnership'])) {
+            $resourceType = self::$routes[$action]['requiresOwnership'];
+            $resourceId = !empty($parameters) ? (int)$parameters[0] : null;
+            if ($resourceId) {
+                self::checkOwnership($controller, $resourceId, $resourceType);
+            }
+        }
+        
         call_user_func_array([$controller, $method], $parameters);
+    }
+    
+    private static function checkOwnership($controller, int $resourceId, string $resourceType): void
+    {
+        require_once __DIR__ . '/src/repository/MockRepository.php';
+        
+        $userId = $controller->getCurrentUserId();
+        if (!$userId) {
+            http_response_code(403);
+            include 'public/views/404.html';
+            exit();
+        }
+        
+        $isOwner = false;
+        
+        if ($resourceType === 'event') {
+            $allEvents = MockRepository::events();
+            foreach ($allEvents as $ev) {
+                if ($ev['id'] == $resourceId && ($ev['ownerId'] ?? null) === $userId) {
+                    $isOwner = true;
+                    break;
+                }
+            }
+        }
+        // Tutaj w przyszłości możesz dodać inne typy: 'profile', 'comment', etc.
+        
+        if (!$isOwner) {
+            http_response_code(403);
+            include 'public/views/404.html';
+            exit();
+        }
     }
 }
