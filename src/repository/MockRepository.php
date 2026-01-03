@@ -122,10 +122,7 @@ class MockRepository {
     public static function events(): array {
         self::ensureSession();
 
-        if (self::$eventsData === null && isset($_SESSION['mock_events']) && is_array($_SESSION['mock_events'])) {
-            self::$eventsData = $_SESSION['mock_events'];
-        }
-
+        // Zawsze inicjalizuj z kodu, aby mieć wszystkie eventy (1-14)
         if (self::$eventsData === null) {
             self::$eventsData = [
                 [
@@ -233,10 +230,112 @@ class MockRepository {
                 'maxPlayers' => 4,
                 'minNeeded' => 2
             ],
+            [
+                'id' => 8,
+                'title' => 'Morning Run Group',
+                'isoDate' => '2026-02-08T07:00:00',
+                'dateText' => 'Sun, Feb 8, 7:00 AM',
+                'location' => 'East River Park, New York, NY',
+                'coords' => '40.7150, -73.9733',
+                'sportId' => 4,
+                'levelId' => 1,
+                'imageUrl' => 'https://picsum.photos/seed/morning-run/800/600',
+                'desc' => 'Easy pace morning run, all fitness levels welcome.',
+                'ownerId' => 2003,
+                'maxPlayers' => 20,
+                'minNeeded' => 3
+            ],
+            [
+                'id' => 9,
+                'title' => 'Weekend Cycling Tour',
+                'isoDate' => '2026-02-09T10:00:00',
+                'dateText' => 'Mon, Feb 9, 10:00 AM',
+                'location' => 'Hudson River Greenway, New York, NY',
+                'coords' => '40.7245, -73.9754',
+                'sportId' => 5,
+                'levelId' => 2,
+                'imageUrl' => 'https://picsum.photos/seed/cycling-tour/800/600',
+                'desc' => 'Scenic 20 mile ride through the city.',
+                'ownerId' => 2001,
+                'maxPlayers' => 15,
+                'minNeeded' => 4
+            ],
+            [
+                'id' => 10,
+                'title' => 'Advanced Basketball League',
+                'isoDate' => '2025-11-10T18:00:00',
+                'dateText' => 'Mon, Nov 10, 6:00 PM',
+                'location' => 'Asphalt Green, New York, NY',
+                'coords' => '40.7649, -73.9593',
+                'sportId' => 2,
+                'levelId' => 3,
+                'imageUrl' => 'https://picsum.photos/seed/basketball-league/800/600',
+                'desc' => 'Competitive league play, experienced players only.',
+                'ownerId' => 2002,
+                'maxPlayers' => 12,
+                'minNeeded' => 10
+            ],
+            [
+                'id' => 11,
+                'title' => 'Beginner Soccer Clinic',
+                'isoDate' => '2025-11-11T15:00:00',
+                'dateText' => 'Tue, Nov 11, 3:00 PM',
+                'location' => 'Pier 1, New York, NY',
+                'coords' => '40.7061, -74.0088',
+                'sportId' => 1,
+                'levelId' => 1,
+                'imageUrl' => 'https://picsum.photos/seed/soccer-clinic/800/600',
+                'desc' => 'Learn the basics of soccer in a fun environment.',
+                'ownerId' => 2003,
+                'maxPlayers' => 16,
+                'minNeeded' => 8
+            ],
+            [
+                'id' => 12,
+                'title' => 'Tennis Doubles Tournament',
+                'isoDate' => '2025-11-12T14:00:00',
+                'dateText' => 'Wed, Nov 12, 2:00 PM',
+                'location' => 'West Side Tennis Club, New York, NY',
+                'coords' => '40.7668, -73.8245',
+                'sportId' => 3,
+                'levelId' => 2,
+                'imageUrl' => 'https://picsum.photos/seed/tennis-tournament/800/600',
+                'desc' => 'Mixed doubles tournament, bring a partner.',
+                'ownerId' => 2001,
+                'maxPlayers' => 8,
+                'minNeeded' => 4
+            ],
+            [
+                'id' => 13,
+                'title' => 'Evening Run - 10K',
+                'isoDate' => '2026-02-13T18:00:00',
+                'dateText' => 'Fri, Feb 13, 6:00 PM',
+                'location' => 'Brooklyn Bridge Park, New York, NY',
+                'coords' => '40.6974, -73.9876',
+                'sportId' => 4,
+                'levelId' => 2,
+                'imageUrl' => 'https://picsum.photos/seed/evening-run/800/600',
+                'desc' => '10K run with some hills, moderate pace.',
+                'ownerId' => 2002,
+                'maxPlayers' => 25,
+                'minNeeded' => 5
+            ],
+            [
+                'id' => 14,
+                'title' => 'Road Cycling Adventure',
+                'isoDate' => '2026-02-14T09:00:00',
+                'dateText' => 'Sat, Feb 14, 9:00 AM',
+                'location' => 'Westchester County, New York, NY',
+                'coords' => '40.8448, -73.8648',
+                'sportId' => 5,
+                'levelId' => 3,
+                'imageUrl' => 'https://picsum.photos/seed/road-cycling/800/600',
+                'desc' => 'Challenging 40 mile road ride for experienced cyclists.',
+                'ownerId' => 2003,
+                'maxPlayers' => 12,
+                'minNeeded' => 3
+            ],
             ];
-
-            // Persist in session so edits survive across requests/workers
-            $_SESSION['mock_events'] = self::$eventsData;
         }
         return self::$eventsData;
     }
@@ -251,6 +350,13 @@ class MockRepository {
             5 => [41, 1003, 1007, 1008, 1009, 1010, 1011, 1012, 1013],
             6 => [1002, 1003, 1004],
             7 => [41, 1015],
+            8 => [2001, 2002],
+            9 => [41, 1002],
+            10 => [2003],
+            11 => [41, 1001],
+            12 => [2002, 2003],
+            13 => [41, 1003, 1004],
+            14 => [2001, 2002, 2003],
         ];
     }
 
@@ -340,19 +446,18 @@ class MockRepository {
 
     public static function sportsMatches(int $currentUserId = null, array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
         $uid = $currentUserId ?? self::currentUserId();
-        $catalog = self::sportsCatalog(); // id => name
+        $catalog = self::sportsCatalog();
         $levels = self::levels();
-        $events = array_filter(self::events(), function($ev) use ($uid, $catalog, $levels, $selectedSports, $level, $center, $radiusKm) {
-            if (($ev['ownerId'] ?? null) === $uid) { return false; }
-            // Sports filter
+        $events = array_filter(self::events(), function($ev) use ($uid, $selectedSports, $level, $center, $radiusKm) {
+            // Sports filter - compare by ID not by name
             if (!empty($selectedSports)) {
                 $sid = $ev['sportId'] ?? null;
-                $name = $sid && isset($catalog[$sid]) ? $catalog[$sid] : null;
-                if (!$name || !in_array($name, $selectedSports, true)) { return false; }
+                if (!$sid || !in_array($sid, $selectedSports, true)) { return false; }
             }
             // Level filter
             if ($level !== null) {
                 $lid = $ev['levelId'] ?? null;
+                $levels = self::levels();
                 $lname = $lid && isset($levels[$lid]) ? $levels[$lid] : null;
                 if ($lname !== $level) { return false; }
             }
@@ -516,9 +621,6 @@ class MockRepository {
                 if (array_key_exists('maxPlayers', $updates)) $ev['maxPlayers'] = $updates['maxPlayers'];
                 if (array_key_exists('minNeeded', $updates)) $ev['minNeeded'] = $updates['minNeeded'];
                 if (array_key_exists('desc', $updates)) $ev['desc'] = $updates['desc'];
-
-                // Persist in session so reads on other requests see the change
-                $_SESSION['mock_events'] = self::$eventsData;
                 return true;
             }
         }
@@ -542,7 +644,6 @@ class MockRepository {
         $newEvent = array_merge($eventData, ['id' => $newId]);
         
         self::$eventsData[] = $newEvent;
-        $_SESSION['mock_events'] = self::$eventsData;
         
         return $newId;
     }

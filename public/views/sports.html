@@ -194,7 +194,18 @@
     </script>
 
     <div class="section panel matches">
-        <?php foreach(($matches ?? []) as $m): ?>
+        <?php 
+            $allMatches = $matches ?? [];
+            $itemsPerPage = 10;
+            $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+            $totalItems = count($allMatches);
+            $totalPages = max(1, ceil($totalItems / $itemsPerPage));
+            $currentPage = min($currentPage, $totalPages);
+            
+            $offset = ($currentPage - 1) * $itemsPerPage;
+            $pageMatches = array_slice($allMatches, $offset, $itemsPerPage);
+        ?>
+        <?php foreach($pageMatches as $m): ?>
         <article class="match">
             <div class="match-body">
                 <div class="copy">
@@ -221,6 +232,47 @@
             </div>
         </article>
         <?php endforeach; ?>
+
+        <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <?php if ($currentPage > 1): ?>
+            <?php 
+                    $prevParams = $_GET;
+                    $prevParams['page'] = $currentPage - 1;
+                    $prevUrl = '?' . http_build_query($prevParams);
+                ?>
+            <a href="<?= htmlspecialchars($prevUrl) ?>" class="button muted">← Prev</a>
+            <?php endif; ?>
+
+            <div>
+                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <?php if ($i === $currentPage): ?>
+                <span class="button primary text-size-small">
+                    <?= $i ?>
+                </span>
+                <?php else: ?>
+                <?php 
+                            $pageParams = $_GET;
+                            $pageParams['page'] = $i;
+                            $pageUrl = '?' . http_build_query($pageParams);
+                        ?>
+                <a href="<?= htmlspecialchars($pageUrl) ?>" class="button text-size-small">
+                    <?= $i ?>
+                </a>
+                <?php endif; ?>
+                <?php endfor; ?>
+            </div>
+
+            <?php if ($currentPage < $totalPages): ?>
+            <?php 
+                    $nextParams = $_GET;
+                    $nextParams['page'] = $currentPage + 1;
+                    $nextUrl = '?' . http_build_query($nextParams);
+                ?>
+            <a href="<?= htmlspecialchars($nextUrl) ?>" class="button muted">Next →</a>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
     </div>
 </section>
 

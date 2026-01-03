@@ -18,15 +18,13 @@ class SportsController extends AppController {
             }
         }
 
-        // Level filter: Any | Beginner | Intermediate | Advanced
         $selectedLevel = 'Any';
         if (isset($_GET['level']) && is_string($_GET['level'])) {
             $selectedLevel = trim($_GET['level']);
         }
 
-        // Location filter: loc="lat, lng", radius in km (int)
         $selectedLoc = '';
-        $center = null; // [lat, lng]
+        $center = null;
         $radiusKm = null;
         if (isset($_GET['loc']) && is_string($_GET['loc'])) {
             $selectedLoc = trim($_GET['loc']);
@@ -43,32 +41,38 @@ class SportsController extends AppController {
             }
         }
 
-        $sportsGrid = [
-            ['icon' => 'sports_soccer', 'name' => 'Soccer'],
-            ['icon' => 'sports_basketball', 'name' => 'Basketball'],
-            ['icon' => 'sports_tennis', 'name' => 'Tennis'],
-            ['icon' => 'directions_run', 'name' => 'Running'],
-            ['icon' => 'directions_bike', 'name' => 'Cycling'],
-            ['icon' => 'self_improvement', 'name' => 'Yoga'],
-            ['icon' => 'sports_volleyball', 'name' => 'Volleyball'],
-            ['icon' => 'fitness_center', 'name' => 'Gym'],
-            ['icon' => 'more_horiz', 'name' => 'Other'],
-        ];
+        $sportsCatalog = MockRepository::sportsCatalog();
+        $sportsGrid = array_map(function($sport) {
+            return [
+                'id' => $sport['id'],
+                'name' => $sport['name'],
+                'icon' => $sport['icon']
+            ];
+        }, array_values($sportsCatalog));
 
-        // Sanitize selected sports to valid names from the grid
         if (!empty($selectedSports)) {
             $valid = array_column($sportsGrid, 'name');
             $selectedSports = array_values(array_intersect($selectedSports, $valid));
         }
+        
+        $selectedSportIds = [];
+        foreach ($selectedSports as $sportName) {
+            foreach ($sportsCatalog as $id => $sport) {
+                if ($sport['name'] === $sportName) {
+                    $selectedSportIds[] = $id;
+                    break;
+                }
+            }
+        }
 
-        // Sanitize level to known values
-        $validLevels = ['Any','Beginner','Intermediate','Advanced'];
+        $allLevels = MockRepository::levels();
+        $validLevels = array_merge(['Any'], array_values($allLevels));
         if (!in_array($selectedLevel, $validLevels, true)) {
             $selectedLevel = 'Any';
         }
 
         $levelForFilter = $selectedLevel !== 'Any' ? $selectedLevel : null;
-        $matches = MockRepository::sportsMatches(null, $selectedSports, $levelForFilter, $center, $radiusKm);
+        $matches = MockRepository::sportsMatches(null, $selectedSportIds, $levelForFilter, $center, $radiusKm);
 
         $this->render('sports', [
             'pageTitle' => 'SportMatch - Sports',
