@@ -359,6 +359,8 @@ class MockRepository {
 
 
     public static function eventParticipants(): array {
+        self::ensureSession();
+        
         $participants = [
             1 => [41, 1002, 1003, 1004, 1006],
             2 => [1007, 1008, 1009, 1010, 1011, 1012, 1013],
@@ -376,6 +378,15 @@ class MockRepository {
             14 => [2001, 2002, 2003],
         ];
         
+        // Merge session participants
+        if (isset($_SESSION['user_participants']) && is_array($_SESSION['user_participants'])) {
+            foreach ($_SESSION['user_participants'] as $eventId => $userIds) {
+                if (!isset($participants[$eventId])) {
+                    $participants[$eventId] = [];
+                }
+                $participants[$eventId] = array_values(array_unique(array_merge($participants[$eventId], $userIds)));
+            }
+        }
 
         foreach (self::events() as $ev) {
             $id = $ev['id'] ?? null;
@@ -385,6 +396,55 @@ class MockRepository {
         }
         
         return $participants;
+    }
+
+    public static function isUserParticipant(?int $userId, ?int $eventId): bool {
+        if (!$userId || !$eventId) {
+            return false;
+        }
+        $participants = self::eventParticipants();
+        return in_array($userId, $participants[$eventId] ?? [], true);
+    }
+
+    public static function joinEvent(?int $userId, ?int $eventId): bool {
+        if (!$userId || !$eventId) {
+            return false;
+        }
+        self::ensureSession();
+        
+        if (!isset($_SESSION['user_participants'])) {
+            $_SESSION['user_participants'] = [];
+        }
+        
+        if (!isset($_SESSION['user_participants'][$eventId])) {
+            $_SESSION['user_participants'][$eventId] = [];
+        }
+        
+        if (!in_array($userId, $_SESSION['user_participants'][$eventId], true)) {
+            $_SESSION['user_participants'][$eventId][] = $userId;
+            return true;
+        }
+        
+        return false;
+    }
+
+    public static function cancelEventParticipation(?int $userId, ?int $eventId): bool {
+        if (!$userId || !$eventId) {
+            return false;
+        }
+        self::ensureSession();
+        
+        if (!isset($_SESSION['user_participants'][$eventId])) {
+            return false;
+        }
+        
+        $key = array_search($userId, $_SESSION['user_participants'][$eventId], true);
+        if ($key !== false) {
+            unset($_SESSION['user_participants'][$eventId][$key]);
+            return true;
+        }
+        
+        return false;
     }
 
     // Dashboard upcoming = nearest two joined
@@ -540,7 +600,7 @@ class MockRepository {
         $levels = self::levels();
         $colors = self::levelColors();
         $participants = self::eventParticipants();
-        return array_map(function($ev) use ($levels, $colors, $participants) {
+        return array_map(function($ev) use ($levels, $colors, $participants, $uid) {
             $current = count($participants[$ev['id']]);
             // Handle different participant types
             if ($ev['maxPlayers'] === null) {
@@ -561,7 +621,8 @@ class MockRepository {
                 'players' => $playersText,
                 'level' => $levels[$ev['levelId']],
                 'levelColor' => $colors[$ev['levelId']],
-                'imageUrl' => $ev['imageUrl']
+                'imageUrl' => $ev['imageUrl'],
+                'isUserParticipant' => self::isUserParticipant($uid, $ev['id'])
             ];
         }, array_values($events));
     }
@@ -646,6 +707,7 @@ class MockRepository {
                 $current = count($participants[$ev['id']] ?? []);
                 $owner = $ev['ownerId'] ?? null;
                 $isOwner = $owner === $currentUserId;
+                $isParticipant = self::isUserParticipant($currentUserId, $ev['id']);
                 
                 if ($owner && isset($users[$owner])) {
                     $user = $users[$owner];
@@ -667,6 +729,7 @@ class MockRepository {
                     'desc' => $ev['desc'] ?? '',
                     'organizer' => $organizer,
                     'isOwner' => $isOwner,
+                    'isUserParticipant' => $isParticipant,
                     'participants' => [
                         'current' => $current,
                         'max' => $ev['maxPlayers'],

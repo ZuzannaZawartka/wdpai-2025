@@ -77,8 +77,17 @@ class Routing{
             "controller" => 'EventController',
             "action" => 'details',
             "auth" => true
-        ]
-        ,
+        ],
+        'event-join' => [
+            "controller" => 'EventController',
+            "action" => 'join',
+            "auth" => true
+        ],
+        'event-cancel' => [
+            "controller" => 'EventController',
+            "action" => 'cancel',
+            "auth" => true
+        ],
         'edit' => [
             "controller" => 'EditController',
             "action" => 'edit',
@@ -104,6 +113,20 @@ class Routing{
                 self::dispatch($action, [$parameters[0]]);
                 break;
             case 'event':
+                if (empty($parameters)) {
+                    include 'public/views/404.html';
+                    return;
+                }
+                self::dispatch($action, [$parameters[0]]);
+                break;
+            case 'event-join':
+                if (empty($parameters)) {
+                    include 'public/views/404.html';
+                    return;
+                }
+                self::dispatch($action, [$parameters[0]]);
+                break;
+            case 'event-cancel':
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;

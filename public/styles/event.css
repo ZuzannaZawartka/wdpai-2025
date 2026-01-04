@@ -109,3 +109,12 @@
 .event-page .details-grid .right .join-actions {
     margin-top: 1rem;
 }
+
+.event-page .details-grid .left .card+.card {
+    margin-top: 1rem;
+}
+
+.event-page .join-actions #joinBtn.hidden,
+.event-page .join-actions #cancelBtn.hidden {
+    display: none;
+}

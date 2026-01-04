@@ -52,7 +52,7 @@
                     </div>
                 </div>
 
-                <div id="revealed-info" class="card panel" hidden>
+                <div id="revealed-info" class="card panel" <?=($event['isUserParticipant'] ?? false) ? '' : 'hidden' ?>>
                     <div class="text-title">Location &amp; Contact</div>
                     <div class="grid-info">
                         <div class="icon-row">
@@ -107,7 +107,11 @@
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php else: ?>
-                    <button id="joinBtn" class="button accent">Join Match</button>
+                    <?php $isParticipant = $event['isUserParticipant'] ?? false; ?>
+                    <button id="joinBtn" class="button accent <?= $isParticipant ? 'hidden' : '' ?>"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Join Match</button>
+                    <button id="cancelBtn" class="button muted text-size-small <?= $isParticipant ? '' : 'hidden' ?>"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Cancel Participation</button>
                     <?php endif; ?>
                 </div>
             </div>
@@ -183,17 +187,50 @@
         })();
 
         const joinBtn = document.getElementById('joinBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
         const deleteBtn = document.getElementById('deleteBtn');
         const revealed = document.getElementById('revealed-info');
-        let joined = false;
+
+        function getEventId() {
+            return joinBtn?.getAttribute('data-event-id') || cancelBtn?.getAttribute('data-event-id');
+        }
 
         joinBtn?.addEventListener('click', function () {
-            if (!joined) {
-                revealed?.removeAttribute('hidden');
-                this.textContent = 'Joined';
-                this.disabled = true;
-                joined = true;
+            if (!confirm('Do you want to join this match?')) {
+                return;
             }
+            const eventId = getEventId();
+            fetch(`/event-join/${eventId}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        revealed?.removeAttribute('hidden');
+                        joinBtn.classList.add('hidden');
+                        cancelBtn?.classList.remove('hidden');
+                    } else {
+                        alert('Failed to join event');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        });
+
+        cancelBtn?.addEventListener('click', function () {
+            if (!confirm('Are you sure you want to cancel your participation?')) {
+                return;
+            }
+            const eventId = getEventId();
+            fetch(`/event-cancel/${eventId}`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        cancelBtn.classList.add('hidden');
+                        joinBtn?.classList.remove('hidden');
+                        revealed?.setAttribute('hidden', '');
+                    } else {
+                        alert('Failed to cancel participation');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
         });
 
         deleteBtn?.addEventListener('click', function () {
