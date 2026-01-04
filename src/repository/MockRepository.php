@@ -411,33 +411,69 @@ class MockRepository {
         }, $nearestTwo);
     }
 
-    public static function suggestions(): array {
-        return [
-            [
-                'id' => 101,
-                'title' => 'Weekly Running Club',
-                'sport' => 'Running',
-                'distanceText' => 'River Trail (2km away)',
-                'imageUrl' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuDBN4upX-dD3omhsHhGASurq2bQv8P05U2al7p0_6T8GJyXb5vvHwuEKLE3Aaxx7VnVURvJVTJ4Q48_-sqClJDzrxi-nIv6sxsgqt1RslKEjWhqlVBzAoWogk_ucJPIEhvMzYlC1EGUkmVPlR1hB_uUH19RZ7asJL23s5cjan5wOrxbnTetcPbDtGB22HyRDk457AEzNom2w09rRj7wOnzVqp3tIaD2bIUTvQniNLyaDTBDQ9l2ijS1GC94aEGV6_-cQOPgWgejHCDk',
-                'cta' => 'Join Match'
-            ],
-            [
-                'id' => 102,
-                'title' => 'Mountain Biking',
-                'sport' => 'Cycling',
-                'distanceText' => 'Hillside Trails (5km away)',
-                'imageUrl' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuAGCAqyYqW55OTcWiaX-4FMNzaR4kmyE7LETdG4imPjzKV1LqEy2y-2ss6bNhcaKGLv8F4nwsnQgtVnVS6Ilw-3MTsx25gYt3iWfG0fLhcwYLLRCVQPkyGcrMO7EUGLsrqDm8WyD3lQ0sej8vCpbCpIfjGQhJG7H4q5LhTk1yXRWtBZBi3ygcCpMXElit8RGUIULLKvIz5t6rAjtSouRQz9jwb5NAUyNnqsVmttyXAvIeFFBKwPgjMMKLCPyNb1QxZ-WD-Ft3xgI5SI',
-                'cta' => 'Join Match'
-            ],
-            [
-                'id' => 103,
-                'title' => 'Tennis Tournament',
-                'sport' => 'Tennis',
-                'distanceText' => 'Community Courts (1km away)',
-                'imageUrl' => 'https://lh3.googleusercontent.com/aida-public/AB6AXuCOdQng9qujhWHOAXiXeGemeWZRiFWZLM6d-1bjEItXNzJR0DhrmEE3_ulCj4x5pIVliCBsKTuhCQpliQh4pAMqx6_Z-v7sc2KH_73rlEE9UUDPFVS03PWZB3xYNwjq-46u37VzCUCGbQuPVczvaHEgCU00M4QyMmHU0R3PeD8sV2scqSwdvoCQvct8G8-AM6CKpnKXxyv6YN4-KxwqyjEf-_J1F0AZI2cAykEm9CrnlqqM02Ub-lgo7RX1YuHNMPKP-MLGtlXRzQ5W',
-                'cta' => 'Join Match'
-            ],
-        ];
+    public static function suggestions(?int $currentUserId = null, int $limit = 3): array {
+        $uid = $currentUserId ?? self::currentUserId();
+        $users = self::users();
+        if (!$uid || !isset($users[$uid])) {
+            return [];
+        }
+
+        $user = $users[$uid];
+        $location = $user['location'] ?? null;
+        $favourites = $user['favouriteSports'] ?? [];
+
+        if (empty($favourites) || !$location || !isset($location['lat'], $location['lng'])) {
+            return [];
+        }
+
+        $events = array_filter(self::events(), function ($ev) use ($favourites) {
+            $sid = $ev['sportId'] ?? null;
+            return $sid !== null && in_array($sid, $favourites, true) && !empty($ev['coords']);
+        });
+
+        $catalog = self::sportsCatalog();
+        $enriched = [];
+
+        foreach ($events as $ev) {
+            $coords = array_map('trim', explode(',', $ev['coords'] ?? ''));
+            if (count($coords) !== 2) {
+                continue;
+            }
+
+            $lat2 = (float)$coords[0];
+            $lng2 = (float)$coords[1];
+            $dist = self::distanceKm((float)$location['lat'], (float)$location['lng'], $lat2, $lng2);
+
+            if (!is_finite($dist)) {
+                continue;
+            }
+
+            $sportName = $catalog[$ev['sportId']]['name'] ?? 'Sport';
+            $distanceText = sprintf('%s (%.1f km away)', $ev['location'], round($dist, 1));
+
+            $enriched[] = [
+                'id' => $ev['id'],
+                'title' => $ev['title'],
+                'sport' => $sportName,
+                'distanceText' => $distanceText,
+                'imageUrl' => $ev['imageUrl'] ?? '',
+                'cta' => 'See Details',
+                'distanceKm' => $dist
+            ];
+        }
+
+        usort($enriched, function ($a, $b) {
+            $da = $a['distanceKm'] ?? INF;
+            $db = $b['distanceKm'] ?? INF;
+            return $da <=> $db;
+        });
+
+        $trimmed = array_slice($enriched, 0, $limit);
+
+        return array_map(function ($item) {
+            unset($item['distanceKm']);
+            return $item;
+        }, $trimmed);
     }
 
     public static function favouriteSports(?int $currentUserId = null): array {

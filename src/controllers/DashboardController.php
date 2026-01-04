@@ -16,9 +16,9 @@ class DashboardController extends AppController {
 
     public function index(?int $id =null) {
         $currentUserId = $this->getCurrentUserId();
-        $upcomingEvents = MockRepository::upcomingEvents();
+        $upcomingEvents = MockRepository::upcomingEvents($currentUserId ?? null);
         $favouriteSports = MockRepository::favouriteSports($currentUserId ?? null);
-        $suggestions = MockRepository::suggestions();
+        $suggestions = MockRepository::suggestions($currentUserId ?? null);
 
         $this->render("dashboard",  [
             'activeNav' => 'dashboard',

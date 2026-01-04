@@ -106,8 +106,10 @@
                     <h2 class="text-title">Personalized Suggestions</h2>
                     <a class="a-link text-size-small" href="/sports">See More</a>
                 </div>
+                <?php $recs = $suggestions ?? []; ?>
+                <?php if (!empty($recs)): ?>
                 <div class="cards three-col">
-                    <?php $recs = $suggestions ?? []; foreach ($recs as $rec): ?>
+                    <?php foreach ($recs as $rec): ?>
                     <article class="card">
                         <div class="card-media"
                             style="background-image:url('<?= htmlspecialchars($rec['imageUrl']) ?>')">
@@ -129,6 +131,14 @@
                     </article>
                     <?php endforeach; ?>
                 </div>
+                <?php else: ?>
+                <div class="empty-panel empty-dashed">
+                    <span class="material">explore</span>
+                    <div class="text-title-smaller">No personalized suggestions yet.</div>
+                    <p class="text-body">Join events or add favourite sports to get tailored picks.</p>
+                    <a href="/sports" class="button accent text-size-small">Browse Events</a>
+                </div>
+                <?php endif; ?>
             </section>
         </div>
     </div>
