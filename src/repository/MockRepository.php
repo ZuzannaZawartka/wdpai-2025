@@ -139,8 +139,8 @@ class MockRepository {
                     'imageUrl' => 'https://picsum.photos/seed/river-soccer/800/600',
                     'desc' => 'Friendly small-sided match by the river.',
                     'ownerId' => 2001,
-                    'maxPlayers' => 12,
-                'minNeeded' => 6
+                    'maxPlayers' => 1,
+                'minNeeded' => 1
             ],
             [
                 'id' => 2,
@@ -362,7 +362,7 @@ class MockRepository {
         self::ensureSession();
         
         $participants = [
-            1 => [41, 1002, 1003, 1004, 1006],
+            1 => [41,42],
             2 => [1007, 1008, 1009, 1010, 1011, 1012, 1013],
             3 => [41, 1015, 1016],
             4 => [41, 1002, 1003, 1004, 1005, 1006],
@@ -419,6 +419,12 @@ class MockRepository {
         if (!$userId || !$eventId) {
             return false;
         }
+        
+        // Check if event is full
+        if (self::isEventFull($eventId)) {
+            return false;
+        }
+        
         self::ensureSession();
         
         if (!isset($_SESSION['user_participants'])) {
@@ -465,6 +471,24 @@ class MockRepository {
         if (!in_array($userId, $_SESSION['removed_participants'][$eventId], true)) {
             $_SESSION['removed_participants'][$eventId][] = $userId;
             return true;
+        }
+        
+        return false;
+    }
+
+    public static function isEventFull(int $eventId): bool {
+        $participants = self::eventParticipants();
+        $current = count($participants[$eventId] ?? []);
+        
+        $events = self::events();
+        foreach ($events as $ev) {
+            if (($ev['id'] ?? 0) === $eventId) {
+                $maxPlayers = $ev['maxPlayers'] ?? null;
+                if ($maxPlayers === null) {
+                    return false; // No limit
+                }
+                return $current >= $maxPlayers;
+            }
         }
         
         return false;
@@ -518,6 +542,11 @@ class MockRepository {
         $enriched = [];
 
         foreach ($events as $ev) {
+            // Skip full events
+            if (self::isEventFull($ev['id'])) {
+                continue;
+            }
+            
             $coords = array_map('trim', explode(',', $ev['coords'] ?? ''));
             if (count($coords) !== 2) {
                 continue;
@@ -595,19 +624,22 @@ class MockRepository {
         $catalog = self::sportsCatalog();
         $levels = self::levels();
         $events = array_filter(self::events(), function($ev) use ($uid, $selectedSports, $level, $center, $radiusKm) {
-            // Sports filter - compare by ID not by name
+            if (self::isEventFull($ev['id'])) {
+                return false;
+            }
+        
             if (!empty($selectedSports)) {
                 $sid = $ev['sportId'] ?? null;
                 if (!$sid || !in_array($sid, $selectedSports, true)) { return false; }
             }
-            // Level filter
+
             if ($level !== null) {
                 $lid = $ev['levelId'] ?? null;
                 $levels = self::levels();
                 $lname = $lid && isset($levels[$lid]) ? $levels[$lid] : null;
                 if ($lname !== $level) { return false; }
             }
-            // Location radius filter
+
             if ($center && $radiusKm !== null) {
                 $coords = $ev['coords'] ?? '';
                 if (!is_string($coords) || $coords === '') { return false; }
@@ -625,15 +657,15 @@ class MockRepository {
         $participants = self::eventParticipants();
         return array_map(function($ev) use ($levels, $colors, $participants, $uid) {
             $current = count($participants[$ev['id']]);
-            // Handle different participant types
+
             if ($ev['maxPlayers'] === null) {
-                // Minimum mode - show "min+ Players"
+
                 $playersText = $ev['minNeeded'] . '+ Players';
             } elseif ($ev['minNeeded'] === $ev['maxPlayers']) {
-                // Specific mode - show "exact Players"
+
                 $playersText = $ev['minNeeded'] . ' Players';
             } else {
-                // Range mode - show "current/min-max Players"
+
                 $playersText = $current . '/' . $ev['minNeeded'] . '-' . $ev['maxPlayers'] . ' Players';
             }
             return [
@@ -645,7 +677,8 @@ class MockRepository {
                 'level' => $levels[$ev['levelId']],
                 'levelColor' => $colors[$ev['levelId']],
                 'imageUrl' => $ev['imageUrl'],
-                'isUserParticipant' => self::isUserParticipant($uid, $ev['id'])
+                'isUserParticipant' => self::isUserParticipant($uid, $ev['id']),
+                'isFull' => self::isEventFull($ev['id'])
             ];
         }, array_values($events));
     }
@@ -753,6 +786,7 @@ class MockRepository {
                     'organizer' => $organizer,
                     'isOwner' => $isOwner,
                     'isUserParticipant' => $isParticipant,
+                    'isFull' => self::isEventFull($ev['id']),
                     'participants' => [
                         'current' => $current,
                         'max' => $ev['maxPlayers'],

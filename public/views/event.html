@@ -107,11 +107,18 @@
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php else: ?>
-                    <?php $isParticipant = $event['isUserParticipant'] ?? false; ?>
+                    <?php 
+                        $isParticipant = $event['isUserParticipant'] ?? false; 
+                        $isFull = $event['isFull'] ?? false;
+                    ?>
+                    <?php if ($isFull && !$isParticipant): ?>
+                    <div class="button muted text-size-small" disabled style="cursor: not-allowed;">Event Full</div>
+                    <?php else: ?>
                     <button id="joinBtn" class="button accent <?= $isParticipant ? 'hidden' : '' ?>"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Join Match</button>
                     <button id="cancelBtn" class="button muted text-size-small <?= $isParticipant ? '' : 'hidden' ?>"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Cancel Participation</button>
+                    <?php endif; ?>
                     <?php endif; ?>
                 </div>
             </div>

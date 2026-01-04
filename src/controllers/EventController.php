@@ -45,8 +45,14 @@ class EventController extends AppController {
             http_response_code(200);
             echo json_encode(['status' => 'success', 'message' => 'Joined event']);
         } else {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
+            // Check if event is full
+            if (MockRepository::isEventFull((int)$id)) {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Event is full']);
+            } else {
+                http_response_code(400);
+                echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
+            }
         }
     }
 
