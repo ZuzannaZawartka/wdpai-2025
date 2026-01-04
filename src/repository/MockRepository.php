@@ -378,6 +378,15 @@ class MockRepository {
             14 => [2001, 2002, 2003],
         ];
         
+        // Remove participants that have been cancelled
+        if (isset($_SESSION['removed_participants']) && is_array($_SESSION['removed_participants'])) {
+            foreach ($_SESSION['removed_participants'] as $eventId => $userIds) {
+                if (isset($participants[$eventId])) {
+                    $participants[$eventId] = array_values(array_diff($participants[$eventId], $userIds));
+                }
+            }
+        }
+        
         // Merge session participants
         if (isset($_SESSION['user_participants']) && is_array($_SESSION['user_participants'])) {
             foreach ($_SESSION['user_participants'] as $eventId => $userIds) {
@@ -434,13 +443,27 @@ class MockRepository {
         }
         self::ensureSession();
         
-        if (!isset($_SESSION['user_participants'][$eventId])) {
-            return false;
+        // Track removed participants separately
+        if (!isset($_SESSION['removed_participants'])) {
+            $_SESSION['removed_participants'] = [];
         }
         
-        $key = array_search($userId, $_SESSION['user_participants'][$eventId], true);
-        if ($key !== false) {
-            unset($_SESSION['user_participants'][$eventId][$key]);
+        if (!isset($_SESSION['removed_participants'][$eventId])) {
+            $_SESSION['removed_participants'][$eventId] = [];
+        }
+        
+        // If user is in session's user_participants, remove them
+        if (isset($_SESSION['user_participants'][$eventId])) {
+            $key = array_search($userId, $_SESSION['user_participants'][$eventId], true);
+            if ($key !== false) {
+                unset($_SESSION['user_participants'][$eventId][$key]);
+                return true;
+            }
+        }
+        
+        // If not found in session additions, mark as removed (for hardcoded list)
+        if (!in_array($userId, $_SESSION['removed_participants'][$eventId], true)) {
+            $_SESSION['removed_participants'][$eventId][] = $userId;
             return true;
         }
         

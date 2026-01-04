@@ -38,7 +38,10 @@
                     <div class="actions">
                         <a href="/event/<?= (int)($m['id'] ?? 0) ?>" class="button primary text-size-small">View
                             Details</a>
-                        <a href="#" class="a-link danger text-size-small">Cancel Participation</a>
+                        <button class="a-link danger text-size-small cancel-participation-joined"
+                            data-event-id="<?= (int)($m['id'] ?? 0) ?>"
+                            style="background: none; border: none; cursor: pointer; color: inherit;">Cancel
+                            Participation</button>
                     </div>
                 </div>
                 <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
@@ -55,5 +58,29 @@
         <?php endif; ?>
     </div>
 </section>
+
+<script>
+    (function () {
+        document.querySelectorAll('.cancel-participation-joined').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                if (!confirm('Are you sure you want to cancel your participation?')) {
+                    return;
+                }
+                const eventId = this.getAttribute('data-event-id');
+                fetch(`/event-cancel/${eventId}`, { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            this.closest('article').remove();
+                        } else {
+                            alert('Failed to cancel participation');
+                        }
+                    })
+                    .catch(err => alert('Error: ' + err.message));
+            });
+        });
+    })();
+</script>
 
 <?php include __DIR__ . '/components/footer.html'; ?>
