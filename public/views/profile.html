@@ -66,33 +66,12 @@
 
                 <div class="field input-group full">
                     <label class="text-small">Favorite Sports</label>
-                    <div class="grid-quick">
-                        <div class="tile selectable">
-                            <button type="button" class="button danger text-size-small remove-btn"
-                                aria-label="Remove Running">
-                                <span class="material">close</span>
-                            </button>
-                            <div class="tile-icon">
-                                <span class="material">directions_run</span>
-                            </div>
-                            <h3 class="text-compact-strong">Running</h3>
-                        </div>
-                        <div class="tile selectable">
-                            <button type="button" class="button danger text-size-small remove-btn"
-                                aria-label="Remove Tennis">
-                                <span class="material">close</span>
-                            </button>
-                            <div class="tile-icon">
-                                <span class="material">sports_tennis</span>
-                            </div>
-                            <h3 class="text-compact-strong">Tennis</h3>
-                        </div>
-                        <label class="tile selectable">
-                            <div class="tile-icon">
-                                <span class="material">add</span>
-                            </div>
-                            <h3 class="text-compact-strong">Add More</h3>
-                        </label>
+                    <div id="profileData"
+                        data-all-sports='<?= htmlspecialchars(json_encode($allSports ?? []), ENT_QUOTES); ?>'
+                        data-selected='<?= htmlspecialchars(json_encode($selectedSportIds ?? []), ENT_QUOTES); ?>'>
+                    </div>
+                    <div class="add-fav-chips" id="addFavRow">
+                        <div class="chip-wrap" id="addFavList"></div>
                     </div>
 
                 </div>
@@ -177,6 +156,76 @@
         editBtn?.addEventListener('click', () => avatarInput?.click());
 
         // Avatar save handled with the main form submit
+
+        // Favourite sports manager (mock-based)
+        const addRow = document.getElementById('addFavRow');
+        const addList = document.getElementById('addFavList');
+
+        const profileData = document.getElementById('profileData');
+        const allSports = profileData ? JSON.parse(profileData.dataset.allSports || '[]') : [];
+        const sportMap = Object.fromEntries((allSports || []).map(s => [String(s.id), s]));
+        let favouriteIds = profileData ? JSON.parse(profileData.dataset.selected || '[]') : [];
+
+        function renderSelect() {
+            if (!addList) return;
+            addList.innerHTML = '';
+
+            // Render all sports in catalog order
+            (allSports || []).forEach(s => {
+                const isSelected = favouriteIds.includes(s.id);
+                const label = document.createElement('label');
+                label.className = 'tile selectable';
+                label.dataset.sportId = String(s.id);
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = isSelected;
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'tile-icon material';
+                iconWrap.textContent = s.icon;
+
+                const textWrap = document.createElement('div');
+                const title = document.createElement('h3');
+                title.className = 'text-compact-strong';
+                title.textContent = s.name;
+                textWrap.appendChild(title);
+
+                label.appendChild(input);
+                label.appendChild(iconWrap);
+                label.appendChild(textWrap);
+
+                // Listen to input change event
+                input.addEventListener('change', () => {
+                    if (input.checked) {
+                        if (!favouriteIds.includes(s.id)) {
+                            favouriteIds.push(s.id);
+                        }
+                    } else {
+                        favouriteIds = favouriteIds.filter(v => v !== s.id);
+                    }
+                    persistFavourites();
+                });
+
+                addList.appendChild(label);
+            });
+        }
+
+        function renderFavs() {
+            renderSelect();
+        }
+
+        function persistFavourites() {
+            renderFavs();
+            fetch('/profile-favourites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sports: favouriteIds })
+            }).then(() => {/* no-op */ }).catch(() => {/* no-op */ });
+        }
+
+        renderSelect();
+        renderFavs();
     })();
 </script>
 

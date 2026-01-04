@@ -623,10 +623,15 @@ class MockRepository {
 
     public static function favouriteSports(?int $currentUserId = null): array {
         $uid = $currentUserId ?? self::currentUserId();
-        
+        self::ensureSession();
+
         $users = self::users();
-        $userFavourites = $users[$uid]['favouriteSports'] ?? [];
-        
+        // Session override to simulate user-updated favourites
+        $sessionFavs = $_SESSION['user_favourite_sports'][$uid] ?? null;
+        $userFavourites = is_array($sessionFavs)
+            ? array_values(array_unique(array_map('intval', $sessionFavs)))
+            : ($users[$uid]['favouriteSports'] ?? []);
+
         $catalog = self::sportsCatalog();
         
         $counts = [];
@@ -645,11 +650,26 @@ class MockRepository {
             $nearbyText = $nearby > 0 ? ("{$nearby} events nearby") : 'No events nearby';
             
             return [
+                'id' => $sport['id'],
                 'icon' => $sport['icon'],
                 'name' => $sport['name'],
                 'nearbyText' => $nearbyText,
             ];
         }, $userFavourites);
+    }
+
+    public static function setUserFavouriteSports(int $userId, array $sportIds): bool {
+        self::ensureSession();
+
+        $catalog = self::sportsCatalog();
+        $validIds = array_map('intval', array_keys($catalog));
+
+        $filtered = array_values(array_unique(array_filter(array_map('intval', $sportIds), function($id) use ($validIds) {
+            return in_array($id, $validIds, true);
+        })));
+
+        $_SESSION['user_favourite_sports'][$userId] = $filtered;
+        return true;
     }
 
     public static function sportsMatches(int $currentUserId = null, array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {

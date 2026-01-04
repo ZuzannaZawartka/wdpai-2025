@@ -68,6 +68,11 @@ class Routing{
             "action" => 'profile',
             "auth" => true
         ],
+        'profile-favourites' => [
+            "controller" => 'UserController',
+            "action" => 'updateFavourites',
+            "auth" => true
+        ],
         'search-cards' => [
             "controller" => 'DashboardController',
             "action" => 'search',
