@@ -30,12 +30,42 @@ class CreateController extends AppController {
         $this->ensureSession();
         
         // Get form data
-        $title = $_POST['title'] ?? '';
+        $title = trim($_POST['title'] ?? '');
         $datetime = $_POST['datetime'] ?? '';
         $location = $_POST['location'] ?? '';
         $skill = $_POST['skill'] ?? 'Intermediate';
-        $description = $_POST['desc'] ?? '';
+        $description = trim($_POST['desc'] ?? '');
         $participantsType = $_POST['participantsType'] ?? 'range';
+        
+        // Validation
+        $errors = [];
+        
+        if (empty($title)) {
+            $errors[] = 'Event name is required';
+        }
+        
+        if (empty($datetime)) {
+            $errors[] = 'Date and time is required';
+        }
+        
+        if (empty($location)) {
+            $errors[] = 'Location is required - please choose on map';
+        }
+        
+        if (!empty($errors)) {
+            $allLevels = MockRepository::levels();
+            $skillLevels = array_values($allLevels);
+            parent::render('create', [
+                'pageTitle' => 'SportMatch - Create Event',
+                'activeNav' => 'create',
+                'skillLevels' => $skillLevels,
+                'errors' => $errors,
+                'formData' => $_POST
+            ]);
+            return;
+        }
+        
+        error_log('Create event: passed validation, adding event');
         
         // Parse participants based on selected type from form inputs
         $minNeeded = 0;
@@ -76,9 +106,12 @@ class CreateController extends AppController {
         ];
         
         // Add to mock repository
+        error_log('Adding event with data: ' . json_encode($newEvent));
         $eventId = MockRepository::addEvent($newEvent);
+        error_log('Event created with ID: ' . ($eventId ?? 'null'));
         
         if ($eventId) {
+            error_log('Redirecting to /event/' . $eventId);
             header('Location: /event/' . $eventId);
             exit;
         } else {

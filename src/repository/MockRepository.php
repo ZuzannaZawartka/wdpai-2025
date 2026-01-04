@@ -122,9 +122,11 @@ class MockRepository {
     public static function events(): array {
         self::ensureSession();
 
-        // Zawsze inicjalizuj z kodu, aby mieć wszystkie eventy (1-14)
-        if (self::$eventsData === null) {
-            self::$eventsData = [
+        if (self::$eventsData !== null) {
+            return self::$eventsData;
+        }
+
+        $hardcodedEvents = [
                 [
                     'id' => 1,
                     'title' => 'Riverfront 7v7 Soccer',
@@ -336,13 +338,28 @@ class MockRepository {
                 'minNeeded' => 3
             ],
             ];
+        
+        self::$eventsData = $hardcodedEvents;
+        
+        if (isset($_SESSION['created_events']) && is_array($_SESSION['created_events'])) {
+            self::$eventsData = array_merge(self::$eventsData, $_SESSION['created_events']);
         }
+    
+        if (isset($_SESSION['edited_events']) && is_array($_SESSION['edited_events'])) {
+            foreach (self::$eventsData as &$ev) {
+                $evId = $ev['id'] ?? null;
+                if ($evId && isset($_SESSION['edited_events'][$evId])) {
+                    $ev = $_SESSION['edited_events'][$evId];
+                }
+            }
+        }
+        
         return self::$eventsData;
     }
 
-    // Separate participants mapping (join-table style)
+
     public static function eventParticipants(): array {
-        return [
+        $participants = [
             1 => [41, 1002, 1003, 1004, 1006],
             2 => [1007, 1008, 1009, 1010, 1011, 1012, 1013],
             3 => [41, 1015, 1016],
@@ -358,6 +375,16 @@ class MockRepository {
             13 => [41, 1003, 1004],
             14 => [2001, 2002, 2003],
         ];
+        
+
+        foreach (self::events() as $ev) {
+            $id = $ev['id'] ?? null;
+            if ($id && !isset($participants[$id])) {
+                $participants[$id] = [];
+            }
+        }
+        
+        return $participants;
     }
 
     // Dashboard upcoming = nearest two joined
@@ -601,6 +628,18 @@ class MockRepository {
         return null;
     }
 
+    private static function applyUpdates(array &$event, array $updates): void
+    {
+        if (isset($updates['title'])) $event['title'] = $updates['title'];
+        if (isset($updates['dateText'])) $event['dateText'] = $updates['dateText'];
+        if (isset($updates['isoDate'])) $event['isoDate'] = $updates['isoDate'];
+        if (isset($updates['coords'])) $event['coords'] = $updates['coords'];
+        if (isset($updates['levelId'])) $event['levelId'] = $updates['levelId'];
+        if (array_key_exists('maxPlayers', $updates)) $event['maxPlayers'] = $updates['maxPlayers'];
+        if (array_key_exists('minNeeded', $updates)) $event['minNeeded'] = $updates['minNeeded'];
+        if (array_key_exists('desc', $updates)) $event['desc'] = $updates['desc'];
+    }
+
     public static function updateEvent(int $id, array $updates): bool
     {
         self::ensureSession();
@@ -613,14 +652,16 @@ class MockRepository {
         // Update the event in the array
         foreach (self::$eventsData as &$ev) {
             if (($ev['id'] ?? 0) === $id) {
-                if (isset($updates['title'])) $ev['title'] = $updates['title'];
-                if (isset($updates['dateText'])) $ev['dateText'] = $updates['dateText'];
-                if (isset($updates['isoDate'])) $ev['isoDate'] = $updates['isoDate'];
-                if (isset($updates['coords'])) $ev['coords'] = $updates['coords'];
-                if (isset($updates['levelId'])) $ev['levelId'] = $updates['levelId'];
-                if (array_key_exists('maxPlayers', $updates)) $ev['maxPlayers'] = $updates['maxPlayers'];
-                if (array_key_exists('minNeeded', $updates)) $ev['minNeeded'] = $updates['minNeeded'];
-                if (array_key_exists('desc', $updates)) $ev['desc'] = $updates['desc'];
+                self::applyUpdates($ev, $updates);
+                
+                // Persist updated event to session
+                if (!isset($_SESSION['edited_events'])) {
+                    $_SESSION['edited_events'] = [];
+                }
+                
+                // Store entire updated event in session (for all events)
+                $_SESSION['edited_events'][$id] = $ev;
+                
                 return true;
             }
         }
@@ -643,6 +684,13 @@ class MockRepository {
         $newId = $maxId + 1;
         $newEvent = array_merge($eventData, ['id' => $newId]);
         
+        // Persist to session (aby przetrwały między requestami/workers w PHP-FPM)
+        if (!isset($_SESSION['created_events'])) {
+            $_SESSION['created_events'] = [];
+        }
+        $_SESSION['created_events'][] = $newEvent;
+        
+        // Also update in-memory cache
         self::$eventsData[] = $newEvent;
         
         return $newId;
