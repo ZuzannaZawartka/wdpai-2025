@@ -425,6 +425,11 @@ class MockRepository {
             return false;
         }
         
+        // Check if event is in the past
+        if (self::isEventPast($eventId)) {
+            return false;
+        }
+        
         self::ensureSession();
         
         if (!isset($_SESSION['user_participants'])) {
@@ -494,12 +499,35 @@ class MockRepository {
         return false;
     }
 
+    public static function isEventPast(int $eventId): bool {
+        $events = self::events();
+        foreach ($events as $ev) {
+            if (($ev['id'] ?? 0) === $eventId) {
+                $isoDate = $ev['isoDate'] ?? null;
+                if (!$isoDate) {
+                    return false; // No date means not past
+                }
+                $eventTime = strtotime($isoDate);
+                if ($eventTime === false) {
+                    return false;
+                }
+                return $eventTime < time();
+            }
+        }
+        return false;
+    }
+
     // Dashboard upcoming = nearest two joined
     public static function upcomingEvents(?int $currentUserId = null): array {
         if ($currentUserId === null) {
             return [];
         }
         $joined = self::joinedMatches($currentUserId);
+        // Filter out past events
+        $joined = array_filter($joined, function($ev) {
+            $eventId = $ev['id'] ?? null;
+            return $eventId && !self::isEventPast($eventId);
+        });
         usort($joined, function($a, $b) {
             $da = isset($a['isoDate']) ? strtotime($a['isoDate']) : 0;
             $db = isset($b['isoDate']) ? strtotime($b['isoDate']) : 0;
@@ -544,6 +572,11 @@ class MockRepository {
         foreach ($events as $ev) {
             // Skip full events
             if (self::isEventFull($ev['id'])) {
+                continue;
+            }
+            
+            // Skip past events
+            if (self::isEventPast($ev['id'])) {
                 continue;
             }
             
@@ -625,6 +658,11 @@ class MockRepository {
         $levels = self::levels();
         $events = array_filter(self::events(), function($ev) use ($uid, $selectedSports, $level, $center, $radiusKm) {
             if (self::isEventFull($ev['id'])) {
+                return false;
+            }
+            
+            // Skip past events
+            if (self::isEventPast($ev['id'])) {
                 return false;
             }
         

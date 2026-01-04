@@ -12,6 +12,12 @@ class EditController extends AppController {
         // Get real event from mock repository (ownership checked by routing)
         $event = MockRepository::getEventById((int)$id);
         
+        // Prevent editing past events
+        if (MockRepository::isEventPast((int)$id)) {
+            $this->render('404');
+            return;
+        }
+        
         $skillLevels = array_values(MockRepository::levels());
         
         // Determine participants type based on minNeeded and max
@@ -68,6 +74,13 @@ class EditController extends AppController {
     public function save($id): void
     {
         $this->ensureSession();
+        
+        // Prevent saving past events
+        if (MockRepository::isEventPast((int)$id)) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Cannot edit past events']);
+            return;
+        }
         
         // Get form data (ownership checked by routing)
         $title = $_POST['title'] ?? '';
