@@ -16,7 +16,8 @@
     </div>
 
     <div class="section panel">
-        <div class="hero-map" aria-label="Map preview" data-location="<?= htmlspecialchars($event['coords'] ?? ($event['location'] ?? '')) ?>">
+        <div class="hero-map" aria-label="Map preview"
+            data-location="<?= htmlspecialchars($event['coords'] ?? ($event['location'] ?? '')) ?>">
             <div id="eventLocationEmpty" class="hero-map-empty">
                 <span class="material">location_on</span>
                 <div class="text-small">No location available</div>
@@ -87,9 +88,13 @@
                         <div class="text-small">
                             <?= (int)($event['participants']['current'] ?? 0) ?>
                         </div>
+                        <?php if ($event['participants']['max'] !== null): ?>
                         <div class="text-small">/
                             <?= (int)($event['participants']['max'] ?? 0) ?> joined
                         </div>
+                        <?php else: ?>
+                        <div class="text-small">joined</div>
+                        <?php endif; ?>
                     </div>
                     <div class="text-note">
                         <span class="text-compact-strong">Minimum needed:</span>
@@ -97,7 +102,13 @@
                     </div>
                 </div>
                 <div class="join-actions">
+                    <?php if ($event['isOwner'] ?? false): ?>
+                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                    <button id="deleteBtn" class="button danger text-size-small"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
+                    <?php else: ?>
                     <button id="joinBtn" class="button accent">Join Match</button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -108,7 +119,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     (function () {
-        
+
         const wrap = document.querySelector('.hero-map');
         const locStr = wrap?.getAttribute('data-location')?.trim();
         const emptyEl = document.getElementById('eventLocationEmpty');
@@ -166,20 +177,31 @@
         }
 
         (async function initEventMap() {
-            if (!wrap || !locStr) return; 
+            if (!wrap || !locStr) return;
             const coords = tryParseLatLng(locStr) || await geocode(locStr);
             if (coords) ensurePreview(coords.lat, coords.lng);
         })();
 
         const joinBtn = document.getElementById('joinBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
         const revealed = document.getElementById('revealed-info');
         let joined = false;
+
         joinBtn?.addEventListener('click', function () {
             if (!joined) {
                 revealed?.removeAttribute('hidden');
                 this.textContent = 'Joined';
                 this.disabled = true;
                 joined = true;
+            }
+        });
+
+        deleteBtn?.addEventListener('click', function () {
+            const eventId = this.getAttribute('data-event-id');
+            if (confirm('Are you sure you want to delete this event?')) {
+                fetch(`/delete/${eventId}`, { method: 'POST' })
+                    .then(() => window.location.href = '/my')
+                    .catch(err => alert('Failed to delete event'));
             }
         });
     })();

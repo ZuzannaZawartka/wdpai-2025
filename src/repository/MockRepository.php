@@ -603,11 +603,24 @@ class MockRepository {
         $levels = self::levels();
         $participants = self::eventParticipants();
         $users = self::users();
+        $currentUserId = self::currentUserId();
+        
         foreach (self::events() as $ev) {
             if (($ev['id'] ?? 0) === $id) {
                 $current = count($participants[$ev['id']] ?? []);
                 $owner = $ev['ownerId'] ?? null;
-                $organizer = $owner && isset($users[$owner]) ? $users[$owner] : [ 'name' => 'Unknown', 'avatar' => '' ];
+                $isOwner = $owner === $currentUserId;
+                
+                if ($owner && isset($users[$owner])) {
+                    $user = $users[$owner];
+                    $organizer = [
+                        'name' => ($user['firstName'] ?? '') . ' ' . ($user['lastName'] ?? ''),
+                        'avatar' => $user['avatar'] ?? ''
+                    ];
+                } else {
+                    $organizer = ['name' => 'Unknown', 'avatar' => ''];
+                }
+                
                 return [
                     'id' => $ev['id'],
                     'title' => $ev['title'],
@@ -617,6 +630,7 @@ class MockRepository {
                     'skillLevel' => $levels[$ev['levelId']],
                     'desc' => $ev['desc'] ?? '',
                     'organizer' => $organizer,
+                    'isOwner' => $isOwner,
                     'participants' => [
                         'current' => $current,
                         'max' => $ev['maxPlayers'],

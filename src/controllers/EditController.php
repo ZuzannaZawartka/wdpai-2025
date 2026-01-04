@@ -116,7 +116,7 @@ class EditController extends AppController {
         $result = MockRepository::updateEvent((int)$id, $updates);
         
         if ($result) {
-            header('Location: /my');
+            header('Location: /event/' . (int)$id);
             exit;
         } else {
             http_response_code(500);

@@ -40,8 +40,10 @@
                     <h2 class="text-title">Your Upcoming Events</h2>
                     <a class="a-link text-size-small" href="/sports">View All</a>
                 </div>
+                <?php $upcoming = $upcomingEvents ?? []; ?>
+                <?php if (!empty($upcoming)): ?>
                 <div class="cards two-col">
-                    <?php $upcoming = $upcomingEvents ?? []; foreach ($upcoming as $ev): ?>
+                    <?php foreach ($upcoming as $ev): ?>
                     <article class="card">
                         <div class="card-media"
                             style="background-image:url('<?= htmlspecialchars($ev['imageUrl']) ?>')">
@@ -62,6 +64,14 @@
                     </article>
                     <?php endforeach; ?>
                 </div>
+                <?php else: ?>
+                <div class="empty-panel empty-dashed">
+                    <span class="material">event_note</span>
+                    <div class="text-title-smaller">No upcoming events yet.</div>
+                    <p class="text-body">Join an event to get started!</p>
+                    <a href="/sports" class="button accent text-size-small">Browse Events</a>
+                </div>
+                <?php endif; ?>
             </section>
 
             <section class="section">
