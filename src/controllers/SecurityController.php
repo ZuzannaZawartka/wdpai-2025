@@ -4,6 +4,7 @@ require_once 'AppController.php';
 
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/AuthRepository.php';
+require_once __DIR__ . '/../repository/MockRepository.php';
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class SecurityController extends AppController {
@@ -94,13 +95,16 @@ class SecurityController extends AppController {
             return $this->render("register");
         }
         if($this->isGet()){
-            return $this->render("register");
+            $allSports = array_values(MockRepository::sportsCatalog());
+            return $this->render("register", ['allSports' => $allSports]);
         }
+
+        $allSports = array_values(MockRepository::sportsCatalog());
 
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
             header('HTTP/1.1 403 Forbidden');
-            return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
+            return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie", 'allSports' => $allSports]);
         }
 
         $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
@@ -108,8 +112,35 @@ class SecurityController extends AppController {
         $password2 = trim($_POST['password2'] ?? '');
         $firstname = trim($_POST['firstname'] ?? '');
         $lastname = trim($_POST['lastname'] ?? '');
+        $birth_date = trim($_POST['birth_date'] ?? '');
+        $latitude = trim($_POST['latitude'] ?? '');
+        $longitude = trim($_POST['longitude'] ?? '');
 
         $errors = $this->validateRegisterInputs($firstname, $lastname, $email, $password, $password2);
+
+        $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
+        
+        // Validate birth_date, latitude, longitude
+        if (empty($birth_date)) {
+            $errors[] = "Data urodzenia jest wymagana";
+        } else {
+            $birthTimestamp = strtotime($birth_date);
+            if ($birthTimestamp === false || $birthTimestamp >= time()) {
+                $errors[] = "Data urodzenia musi być w przeszłości i w poprawnym formacie";
+            }
+        }
+        
+        if (empty($latitude)) {
+            $errors[] = "Lokalizacja jest wymagana - wybierz punkt na mapie";
+        } elseif (!is_numeric($latitude) || (float)$latitude < -90 || (float)$latitude > 90) {
+            $errors[] = "Szerokość geograficzna musi być między -90 a 90";
+        }
+        
+        if (empty($longitude)) {
+            $errors[] = "Lokalizacja jest wymagana - wybierz punkt na mapie";
+        } elseif (!is_numeric($longitude) || (float)$longitude < -180 || (float)$longitude > 180) {
+            $errors[] = "Długość geograficzna musi być między -180 a 180";
+        }
 
         $emailExists = false;
         try {
@@ -119,7 +150,7 @@ class SecurityController extends AppController {
             }
         } catch (Throwable $e) {
             header('HTTP/1.1 500 Internal Server Error');
-            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera"]);
+            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera", 'allSports' => $allSports]);
         }
 
         if (!empty($errors)) {
@@ -128,21 +159,30 @@ class SecurityController extends AppController {
             } else {
                 header('HTTP/1.1 400 Bad Request');
             }
-            return $this->render("register", ["messages" => implode('<br>', $errors)]);
+            return $this->render("register", ["messages" => implode('<br>', $errors), 'allSports' => $allSports]);
         }
 
         $hashedPassword = $this->hashPassword($password);
 
         try {
-            $this->userRepository->createUser(
+            $newUserId = $this->userRepository->createUser(
                 $email,
                 $hashedPassword,
                 $firstname,
-                $lastname
+                $lastname,
+                $birth_date,
+                (float)$latitude,
+                (float)$longitude
             );
+
+            if ($newUserId && !empty($favouriteSports)) {
+                MockRepository::setUserFavouriteSports($newUserId, $favouriteSports);
+            }
         } catch (Throwable $e) {
+            error_log("Registration error: " . $e->getMessage());
+            error_log("Trace: " . $e->getTraceAsString());
             header('HTTP/1.1 500 Internal Server Error');
-            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera"]);
+            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera: " . $e->getMessage(), 'allSports' => $allSports]);
         }
 
         header("Location: /login", true, 303);

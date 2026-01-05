@@ -9,7 +9,7 @@
 
     <div class="section panel">
         <!-- Profile form -->
-        <form class="form" method="post" action="#">
+        <form class="form" method="post" action="/profile-update">
 
 
             <div class="form-grid">
@@ -45,7 +45,13 @@
                     <label class="text-small" for="email">Email</label>
                     <input id="email" name="email" type="email" class="input-common"
                         placeholder="e.g., alex@example.com"
-                        value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" />
+                        value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
+                </div>
+
+                <div class="field input-group">
+                    <label class="text-small" for="birthDate">Date of Birth</label>
+                    <input id="birthDate" name="birthDate" type="date" class="input-common"
+                        value="<?= isset($user['birthDate']) ? htmlspecialchars($user['birthDate']) : '' ?>" />
                 </div>
 
                 <div class="field input-group full">
@@ -111,9 +117,32 @@
         let map, marker, chosenLatLng;
 
         function ensureMap() {
-            if (map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([52.2297, 21.0122], 12);
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+
+            // Parse current location from input
+            const currentLoc = locInput?.value?.trim();
+            let lat = 52.2297, lng = 21.0122; // Default
+
+            if (currentLoc && currentLoc.includes(',')) {
+                const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    lat = parts[0];
+                    lng = parts[1];
+                    chosenLatLng = { lat, lng };
+                }
+            }
+
+            map = L.map('map').setView([lat, lng], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+            // Add marker if location exists
+            if (chosenLatLng) {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+
             map.on('click', (e) => {
                 chosenLatLng = e.latlng;
                 if (!marker) { marker = L.marker(e.latlng).addTo(map); }
@@ -204,7 +233,7 @@
                     } else {
                         favouriteIds = favouriteIds.filter(v => v !== s.id);
                     }
-                    persistFavourites();
+                    renderFavs();
                 });
 
                 addList.appendChild(label);
@@ -215,14 +244,22 @@
             renderSelect();
         }
 
-        function persistFavourites() {
-            renderFavs();
-            fetch('/profile-favourites', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sports: favouriteIds })
-            }).then(() => {/* no-op */ }).catch(() => {/* no-op */ });
-        }
+        // Handle form submission with favourite sports
+        const form = document.querySelector('.form');
+        form?.addEventListener('submit', (e) => {
+            // Create hidden inputs for favourite sports
+            const existingInputs = form.querySelectorAll('input[name="favourite_sports[]"]');
+            existingInputs.forEach(inp => inp.remove());
+
+            favouriteIds.forEach(sportId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'favourite_sports[]';
+                input.value = sportId;
+                form.appendChild(input);
+            });
+        });
+
 
         renderSelect();
         renderFavs();

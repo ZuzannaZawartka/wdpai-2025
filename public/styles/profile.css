@@ -49,6 +49,16 @@
     margin-top: 0.25rem;
 }
 
+.profile-page input[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+    color: #666;
+}
+
+.profile-page input[type="date"] {
+    font-family: var(--main-font);
+}
+
 .profile-page .tile .remove-btn {
     position: absolute;
     right: 0.4rem;

@@ -30,7 +30,10 @@ class UserController extends AppController {
             'firstName' => '',
             'lastName' => '',
             'email' => $email,
+            'birthDate' => '',
             'location' => '',
+            'latitude' => null,
+            'longitude' => null,
             'sports' => [],
             'avatar' => DEFAULT_AVATAR
         ];
@@ -39,6 +42,12 @@ class UserController extends AppController {
             $profile['firstName'] = $dbUser['firstname'] ?? '';
             $profile['lastName'] = $dbUser['lastname'] ?? '';
             $profile['email'] = $dbUser['email'] ?? $email;
+            $profile['birthDate'] = $dbUser['birth_date'] ?? '';
+            $profile['latitude'] = $dbUser['latitude'] ?? null;
+            $profile['longitude'] = $dbUser['longitude'] ?? null;
+            if ($profile['latitude'] && $profile['longitude']) {
+                $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
+            }
         } elseif ($userId) {
             $users = MockRepository::users();
             if (isset($users[$userId])) {
@@ -71,30 +80,69 @@ class UserController extends AppController {
     }
 
     public function updateFavourites(): void {
-        $this->requireAuth();
+        // Disabled - favourite sports are updated via updateProfile() on form save only
+        http_response_code(405);
         header('Content-Type: application/json');
+        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+    }
+
+    public function updateProfile(): void {
+        $this->requireAuth();
+        $this->ensureSession();
+
+        if (!$this->isPost()) {
+            header('HTTP/1.1 405 Method Not Allowed');
+            http_response_code(405);
+            return;
+        }
 
         $userId = $this->getCurrentUserId();
-        if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
+        $email = $this->getCurrentUserEmail();
+
+        if (!$userId || !$email) {
+            header('Location: /login', true, 303);
+            exit();
+        }
+
+        $firstName = trim($_POST['firstName'] ?? '');
+        $lastName = trim($_POST['lastName'] ?? '');
+        $birthDate = trim($_POST['birthDate'] ?? '');
+        $location = trim($_POST['location'] ?? '');
+        $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
+
+        // Parse location (lat, lng)
+        $latitude = null;
+        $longitude = null;
+        if (!empty($location) && str_contains($location, ',')) {
+            $parts = array_map('trim', explode(',', $location));
+            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                $latitude = (float)$parts[0];
+                $longitude = (float)$parts[1];
+            }
+        }
+
+        $repo = new UserRepository();
+        try {
+            $repo->updateUser($email, [
+                'firstname' => $firstName,
+                'lastname' => $lastName,
+                'birth_date' => $birthDate ?: null,
+                'latitude' => $latitude,
+                'longitude' => $longitude
+            ]);
+            
+            // Update favourite sports
+            if (!empty($favouriteSports)) {
+                MockRepository::setUserFavouriteSports($userId, $favouriteSports);
+            }
+        } catch (Throwable $e) {
+            error_log("Profile update error: " . $e->getMessage());
+            header('HTTP/1.1 500 Internal Server Error');
+            $this->render('profile', ['messages' => 'Failed to update profile']);
             return;
         }
 
-        $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-        $sports = $payload['sports'] ?? [];
-        if (!is_array($sports)) {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Invalid payload']);
-            return;
-        }
-
-        MockRepository::setUserFavouriteSports($userId, $sports);
-        $favouriteSports = MockRepository::favouriteSports($userId);
-
-        echo json_encode([
-            'status' => 'success',
-            'favouriteSports' => $favouriteSports
-        ]);
+        header('Location: /profile', true, 303);
+        exit();
     }
 }

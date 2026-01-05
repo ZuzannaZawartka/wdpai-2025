@@ -555,15 +555,15 @@ class MockRepository {
 
         $user = $users[$uid];
         $location = $user['location'] ?? null;
-        $favourites = $user['favouriteSports'] ?? [];
 
-        if (empty($favourites) || !$location || !isset($location['lat'], $location['lng'])) {
+        if (!$location || !isset($location['lat'], $location['lng'])) {
             return [];
         }
 
-        $events = array_filter(self::events(), function ($ev) use ($favourites) {
-            $sid = $ev['sportId'] ?? null;
-            return $sid !== null && in_array($sid, $favourites, true) && !empty($ev['coords']);
+        // Get all events without favourite sports filter
+        $events = array_filter(self::events(), function ($ev) {
+            $coords = $ev['coords'] ?? '';
+            return !empty($coords);
         });
 
         $catalog = self::sportsCatalog();
