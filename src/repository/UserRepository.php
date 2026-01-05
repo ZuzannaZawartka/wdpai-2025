@@ -118,4 +118,20 @@ class UserRepository extends Repository{
         return $query->rowCount() > 0;
     }
 
+    public function updateUserPassword(string $email, string $hashedPassword): bool {
+        error_log("Updating password for email: $email");
+        error_log("New hash starts with: " . substr($hashedPassword, 0, 20));
+        
+        $query = $this->database->connect()->prepare('
+            UPDATE users SET password = ? WHERE email = ?
+        ');
+        
+        $result = $query->execute([$hashedPassword, $email]);
+        $rowCount = $query->rowCount();
+        
+        error_log("Password update - executed: " . ($result ? 'true' : 'false') . ", rows affected: $rowCount");
+        
+        return $rowCount > 0;
+    }
+
 }

@@ -80,7 +80,6 @@ class UserController extends AppController {
     }
 
     public function updateFavourites(): void {
-        // Disabled - favourite sports are updated via updateProfile() on form save only
         http_response_code(405);
         header('Content-Type: application/json');
         echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
@@ -109,6 +108,35 @@ class UserController extends AppController {
         $birthDate = trim($_POST['birthDate'] ?? '');
         $location = trim($_POST['location'] ?? '');
         $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
+        $oldPassword = trim($_POST['oldPassword'] ?? '');
+        $newPassword = trim($_POST['newPassword'] ?? '');
+        $confirmPassword = trim($_POST['confirmPassword'] ?? '');
+
+        // Validate password change if any password field is filled
+        $errors = [];
+        if (!empty($oldPassword) || !empty($newPassword) || !empty($confirmPassword)) {
+            if (empty($oldPassword)) {
+                $errors[] = "Current password is required to change password";
+            }
+            if (empty($newPassword)) {
+                $errors[] = "New password is required";
+            }
+            if (empty($confirmPassword)) {
+                $errors[] = "Password confirmation is required";
+            }
+            if (strlen($newPassword ?? '') < 8) {
+                $errors[] = "New password must be at least 8 characters";
+            }
+            if ($newPassword !== $confirmPassword) {
+                $errors[] = "Passwords do not match";
+            }
+        }
+
+        if (!empty($errors)) {
+            header('HTTP/1.1 400 Bad Request');
+            $this->render('profile', ['messages' => implode('<br>', $errors)]);
+            return;
+        }
 
         // Parse location (lat, lng)
         $latitude = null;
@@ -122,6 +150,33 @@ class UserController extends AppController {
         }
 
         $repo = new UserRepository();
+        
+        // Verify old password FIRST if changing password
+        if (!empty($newPassword)) {
+            try {
+                $dbUser = $repo->getUserByEmail($email);
+                if (!$dbUser || !$this->verifyPassword($oldPassword, $dbUser['password'])) {
+                    header('HTTP/1.1 401 Unauthorized');
+                    $allSports = array_values(MockRepository::sportsCatalog());
+                    $favouriteSports = MockRepository::favouriteSports($userId);
+                    $selectedSportIds = array_values(array_filter(array_map(function($item) {
+                        return is_array($item) && isset($item['id']) ? (int)$item['id'] : null;
+                    }, $favouriteSports)));
+                    $this->render('profile', [
+                        'messages' => 'Current password is incorrect',
+                        'allSports' => $allSports,
+                        'selectedSportIds' => $selectedSportIds
+                    ]);
+                    return;
+                }
+            } catch (Throwable $e) {
+                error_log("Password verification error: " . $e->getMessage());
+                header('HTTP/1.1 500 Internal Server Error');
+                $this->render('profile', ['messages' => 'Failed to verify password']);
+                return;
+            }
+        }
+        
         try {
             $repo->updateUser($email, [
                 'firstname' => $firstName,
@@ -130,6 +185,12 @@ class UserController extends AppController {
                 'latitude' => $latitude,
                 'longitude' => $longitude
             ]);
+            
+            // Update password if provided (already verified above)
+            if (!empty($newPassword)) {
+                $hashedPassword = $this->hashPassword($newPassword);
+                $repo->updateUserPassword($email, $hashedPassword);
+            }
             
             // Update favourite sports
             if (!empty($favouriteSports)) {

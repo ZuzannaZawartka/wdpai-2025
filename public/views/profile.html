@@ -11,6 +11,11 @@
         <!-- Profile form -->
         <form class="form" method="post" action="/profile-update">
 
+            <?php if(isset($messages)): ?>
+            <div class="messages">
+                <?= $messages ?>
+            </div>
+            <?php endif; ?>
 
             <div class="form-grid">
                 <div class="field input-group full">
@@ -83,7 +88,28 @@
                 </div>
             </div>
 
-            <div class="form-actions">
+            <div class="form-grid">
+                <div class="field input-group full">
+                    <label class="text-small">Change Password (leave empty to keep current)</label>
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="oldPassword">Current Password</label>
+                    <input id="oldPassword" name="oldPassword" type="password" class="input-common"
+                        placeholder="Enter current password" maxlength="128" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="newPassword">New Password</label>
+                    <input id="newPassword" name="newPassword" type="password" class="input-common"
+                        placeholder="Enter new password" minlength="8" maxlength="128" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="confirmPassword">Confirm New Password</label>
+                    <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                        placeholder="Repeat new password" minlength="8" maxlength="128" />
+                </div>
+            </div>
+
+            <div class="form-grid">
                 <a href="/dashboard" class="button danger text-size-small">Cancel</a>
                 <button type="submit" class="button primary text-size-small">Save Changes</button>
             </div>

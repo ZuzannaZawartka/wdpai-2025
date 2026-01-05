@@ -8,6 +8,16 @@
     box-shadow: 0 0 0 0.125rem var(--primary);
 }
 
+.profile-page .messages {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background: #fee;
+    color: #c33;
+    border: 1px solid #fcc;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+}
+
 .profile-page .avatar-row {
     display: flex;
     align-items: center;
