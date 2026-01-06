@@ -45,9 +45,14 @@ class UserController extends AppController {
             $profile['birthDate'] = $dbUser['birth_date'] ?? '';
             $profile['latitude'] = $dbUser['latitude'] ?? null;
             $profile['longitude'] = $dbUser['longitude'] ?? null;
+            if (!empty($dbUser['avatar'])) {
+                $profile['avatar'] = $dbUser['avatar'];
+            }
             if ($profile['latitude'] && $profile['longitude']) {
                 $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
             }
+            // Keep session avatar in sync for header on other pages
+            $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
         } elseif ($userId) {
             $users = MockRepository::users();
             if (isset($users[$userId])) {
@@ -60,6 +65,7 @@ class UserController extends AppController {
                 if (isset($users[$userId]['location']['lat'], $users[$userId]['location']['lng'])) {
                     $profile['location'] = $users[$userId]['location']['lat'] . ', ' . $users[$userId]['location']['lng'];
                 }
+                $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
             }
         }
 
@@ -150,11 +156,13 @@ class UserController extends AppController {
         }
 
         $repo = new UserRepository();
+        $existingUser = $repo->getUserByEmail($email);
+        $existingAvatar = $existingUser['avatar'] ?? null;
         
         // Verify old password FIRST if changing password
         if (!empty($newPassword)) {
             try {
-                $dbUser = $repo->getUserByEmail($email);
+                $dbUser = $existingUser;
                 if (!$dbUser || !$this->verifyPassword($oldPassword, $dbUser['password'])) {
                     header('HTTP/1.1 401 Unauthorized');
                     $allSports = array_values(MockRepository::sportsCatalog());
@@ -176,6 +184,35 @@ class UserController extends AppController {
                 return;
             }
         }
+
+        // Handle avatar upload (optional)
+        $avatarPath = $existingAvatar;
+        if (isset($_FILES['avatar']) && isset($_FILES['avatar']['tmp_name']) && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
+            $file = $_FILES['avatar'];
+            if ($file['error'] === UPLOAD_ERR_OK) {
+                $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
+                if ($finfo) {
+                    finfo_close($finfo);
+                }
+
+                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (in_array($mime, $allowed, true)) {
+                    $ext = pathinfo($file['name'] ?? '', PATHINFO_EXTENSION);
+                    $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext) ?: 'jpg';
+                    $targetDir = __DIR__ . '/../../public/images/avatars';
+                    if (!is_dir($targetDir)) {
+                        @mkdir($targetDir, 0775, true);
+                    }
+                    $unique = bin2hex(random_bytes(8));
+                    $fileName = 'avatar_' . $unique . '.' . $safeExt;
+                    $targetPath = $targetDir . '/' . $fileName;
+                    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                        $avatarPath = '/public/images/avatars/' . $fileName;
+                    }
+                }
+            }
+        }
         
         try {
             $repo->updateUser($email, [
@@ -183,7 +220,8 @@ class UserController extends AppController {
                 'lastname' => $lastName,
                 'birth_date' => $birthDate ?: null,
                 'latitude' => $latitude,
-                'longitude' => $longitude
+                'longitude' => $longitude,
+                'avatar' => $avatarPath
             ]);
             
             // Update password if provided (already verified above)
@@ -195,6 +233,11 @@ class UserController extends AppController {
             // Update favourite sports
             if (!empty($favouriteSports)) {
                 MockRepository::setUserFavouriteSports($userId, $favouriteSports);
+            }
+
+            // Update session avatar for header usage
+            if (!empty($avatarPath)) {
+                $_SESSION['user_avatar'] = $avatarPath;
             }
         } catch (Throwable $e) {
             error_log("Profile update error: " . $e->getMessage());

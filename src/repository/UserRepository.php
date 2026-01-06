@@ -14,7 +14,7 @@ class UserRepository extends Repository{
     public function getUsers(): array {
         try {
             $query = $this->database->connect()->prepare('
-                SELECT id, firstname, lastname, email, role, birth_date, latitude, longitude FROM users
+                SELECT id, firstname, lastname, email, role, birth_date, latitude, longitude, avatar FROM users
             ');
 
             $query->execute();
@@ -26,7 +26,7 @@ class UserRepository extends Repository{
             // If query fails, try without role column
             try {
                 $query = $this->database->connect()->prepare('
-                    SELECT id, firstname, lastname, email, birth_date, latitude, longitude FROM users
+                    SELECT id, firstname, lastname, email, birth_date, latitude, longitude, avatar FROM users
                 ');
                 $query->execute();
                 $users = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -80,13 +80,15 @@ class UserRepository extends Repository{
         $conn = $this->database->connect();
         
         // Try to add missing columns
-        $columns = ['birth_date', 'latitude', 'longitude', 'role'];
+        $columns = ['birth_date', 'latitude', 'longitude', 'role', 'avatar'];
         foreach ($columns as $col) {
             try {
                 if ($col === 'birth_date') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col DATE");
                 } elseif ($col === 'role') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col VARCHAR(20) DEFAULT 'basic'");
+                } elseif ($col === 'avatar') {
+                    $conn->exec("ALTER TABLE users ADD COLUMN $col TEXT");
                 } else {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col DECIMAL(9,6)");
                 }
@@ -119,12 +121,12 @@ class UserRepository extends Repository{
         $this->columnCache = true;
     }
 
-    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'basic'): ?int {
+    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'basic', ?string $avatar = null): ?int {
         $this->ensureColumns();
         
         $query = $this->database->connect()->prepare('
-            INSERT INTO users (firstname, lastname, email, password, birth_date, latitude, longitude, role)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO users (firstname, lastname, email, password, birth_date, latitude, longitude, role, avatar)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
         ');
 
@@ -136,7 +138,8 @@ class UserRepository extends Repository{
             $birthDate,
             $latitude,
             $longitude,
-            $role
+            $role,
+            $avatar
         ]);
 
         $row = $query->fetch(PDO::FETCH_ASSOC);
@@ -172,6 +175,10 @@ class UserRepository extends Repository{
         if (array_key_exists('role', $data)) {
             $fields[] = 'role = ?';
             $params[] = $data['role'];
+        }
+        if (array_key_exists('avatar', $data)) {
+            $fields[] = 'avatar = ?';
+            $params[] = $data['avatar'];
         }
         
         if (empty($fields)) {

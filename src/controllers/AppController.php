@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
-// Load global config to ensure constants like DEFAULT_AVATAR are available in views
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../repository/UserRepository.php';
 
 class AppController {
 
@@ -9,7 +9,6 @@ class AppController {
 
     protected function __construct() {}
 
-    // Ensures that the session is started with secure parameters
     protected function ensureSession(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -43,14 +42,12 @@ class AppController {
         }
     }
 
-    // Checks if the user is authenticated
     protected function isAuthenticated(): bool
     {
         $this->ensureSession();
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
     }
 
-    // Shared helpers to access current auth context
     public function getCurrentUserId(): ?int
     {
         $this->ensureSession();
@@ -63,7 +60,6 @@ class AppController {
         return isset($_SESSION['user_email']) ? (string)$_SESSION['user_email'] : '';
     }
 
-    // Redirects to /login if user is not authenticated
     public function requireAuth(): void
     {
         if (!$this->isAuthenticated()) {
@@ -72,20 +68,21 @@ class AppController {
         }
     }
 
-    // Sets authentication context in the session
-    protected function setAuthContext(int $userId, string $email, string $role = 'basic'): void
+    protected function setAuthContext(int $userId, string $email, string $role = 'basic', ?string $avatar = null): void
     {
         $this->ensureSession();
         session_regenerate_id(true);
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_email'] = $email;
         $_SESSION['user_role'] = $role;
+        if (!empty($avatar)) {
+            $_SESSION['user_avatar'] = $avatar;
+        }
         if (empty($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
     }
 
-    // Password hashing helper: prefers Argon2id if available, otherwise bcrypt
     protected function hashPassword(string $password): string
     {
         if (defined('PASSWORD_ARGON2ID')) {
@@ -94,18 +91,15 @@ class AppController {
         return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
     }
 
-    // Password verification helper
     protected function verifyPassword(string $password, string $hash): bool
     {
         return password_verify($password, $hash);
     }
 
-    // Email format validation helper (server-side)
     protected function isValidEmail(string $email): bool
     {
-        // Normalize and validate
         $normalized = mb_strtolower(trim($email), 'UTF-8');
-        // Basic length guard (align with typical limits, actual caps enforced in controller)
+       
         if ($normalized === '' || mb_strlen($normalized, 'UTF-8') > 254) {
             return false;
         }
@@ -133,6 +127,33 @@ class AppController {
 
     protected function render(string $template = null, array $variables = [])
     {
+        $this->ensureSession();
+
+
+        $avatar = $variables['currentAvatar'] ?? null;
+        if (empty($avatar)) {
+            $avatar = $_SESSION['user_avatar'] ?? null;
+        }
+        if (empty($avatar)) {
+            $uid = $this->getCurrentUserId();
+            if ($uid) {
+                try {
+                    $repo = new UserRepository();
+                    $dbUser = $repo->getUserById($uid);
+                    if ($dbUser && !empty($dbUser['avatar'])) {
+                        $avatar = $dbUser['avatar'];
+                        $_SESSION['user_avatar'] = $avatar;
+                    }
+                } catch (Throwable $e) {
+                    // ignore and fallback
+                }
+            }
+        }
+        if (empty($avatar)) {
+            $avatar = DEFAULT_AVATAR;
+        }
+        $variables['currentAvatar'] = $avatar;
+
         $templatePath = 'public/views/'. $template.'.html';
         $templatePath404 = 'public/views/404.html';
         $output = "";

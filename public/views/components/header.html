@@ -65,8 +65,11 @@
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>
                     <div class="avatar-wrap">
+                        <?php
+                            $avatarSrc = $currentAvatar ?? (isset($user['avatar']) ? $user['avatar'] : (($_SESSION['user_avatar'] ?? null) ?: DEFAULT_AVATAR));
+                        ?>
                         <a href="/profile" class="avatar" role="img" aria-label="User profile picture"
-                            style="background-image: url('<?= isset($user['avatar']) && $user['avatar'] ? htmlspecialchars($user['avatar']) : DEFAULT_AVATAR ?>')"></a>
+                            style="background-image: url('<?= htmlspecialchars($avatarSrc) ?>')"></a>
                     </div>
                 </div>
             </div>

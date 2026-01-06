@@ -81,7 +81,8 @@ class SecurityController extends AppController {
         }
 
         // Do not clear IP-level counters on success; they decay by window
-        $this->setAuthContext((int)$user['id'], $user['email'], $user['role'] ?? 'basic');
+        $avatar = $user['avatar'] ?? null;
+        $this->setAuthContext((int)$user['id'], $user['email'], $user['role'] ?? 'basic', $avatar);
         header("Location: /dashboard", true, 303);
         exit();
     }
