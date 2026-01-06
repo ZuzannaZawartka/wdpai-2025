@@ -60,6 +60,12 @@
     gap: 1.25rem;
 }
 
+.avatar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .logout {
     font-size: 0.875rem;
     font-weight: 600;

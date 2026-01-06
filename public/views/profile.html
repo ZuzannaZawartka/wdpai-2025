@@ -22,7 +22,7 @@
                     <div class="avatar-row">
                         <div class="avatar-container">
                             <div id="avatarCircle" class="avatar" role="img" aria-label="Current avatar"
-                                data-avatar-url="<?= isset($user['avatar']) ? htmlspecialchars($user['avatar']) : '' ?>">
+                                data-avatar-url="<?= isset($user['avatar']) && $user['avatar'] ? htmlspecialchars($user['avatar']) : DEFAULT_AVATAR ?>">
                             </div>
                             <button type="button" class="avatar-edit-btn" aria-label="Edit avatar">
                                 <span class="material">edit</span>

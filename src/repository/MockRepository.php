@@ -583,18 +583,21 @@ class MockRepository {
         }, $nearestTwo);
     }
 
-    public static function suggestions(?int $currentUserId = null, int $limit = 3): array {
+    public static function suggestions(?int $currentUserId = null, int $limit = 3, ?array $locationOverride = null): array {
         $uid = $currentUserId ?? self::currentUserId();
         $users = self::users();
-        if (!$uid || !isset($users[$uid])) {
-            return [];
+
+        $location = null;
+
+        if ($locationOverride && isset($locationOverride['lat'], $locationOverride['lng'])) {
+            $location = $locationOverride;
+        } elseif ($uid && isset($users[$uid])) {
+            $location = $users[$uid]['location'] ?? null;
         }
 
-        $user = $users[$uid];
-        $location = $user['location'] ?? null;
-
         if (!$location || !isset($location['lat'], $location['lng'])) {
-            return [];
+            // Fallback to a default central location if user has no coordinates
+            $location = ['lat' => 40.7128, 'lng' => -74.0060];
         }
 
         // Get all events without favourite sports filter

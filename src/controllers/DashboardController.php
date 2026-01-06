@@ -8,9 +8,11 @@ require_once __DIR__ . '/../repository/MockRepository.php';
 class DashboardController extends AppController {
 
     private $cardRepository;
+    private UserRepository $userRepository;
 
     public function __construct() {
         $this->cardRepository = new CardsRepository();
+        $this->userRepository = new UserRepository();
     }
 
 
@@ -22,9 +24,20 @@ class DashboardController extends AppController {
         }
         
         $currentUserId = $this->getCurrentUserId();
+        $currentUser = $currentUserId ? $this->userRepository->getUserById($currentUserId) : null;
+
+        $locationOverride = null;
+        if ($currentUser && isset($currentUser['latitude'], $currentUser['longitude'])) {
+            $lat = $currentUser['latitude'];
+            $lng = $currentUser['longitude'];
+            if (is_numeric($lat) && is_numeric($lng)) {
+                $locationOverride = ['lat' => (float)$lat, 'lng' => (float)$lng];
+            }
+        }
+
         $upcomingEvents = MockRepository::upcomingEvents($currentUserId ?? null);
         $favouriteSports = MockRepository::favouriteSports($currentUserId ?? null);
-        $suggestions = MockRepository::suggestions($currentUserId ?? null);
+        $suggestions = MockRepository::suggestions($currentUserId ?? null, 3, $locationOverride);
 
         $this->render("dashboard",  [
             'activeNav' => 'dashboard',
