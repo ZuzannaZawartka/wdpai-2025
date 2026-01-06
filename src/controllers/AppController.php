@@ -73,12 +73,13 @@ class AppController {
     }
 
     // Sets authentication context in the session
-    protected function setAuthContext(int $userId, string $email): void
+    protected function setAuthContext(int $userId, string $email, string $role = 'basic'): void
     {
         $this->ensureSession();
         session_regenerate_id(true);
         $_SESSION['user_id'] = $userId;
         $_SESSION['user_email'] = $email;
+        $_SESSION['user_role'] = $role;
         if (empty($_SESSION['csrf_token'])) {
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
         }
@@ -151,6 +152,52 @@ class AppController {
             $output = ob_get_clean();
         }
         echo $output;
+    }
+    
+    protected function hasRole(string $role): bool {
+        return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === $role;
+    }
+    
+    protected function hasRoles(...$roles): bool {
+        if (!isset($_SESSION['user_id'])) {
+            return false;
+        }
+        $userRole = $_SESSION['user_role'] ?? null;
+        return in_array($userRole, $roles, true);
+    }
+    
+    protected function requireRole(string $role): void {
+        if (!$this->hasRole($role)) {
+            header('HTTP/1.1 403 Forbidden');
+            $this->render('404');
+            exit();
+        }
+    }
+    
+    protected function requireRoles(...$roles): void {
+        if (!$this->hasRoles(...$roles)) {
+            header('HTTP/1.1 403 Forbidden');
+            $this->render('404');
+            exit();
+        }
+    }
+    
+    protected function ensureAdmin(): bool {
+        if (!isset($_SESSION['user_id'])) {
+            return false;
+        }
+        
+        $role = $_SESSION['user_role'] ?? null;
+        if ($role !== 'admin') {
+            header('HTTP/1.1 403 Forbidden');
+            return false;
+        }
+        
+        return true;
+    }
+    
+    public function isAdmin(): bool {
+        return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
     }
 
 }

@@ -9,6 +9,7 @@ require_once 'src/controllers/MyController.php';
 require_once 'src/controllers/CreateController.php';
 require_once 'src/controllers/EventController.php';
 require_once 'src/controllers/EditController.php';
+require_once 'src/controllers/AdminController.php';
 
 
 //TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
@@ -73,16 +74,6 @@ class Routing{
             "action" => 'updateProfile',
             "auth" => true
         ],
-        'profile-favourites' => [
-            "controller" => 'UserController',
-            "action" => 'updateFavourites',
-            "auth" => true
-        ],
-        'search-cards' => [
-            "controller" => 'DashboardController',
-            "action" => 'search',
-            "auth" => true
-        ],
         'event' => [
             "controller" => 'EventController',
             "action" => 'details',
@@ -127,34 +118,51 @@ class Routing{
                     include 'public/views/404.html';
                     return;
                 }
-                self::dispatch($action, [$parameters[0]]);
-                break;
-            case 'event-join':
-                if (empty($parameters)) {
-                    include 'public/views/404.html';
-                    return;
+                $eventId = $parameters[0];
+                $action = $parameters[1] ?? null;
+                
+                if ($action === 'join') {
+                    self::dispatch('event-join', [$eventId]);
+                } elseif ($action === 'delete') {
+                    self::dispatch('event-cancel', [$eventId]);
+                } else {
+                    self::dispatch('event', [$eventId]);
                 }
-                self::dispatch($action, [$parameters[0]]);
-                break;
-            case 'event-cancel':
-                if (empty($parameters)) {
-                    include 'public/views/404.html';
-                    return;
-                }
-                self::dispatch($action, [$parameters[0]]);
                 break;
             case 'edit':
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;
                 }
-                // Check if this is edit/save or edit/{id}
-                if ($parameters[0] === 'save' && !empty($parameters[1])) {
-                    // edit/save/{id}
-                    self::dispatch($action, ['save', $parameters[1]]);
+
+                $resourceType = $parameters[0];
+                $resourceId = null;
+                $actionParam = null;
+                $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+
+                if (is_numeric($resourceType)) {
+                    $resourceId = $resourceType;
+                    $actionParam = $parameters[1] ?? null;
+                    $resourceType = 'event';
                 } else {
-                    // edit/{id}
-                    self::dispatch($action, [$parameters[0]]);
+                    $resourceId = $parameters[1] ?? null;
+                    $actionParam = $parameters[2] ?? null;
+                }
+
+                if ($resourceType === 'event' && $resourceId) {
+                    if ($isPost || $actionParam === 'save') {
+                        self::dispatch('edit', ['save', $resourceId]);
+                    } else {
+                        self::dispatch('edit', [$resourceId]);
+                    }
+                } elseif ($resourceType === 'user' && $resourceId) {
+                    $_GET['id'] = $resourceId;
+                    $controller = UserController::getInstance();
+                    $controller->requireAuth();
+                    $controller->editUser($resourceId);
+                    return;
+                } else {
+                    include 'public/views/404.html';
                 }
                 break;
             default:
@@ -174,26 +182,32 @@ class Routing{
         $controllerClass = self::$routes[$action]['controller'];
         $method = self::$routes[$action]['action'];
         
-        // Check if this is a save action
         if (!empty($parameters) && $parameters[0] === 'save') {
             $method = 'save';
-            array_shift($parameters); // Remove 'save' from parameters
+            array_shift($parameters);
         }
 
         $controller = $controllerClass::getInstance();
 
-        // Default: require auth unless route explicitly sets auth=false
         $requiresAuth = !array_key_exists('auth', self::$routes[$action]) || !empty(self::$routes[$action]['auth']);
         if ($requiresAuth) {
             $controller->requireAuth();
         }
         
-        // Check ownership if required
         if (isset(self::$routes[$action]['requiresOwnership'])) {
             $resourceType = self::$routes[$action]['requiresOwnership'];
             $resourceId = !empty($parameters) ? (int)$parameters[0] : null;
             if ($resourceId) {
                 self::checkOwnership($controller, $resourceId, $resourceType);
+            }
+        }
+        
+        if (isset(self::$routes[$action]['requiresRole'])) {
+            $requiredRole = self::$routes[$action]['requiresRole'];
+            if (($_SESSION['user_role'] ?? null) !== $requiredRole) {
+                http_response_code(403);
+                include 'public/views/404.html';
+                exit();
             }
         }
         
@@ -203,6 +217,10 @@ class Routing{
     private static function checkOwnership($controller, int $resourceId, string $resourceType): void
     {
         require_once __DIR__ . '/src/repository/MockRepository.php';
+        
+        if ($controller->isAdmin()) {
+            return;
+        }
         
         $userId = $controller->getCurrentUserId();
         if (!$userId) {
@@ -222,8 +240,7 @@ class Routing{
                 }
             }
         }
-        // Tutaj w przyszłości możesz dodać inne typy: 'profile', 'comment', etc.
-        
+                
         if (!$isOwner) {
             http_response_code(403);
             include 'public/views/404.html';

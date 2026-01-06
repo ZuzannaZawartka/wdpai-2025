@@ -7,6 +7,13 @@ class CreateController extends AppController {
 
     public function index(): void
     {
+        // Admins cannot create events
+        if ($this->isAdmin()) {
+            header('HTTP/1.1 403 Forbidden');
+            $this->render('404');
+            return;
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->save();
         } else {

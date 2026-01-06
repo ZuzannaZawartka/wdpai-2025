@@ -1,4 +1,4 @@
-<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; ?>
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; $isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin'); ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
 <section class="profile-page sports-page">
@@ -8,7 +8,6 @@
     </div>
 
     <div class="section panel">
-        <!-- Profile form -->
         <form class="form" method="post" action="/profile-update">
 
             <?php if(isset($messages)): ?>
@@ -53,12 +52,15 @@
                         value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
                 </div>
 
+                <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
                 <div class="field input-group">
                     <label class="text-small" for="birthDate">Date of Birth</label>
                     <input id="birthDate" name="birthDate" type="date" class="input-common"
                         value="<?= isset($user['birthDate']) ? htmlspecialchars($user['birthDate']) : '' ?>" />
                 </div>
+                <?php endif; ?>
 
+                <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
                 <div class="field input-group full">
                     <label class="text-small" for="location">Location</label>
                     <div class="filters-bar">
@@ -74,7 +76,6 @@
                     </div>
                 </div>
 
-
                 <div class="field input-group full">
                     <label class="text-small">Favorite Sports</label>
                     <div id="profileData"
@@ -86,8 +87,10 @@
                     </div>
 
                 </div>
+                <?php endif; ?>
             </div>
 
+            <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
             <div class="form-grid">
                 <div class="field input-group full">
                     <label class="text-small">Change Password (leave empty to keep current)</label>
@@ -108,11 +111,18 @@
                         placeholder="Repeat new password" minlength="8" maxlength="128" />
                 </div>
             </div>
+            <?php endif; ?>
 
+            <?php if(!$isAdmin): ?>
             <div class="form-grid">
                 <a href="/dashboard" class="button danger text-size-small">Cancel</a>
                 <button type="submit" class="button primary text-size-small">Save Changes</button>
             </div>
+            <?php else: ?>
+            <div class="form-grid">
+                <div class="text-note">Admin profile editing is disabled.</div>
+            </div>
+            <?php endif; ?>
         </form>
     </div>
 
@@ -272,7 +282,9 @@
 
         // Handle form submission with favourite sports
         const form = document.querySelector('.form');
+        const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
         form?.addEventListener('submit', (e) => {
+            if (isAdmin) { e.preventDefault(); return; }
             // Create hidden inputs for favourite sports
             const existingInputs = form.querySelectorAll('input[name="favourite_sports[]"]');
             existingInputs.forEach(inp => inp.remove());

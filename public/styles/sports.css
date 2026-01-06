@@ -310,3 +310,18 @@
     text-align: center;
     text-decoration: none;
 }
+
+/* Past event styling for admin view */
+.sports-page .match.past-event {
+    opacity: 0.7;
+    background: var(--background);
+}
+
+.sports-page .match.past-event .button.past {
+    background: #9ca3af;
+    color: var(--white);
+}
+
+.sports-page .match.past-event .button.past:hover {
+    background: #6b7280;
+}

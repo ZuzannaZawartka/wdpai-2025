@@ -130,7 +130,7 @@ class MockRepository {
                 [
                     'id' => 1,
                     'title' => 'Riverfront 7v7 Soccer',
-                    'isoDate' => '2025-11-02T09:30:00',
+                    'isoDate' => '2026-11-02T09:30:00',
                     'dateText' => 'Sun, Nov 2, 9:30 AM',
                     'location' => 'Riverfront Field, New York, NY',
                     'coords' => '40.7005, -74.0120',
@@ -337,6 +337,36 @@ class MockRepository {
                 'maxPlayers' => 12,
                 'minNeeded' => 3
             ],
+            [
+                'id' => 15,
+                'title' => 'Downtown Basketball Court',
+                'isoDate' => '2026-02-20T19:00:00',
+                'dateText' => 'Thu, Feb 20, 7:00 PM',
+                'location' => 'West 4th Street Courts, New York, NY',
+                'coords' => '40.7340, -73.9997',
+                'sportId' => 2,
+                'levelId' => 2,
+                'imageUrl' => 'https://picsum.photos/seed/downtown-basketball/800/600',
+                'desc' => 'Competitive 5v5 basketball game.',
+                'ownerId' => 2001,
+                'maxPlayers' => 10,
+                'minNeeded' => 8
+            ],
+            [
+                'id' => 16,
+                'title' => 'Riverside Tennis',
+                'isoDate' => '2026-02-21T15:00:00',
+                'dateText' => 'Fri, Feb 21, 3:00 PM',
+                'location' => 'Riverside Tennis Courts, New York, NY',
+                'coords' => '40.7850, -73.9750',
+                'sportId' => 3,
+                'levelId' => 1,
+                'imageUrl' => 'https://picsum.photos/seed/riverside-tennis/800/600',
+                'desc' => 'Casual tennis match for beginners.',
+                'ownerId' => 2002,
+                'maxPlayers' => 4,
+                'minNeeded' => 2
+            ],
             ];
         
         self::$eventsData = $hardcodedEvents;
@@ -352,6 +382,13 @@ class MockRepository {
                     $ev = $_SESSION['edited_events'][$evId];
                 }
             }
+        }
+    
+        if (isset($_SESSION['deleted_events']) && is_array($_SESSION['deleted_events'])) {
+            self::$eventsData = array_filter(self::$eventsData, function($ev) {
+                $evId = $ev['id'] ?? null;
+                return !isset($_SESSION['deleted_events'][$evId]);
+            });
         }
         
         return self::$eventsData;
@@ -922,5 +959,28 @@ class MockRepository {
         self::$eventsData[] = $newEvent;
         
         return $newId;
+    }
+
+    public static function deleteEvent(int $id): bool
+    {
+        self::ensureSession();
+        
+        // Mark event as deleted in session
+        if (!isset($_SESSION['deleted_events'])) {
+            $_SESSION['deleted_events'] = [];
+        }
+        $_SESSION['deleted_events'][$id] = true;
+        
+        // Also remove from in-memory cache
+        if (self::$eventsData !== null) {
+            self::$eventsData = array_filter(self::$eventsData, function($ev) use ($id) {
+                return ($ev['id'] ?? 0) !== $id;
+            });
+        }
+        
+        // Clear cache so next call rebuilds
+        self::$eventsData = null;
+        
+        return true;
     }
 }

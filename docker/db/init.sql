@@ -9,6 +9,7 @@ CREATE TABLE users (
     latitude DECIMAL(9,6),
     longitude DECIMAL(9,6),
     bio TEXT,
+    role VARCHAR(20) DEFAULT 'basic',
     enabled BOOLEAN DEFAULT TRUE
 );
 

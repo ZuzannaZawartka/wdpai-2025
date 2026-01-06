@@ -9,18 +9,15 @@ class EditController extends AppController {
     {
         $this->ensureSession();
         
-        // Get real event from mock repository (ownership checked by routing)
         $event = MockRepository::getEventById((int)$id);
         
-        // Prevent editing past events
-        if (MockRepository::isEventPast((int)$id)) {
+        if (!$this->isAdmin() && MockRepository::isEventPast((int)$id)) {
             $this->render('404');
             return;
         }
         
         $skillLevels = array_values(MockRepository::levels());
         
-        // Determine participants type based on minNeeded and max
         $minPeople = $event['participants']['minNeeded'] ?? 6;
         $maxPeople = array_key_exists('max', $event['participants']) ? $event['participants']['max'] : null;
         
@@ -31,21 +28,18 @@ class EditController extends AppController {
         $rangeMaxValue = null;
         
         if ($minPeople === $maxPeople) {
-            // Same min and max = specific number
             $participantsType = 'specific';
             $specificValue = $minPeople;
         } elseif ($maxPeople === null) {
-            // Only minimum is set
+
             $participantsType = 'minimum';
             $minimumValue = $minPeople;
         } else {
-            // Different min and max = range
             $participantsType = 'range';
             $rangeMinValue = $minPeople;
             $rangeMaxValue = $maxPeople;
         }
         
-        // Transform event for form display
         $formEvent = [
             'id' => $event['id'] ?? $id,
             'title' => $event['title'] ?? '',
@@ -75,14 +69,12 @@ class EditController extends AppController {
     {
         $this->ensureSession();
         
-        // Prevent saving past events
-        if (MockRepository::isEventPast((int)$id)) {
+        if (MockRepository::isEventPast((int)$id) && !$this->isAdmin()) {
             http_response_code(403);
             echo json_encode(['error' => 'Cannot edit past events']);
             return;
         }
         
-        // Get form data (ownership checked by routing)
         $title = $_POST['title'] ?? '';
         $datetime = $_POST['datetime'] ?? '';
         $location = $_POST['location'] ?? '';
@@ -90,31 +82,25 @@ class EditController extends AppController {
         $desc = $_POST['desc'] ?? '';
         $participantsType = $_POST['participantsType'] ?? 'range';
         
-        // Parse participants based on selected type from form inputs
         $minNeeded = 0;
         $maxPlayers = null;
         
         if ($participantsType === 'specific') {
-            // User selected specific number
             $raw = $_POST['playersSpecific'] ?? '';
             $value = ($raw === '' ? 0 : (int)$raw);
             $minNeeded = $value;
             $maxPlayers = $value;
-            // Only specific has meaning; clear others
         } elseif ($participantsType === 'minimum') {
-            // User selected minimum
             $raw = $_POST['playersMin'] ?? '';
             $minNeeded = ($raw === '' ? 0 : (int)$raw);
-            $maxPlayers = null; // max is unset for minimum mode
+            $maxPlayers = null;
         } else {
-            // User selected range
             $rawMin = $_POST['playersRangeMin'] ?? '';
             $rawMax = $_POST['playersRangeMax'] ?? '';
             $minNeeded = ($rawMin === '' ? 0 : (int)$rawMin);
             $maxPlayers = ($rawMax === '' ? 0 : (int)$rawMax);
         }
         
-        // Update event in mock repository
         $updates = [
             'title' => $title,
             'dateText' => date('D, M j, g:i A', strtotime($datetime)),

@@ -20,7 +20,7 @@
             </div>
         </div>
 
-        <form class="form" method="post" action="/edit/save/<?= htmlspecialchars($eventId ?? '') ?>"
+        <form class="form" method="post" action="/edit/<?= htmlspecialchars($eventId ?? '') ?>"
             enctype="multipart/form-data">
             <div class="form-grid">
                 <div class="field input-group">
@@ -162,8 +162,18 @@
 
         function ensureMap() {
             if (map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([52.2297, 21.0122], 12);
+            let initialLocation = [52.2297, 21.0122];
+            const savedLoc = (locInput?.value || '').trim();
+            if (savedLoc) {
+                const m = savedLoc.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+                if (m) {
+                    initialLocation = [parseFloat(m[1]), parseFloat(m[2])];
+                    chosenLatLng = { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+                }
+            }
+            map = L.map('map').setView(initialLocation, 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            if (chosenLatLng) { marker = L.marker([chosenLatLng.lat, chosenLatLng.lng]).addTo(map); }
             map.on('click', (e) => {
                 chosenLatLng = e.latlng;
                 if (!marker) { marker = L.marker(e.latlng).addTo(map); }

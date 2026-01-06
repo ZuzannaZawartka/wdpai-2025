@@ -206,4 +206,96 @@ class UserController extends AppController {
         header('Location: /profile', true, 303);
         exit();
     }
+    
+    public function editUser($userId = null) {
+        $this->ensureSession();
+        
+        // Only admin can edit other users
+        if (!$this->isAdmin()) {
+            header('HTTP/1.1 403 Forbidden');
+            $this->render('404');
+            return;
+        }
+        
+        $editUserId = (int)($_GET['id'] ?? $userId ?? 0);
+        if (!$editUserId) {
+            header('HTTP/1.1 400 Bad Request');
+            $this->render('404');
+            return;
+        }
+        
+        $repo = new UserRepository();
+        
+        if ($this->isPost()) {
+            $user = $repo->getUserById($editUserId);
+            if (!$user) {
+                header('HTTP/1.1 404 Not Found');
+                $this->render('404');
+                return;
+            }
+            
+            $email = $user['email'];
+            $firstName = trim($_POST['firstName'] ?? '');
+            $lastName = trim($_POST['lastName'] ?? '');
+            $birthDate = trim($_POST['birthDate'] ?? '');
+            $newPassword = trim($_POST['newPassword'] ?? '');
+            $confirmPassword = trim($_POST['confirmPassword'] ?? '');
+            
+            // Validate passwords if provided
+            if (!empty($newPassword)) {
+                if (mb_strlen($newPassword, 'UTF-8') < 8) {
+                    header('HTTP/1.1 400 Bad Request');
+                    $this->render('user-edit', [
+                        'user' => $user,
+                        'messages' => 'Password must be at least 8 characters'
+                    ]);
+                    return;
+                }
+                if ($newPassword !== $confirmPassword) {
+                    header('HTTP/1.1 400 Bad Request');
+                    $this->render('user-edit', [
+                        'user' => $user,
+                        'messages' => 'Passwords do not match'
+                    ]);
+                    return;
+                }
+            }
+            
+            try {
+                $repo->updateUser($email, [
+                    'firstname' => $firstName,
+                    'lastname' => $lastName,
+                    'birth_date' => $birthDate ?: null
+                ]);
+                
+                if (!empty($newPassword)) {
+                    $hashedPassword = $this->hashPassword($newPassword);
+                    $repo->updateUserPassword($email, $hashedPassword);
+                }
+                
+                header('Location: /joined', true, 303);
+                exit();
+            } catch (Throwable $e) {
+                error_log("Admin user update error: " . $e->getMessage());
+                header('HTTP/1.1 500 Internal Server Error');
+                $this->render('user-edit', [
+                    'user' => $user,
+                    'messages' => 'Failed to update user'
+                ]);
+            }
+        } else {
+            // GET request - show edit form
+            $user = $repo->getUserById($editUserId);
+            if (!$user) {
+                header('HTTP/1.1 404 Not Found');
+                $this->render('404');
+                return;
+            }
+            
+            $this->render('user-edit', [
+                'user' => $user,
+                'pageTitle' => 'Edit User'
+            ]);
+        }
+    }
 }

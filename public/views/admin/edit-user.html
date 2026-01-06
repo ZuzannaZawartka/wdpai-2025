@@ -1,0 +1,65 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'Edit User - Admin'; $activeNav = $activeNav ?? 'admin'; ?>
+<?php include __DIR__ . '/../components/header.html'; ?>
+
+<section class="admin-page">
+    <div class="section">
+        <div class="text-title-large">Edit User</div>
+        <p class="text-desc">Manage user information and permissions.</p>
+    </div>
+
+    <div class="section panel">
+        <form class="form" method="post">
+            <?php if(isset($messages)): ?>
+            <div class="messages">
+                <?= $messages ?>
+            </div>
+            <?php endif; ?>
+
+            <div class="form-grid">
+                <div class="field input-group">
+                    <label class="text-small" for="firstName">First Name</label>
+                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="First name"
+                        value="<?= isset($user['firstname']) ? htmlspecialchars($user['firstname']) : '' ?>" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="lastName">Last Name</label>
+                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="Last name"
+                        value="<?= isset($user['lastname']) ? htmlspecialchars($user['lastname']) : '' ?>" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="email">Email</label>
+                    <input id="email" name="email" type="email" class="input-common" placeholder="Email"
+                        value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="birthDate">Birth Date</label>
+                    <input id="birthDate" name="birthDate" type="date" class="input-common"
+                        value="<?= isset($user['birth_date']) ? htmlspecialchars($user['birth_date']) : '' ?>" />
+                </div>
+            </div>
+
+            <div class="form-grid">
+                <div class="field input-group full">
+                    <label class="text-small">Change Password (leave empty to keep current)</label>
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="newPassword">New Password</label>
+                    <input id="newPassword" name="newPassword" type="password" class="input-common"
+                        placeholder="Enter new password" minlength="8" maxlength="128" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="confirmPassword">Confirm Password</label>
+                    <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                        placeholder="Repeat new password" minlength="8" maxlength="128" />
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a href="/admin/users" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</section>
+
+<?php include __DIR__ . '/../components/footer.html'; ?>

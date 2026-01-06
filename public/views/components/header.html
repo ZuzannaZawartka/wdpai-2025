@@ -47,6 +47,12 @@
                 </div>
                 <nav class="site-nav">
                     <?php $active = $activeNav ?? 'dashboard'; ?>
+                    <?php $isAdmin = ($_SESSION['user_role'] ?? 'basic') === 'admin'; ?>
+
+                    <?php if ($isAdmin): ?>
+                    <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
+                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Accounts</a>
+                    <?php else: ?>
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
                     <a class="nav-link search-tile with-icon text-compact-strong button accent <?= $active==='create' ? 'active' : '' ?>"
@@ -54,6 +60,7 @@
                         Event</a>
                     <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
                     <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>
+                    <?php endif; ?>
                 </nav>
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>

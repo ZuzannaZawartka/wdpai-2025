@@ -206,7 +206,7 @@
             $pageMatches = array_slice($allMatches, $offset, $itemsPerPage);
         ?>
         <?php foreach($pageMatches as $m): ?>
-        <article class="match">
+        <article class="match <?= !empty($m['isPast']) ? 'past-event' : '' ?>">
             <div class="match-body">
                 <div class="copy">
                     <div class="text-title-smaller">
@@ -226,7 +226,9 @@
                             <?= htmlspecialchars($m['level']) ?>
                         </span>
                     </div>
-                    <a href="/event/<?= (int)($m['id'] ?? 0) ?>" class="button primary text-size-small">View Details</a>
+                    <a href="/event/<?= (int)($m['id'] ?? 0) ?>"
+                        class="button primary text-size-small <?= !empty($m['isPast']) ? 'past' : '' ?>">View
+                        Details</a>
                 </div>
                 <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
             </div>

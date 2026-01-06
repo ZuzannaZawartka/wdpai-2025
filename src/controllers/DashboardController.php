@@ -15,6 +15,12 @@ class DashboardController extends AppController {
 
 
     public function index(?int $id =null) {
+        // Redirect admin to sports page
+        if ($this->isAdmin()) {
+            header('Location: /sports');
+            exit();
+        }
+        
         $currentUserId = $this->getCurrentUserId();
         $upcomingEvents = MockRepository::upcomingEvents($currentUserId ?? null);
         $favouriteSports = MockRepository::favouriteSports($currentUserId ?? null);

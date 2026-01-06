@@ -1,0 +1,133 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'Accounts - Admin'; $activeNav = $activeNav ?? 'joined'; ?>
+<?php include __DIR__ . '/components/header.html'; ?>
+
+<section class="accounts-page sports-page">
+    <div class="section">
+        <div class="text-title-large">User Accounts</div>
+        <p class="text-desc">View and manage all user accounts.</p>
+    </div>
+
+    <div class="section">
+        <?php if (!empty($accounts)): ?>
+        <div class="cards-grid">
+            <?php foreach($accounts as $account): ?>
+            <div class="account-card card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <?= htmlspecialchars($account['firstname'] ?? '') . ' ' . htmlspecialchars($account['lastname'] ?? '') ?>
+                    </h3>
+                    <span class="role-badge <?= ($account['role'] ?? 'basic') === 'admin' ? 'admin' : 'basic' ?>">
+                        <?= htmlspecialchars($account['role'] ?? 'basic') ?>
+                    </span>
+                </div>
+                <div class="card-content">
+                    <p class="text-small"><strong>Email:</strong>
+                        <?= htmlspecialchars($account['email'] ?? '') ?>
+                    </p>
+                    <p class="text-small"><strong>Birth Date:</strong>
+                        <?= htmlspecialchars($account['birth_date'] ?? '-') ?>
+                    </p>
+                    <?php if (!empty($account['latitude']) && !empty($account['longitude'])): ?>
+                    <p class="text-small"><strong>Location:</strong>
+                        <?= round((float)$account['latitude'], 4) ?>,
+                        <?= round((float)$account['longitude'], 4) ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <div class="card-actions">
+                    <a href="/edit/user/<?= (int)($account['id'] ?? 0) ?>" class="btn-link">Edit</a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <div class="empty-state">
+            <p class="text-note">No accounts found</p>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<style>
+    .accounts-page .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+
+    .accounts-page .account-card {
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background: var(--white);
+    }
+
+    .accounts-page .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+        gap: 0.5rem;
+    }
+
+    .accounts-page .card-title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+
+    .accounts-page .role-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .accounts-page .role-badge.admin {
+        background: #fee;
+        color: #c33;
+    }
+
+    .accounts-page .role-badge.basic {
+        background: #eef;
+        color: #33c;
+    }
+
+    .accounts-page .card-content {
+        margin-bottom: 1rem;
+        border-top: 1px solid var(--border-color);
+        border-bottom: 1px solid var(--border-color);
+        padding: 0.75rem 0;
+    }
+
+    .accounts-page .card-content p {
+        margin: 0.5rem 0;
+    }
+
+    .accounts-page .card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .accounts-page .btn-link {
+        flex: 1;
+        padding: 0.5rem;
+        border: 1px solid var(--primary);
+        background: transparent;
+        color: var(--primary);
+        border-radius: 0.25rem;
+        cursor: pointer;
+        font-size: 0.875rem;
+        text-align: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .accounts-page .btn-link:hover {
+        background: var(--primary);
+        color: var(--white);
+    }
+</style>
+
+<?php include __DIR__ . '/components/footer.html'; ?>

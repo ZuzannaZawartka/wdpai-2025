@@ -48,6 +48,12 @@ class EventRepository {
         $stmt->execute(['id' => $eventId, 'owner' => $ownerId]);
         return $stmt->rowCount() > 0;
     }
+    
+    public function deleteEvent(int $eventId): bool {
+        $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id');
+        $stmt->execute(['id' => $eventId]);
+        return $stmt->rowCount() > 0;
+    }
 
     private function levelColor(string $level): string {
         switch ($level) {

@@ -106,6 +106,11 @@
                     <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
+                    <?php elseif(($_SESSION['user_role'] ?? 'basic') === 'admin'): ?>
+                    <!-- Admin can edit and delete any event -->
+                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                    <button id="deleteBtn" class="button danger text-size-small"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php else: ?>
                     <?php 
                         $isParticipant = $event['isUserParticipant'] ?? false; 
@@ -207,7 +212,7 @@
                 return;
             }
             const eventId = getEventId();
-            fetch(`/event-join/${eventId}`, { method: 'POST' })
+            fetch(`/event/${eventId}/join`, { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
@@ -226,7 +231,7 @@
                 return;
             }
             const eventId = getEventId();
-            fetch(`/event-cancel/${eventId}`, { method: 'POST' })
+            fetch(`/event/${eventId}/delete`, { method: 'POST' })
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
@@ -243,9 +248,17 @@
         deleteBtn?.addEventListener('click', function () {
             const eventId = this.getAttribute('data-event-id');
             if (confirm('Are you sure you want to delete this event?')) {
-                fetch(`/delete/${eventId}`, { method: 'POST' })
-                    .then(() => window.location.href = '/my')
-                    .catch(err => alert('Failed to delete event'));
+                fetch(`/event/${eventId}/delete`, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            // Redirect based on user role - admin goes to /sports, others to /my
+                            const isAdmin = <?= ($_SESSION['user_role'] ?? 'basic') === 'admin' ? 'true' : 'false' ?>;
+                            window.location.href = isAdmin ? '/sports' : '/my';
+                        } else {
+                            alert('Failed to delete event');
+                        }
+                    })
+                    .catch(err => alert('Error deleting event: ' + err.message));
             }
         });
     })();

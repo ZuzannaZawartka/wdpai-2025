@@ -72,7 +72,13 @@ class SportsController extends AppController {
         }
 
         $levelForFilter = $selectedLevel !== 'Any' ? $selectedLevel : null;
-        $matches = MockRepository::sportsMatches(null, $selectedSportIds, $levelForFilter, $center, $radiusKm);
+        
+        // Admin sees all events without filtering
+        if ($this->isAdmin()) {
+            $matches = $this->getAllEventsForAdmin($selectedSportIds, $levelForFilter, $center, $radiusKm);
+        } else {
+            $matches = MockRepository::sportsMatches(null, $selectedSportIds, $levelForFilter, $center, $radiusKm);
+        }
 
         $this->render('sports', [
             'pageTitle' => 'SportMatch - Sports',
@@ -84,5 +90,94 @@ class SportsController extends AppController {
             'selectedLoc' => $selectedLoc,
             'radiusKm' => $radiusKm,
         ]);
+    }
+
+    private function getAllEventsForAdmin(array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
+        $catalog = MockRepository::sportsCatalog();
+        $levels = MockRepository::levels();
+        $events = MockRepository::events();
+        
+        // Filter only by user selections, not by full/past status
+        $filtered = array_filter($events, function($ev) use ($selectedSports, $level, $center, $radiusKm) {
+            if (!empty($selectedSports)) {
+                $sid = $ev['sportId'] ?? null;
+                if (!$sid || !in_array($sid, $selectedSports, true)) { return false; }
+            }
+
+            if ($level !== null) {
+                $lid = $ev['levelId'] ?? null;
+                $levels = MockRepository::levels();
+                $lname = $lid && isset($levels[$lid]) ? $levels[$lid] : null;
+                if ($lname !== $level) { return false; }
+            }
+
+            if ($center && $radiusKm !== null) {
+                $coords = $ev['coords'] ?? '';
+                if (!is_string($coords) || $coords === '') { return false; }
+                $parts = array_map('trim', explode(',', $coords));
+                if (count($parts) !== 2) { return false; }
+                $lat2 = (float)$parts[0];
+                $lng2 = (float)$parts[1];
+                $dist = $this->distanceKm((float)$center[0], (float)$center[1], $lat2, $lng2);
+                if (!is_finite($dist) || $dist > $radiusKm) { return false; }
+            }
+            return true;
+        });
+        
+        // Sort by date descending (newest first)
+        usort($filtered, function($a, $b) {
+            $dateA = strtotime($a['isoDate'] ?? '');
+            $dateB = strtotime($b['isoDate'] ?? '');
+            return $dateB <=> $dateA; // DESC order
+        });
+        
+        $colors = $this->getLevelColors();
+        $participants = MockRepository::eventParticipants();
+        $uid = $this->getCurrentUserId();
+        $now = time();
+        
+        return array_map(function($ev) use ($levels, $colors, $participants, $uid, $now) {
+            $current = count($participants[$ev['id']] ?? []);
+            $eventTime = strtotime($ev['isoDate'] ?? '');
+            $isPast = $eventTime && $eventTime < $now;
+
+            if ($ev['maxPlayers'] === null) {
+                $playersText = $ev['minNeeded'] . '+ Players';
+            } elseif ($ev['minNeeded'] === $ev['maxPlayers']) {
+                $playersText = $ev['minNeeded'] . ' Players';
+            } else {
+                $playersText = $current . '/' . $ev['minNeeded'] . '-' . $ev['maxPlayers'] . ' Players';
+            }
+            return [
+                'id' => $ev['id'],
+                'title' => $ev['title'],
+                'datetime' => $ev['dateText'],
+                'desc' => $ev['desc'],
+                'players' => $playersText,
+                'level' => $levels[$ev['levelId']],
+                'levelColor' => $colors[$ev['levelId']],
+                'imageUrl' => $ev['imageUrl'],
+                'isUserParticipant' => MockRepository::isUserParticipant($uid, $ev['id']),
+                'isFull' => MockRepository::isEventFull($ev['id']),
+                'isPast' => $isPast
+            ];
+        }, array_values($filtered));
+    }
+
+    private function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float {
+        $R = 6371.0;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
+        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
+        return $R * $c;
+    }
+
+    private function getLevelColors(): array {
+        return [
+            1 => '#22c55e',
+            2 => '#eab308',
+            3 => '#ef4444',
+        ];
     }
 }
