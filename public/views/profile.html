@@ -1,4 +1,4 @@
-<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; ?>
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; $isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin'); ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
 <section class="profile-page sports-page">
@@ -8,9 +8,13 @@
     </div>
 
     <div class="section panel">
-        <!-- Profile form -->
-        <form class="form" method="post" action="#">
+        <form class="form" method="post" action="/profile-update">
 
+            <?php if(isset($messages)): ?>
+            <div class="messages">
+                <?= $messages ?>
+            </div>
+            <?php endif; ?>
 
             <div class="form-grid">
                 <div class="field input-group full">
@@ -33,25 +37,38 @@
                 </div>
                 <div class="field input-group">
                     <label class="text-small" for="firstName">First Name</label>
-                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex" />
+                    <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex"
+                        value="<?= isset($user['firstName']) ? htmlspecialchars($user['firstName']) : '' ?>" />
                 </div>
                 <div class="field input-group">
                     <label class="text-small" for="lastName">Last Name</label>
-                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan" />
+                    <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan"
+                        value="<?= isset($user['lastName']) ? htmlspecialchars($user['lastName']) : '' ?>" />
                 </div>
                 <div class="field input-group full">
                     <label class="text-small" for="email">Email</label>
                     <input id="email" name="email" type="email" class="input-common"
-                        placeholder="e.g., alex@example.com" />
+                        placeholder="e.g., alex@example.com"
+                        value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
                 </div>
 
+                <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
+                <div class="field input-group">
+                    <label class="text-small" for="birthDate">Date of Birth</label>
+                    <input id="birthDate" name="birthDate" type="date" class="input-common"
+                        value="<?= isset($user['birthDate']) ? htmlspecialchars($user['birthDate']) : '' ?>" />
+                </div>
+                <?php endif; ?>
+
+                <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
                 <div class="field input-group full">
                     <label class="text-small" for="location">Location</label>
                     <div class="filters-bar">
                         <div class="control with-icon has-action">
                             <span class="material">location_on</span>
                             <input id="location" name="location" type="text" class="input-common"
-                                placeholder="Enter Location" />
+                                placeholder="Enter Location"
+                                value="<?= isset($user['location']) ? htmlspecialchars($user['location']) : '' ?>" />
                             <button type="button" class="icon-btn pick-map" aria-label="Pick location on map">
                                 <span class="material">my_location</span>
                             </button>
@@ -59,45 +76,53 @@
                     </div>
                 </div>
 
-
                 <div class="field input-group full">
                     <label class="text-small">Favorite Sports</label>
-                    <div class="grid-quick">
-                        <div class="tile selectable">
-                            <button type="button" class="button danger text-size-small remove-btn"
-                                aria-label="Remove Running">
-                                <span class="material">close</span>
-                            </button>
-                            <div class="tile-icon">
-                                <span class="material">directions_run</span>
-                            </div>
-                            <h3 class="text-compact-strong">Running</h3>
-                        </div>
-                        <div class="tile selectable">
-                            <button type="button" class="button danger text-size-small remove-btn"
-                                aria-label="Remove Tennis">
-                                <span class="material">close</span>
-                            </button>
-                            <div class="tile-icon">
-                                <span class="material">sports_tennis</span>
-                            </div>
-                            <h3 class="text-compact-strong">Tennis</h3>
-                        </div>
-                        <label class="tile selectable">
-                            <div class="tile-icon">
-                                <span class="material">add</span>
-                            </div>
-                            <h3 class="text-compact-strong">Add More</h3>
-                        </label>
+                    <div id="profileData"
+                        data-all-sports='<?= htmlspecialchars(json_encode($allSports ?? []), ENT_QUOTES); ?>'
+                        data-selected='<?= htmlspecialchars(json_encode($selectedSportIds ?? []), ENT_QUOTES); ?>'>
+                    </div>
+                    <div class="add-fav-chips" id="addFavRow">
+                        <div class="chip-wrap" id="addFavList"></div>
                     </div>
 
                 </div>
+                <?php endif; ?>
             </div>
 
-            <div class="form-actions">
+            <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
+            <div class="form-grid">
+                <div class="field input-group full">
+                    <label class="text-small">Change Password (leave empty to keep current)</label>
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="oldPassword">Current Password</label>
+                    <input id="oldPassword" name="oldPassword" type="password" class="input-common"
+                        placeholder="Enter current password" maxlength="128" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="newPassword">New Password</label>
+                    <input id="newPassword" name="newPassword" type="password" class="input-common"
+                        placeholder="Enter new password" minlength="8" maxlength="128" />
+                </div>
+                <div class="field input-group">
+                    <label class="text-small" for="confirmPassword">Confirm New Password</label>
+                    <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                        placeholder="Repeat new password" minlength="8" maxlength="128" />
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if(!$isAdmin): ?>
+            <div class="form-grid">
                 <a href="/dashboard" class="button danger text-size-small">Cancel</a>
                 <button type="submit" class="button primary text-size-small">Save Changes</button>
             </div>
+            <?php else: ?>
+            <div class="form-grid">
+                <div class="text-note">Admin profile editing is disabled.</div>
+            </div>
+            <?php endif; ?>
         </form>
     </div>
 
@@ -128,9 +153,32 @@
         let map, marker, chosenLatLng;
 
         function ensureMap() {
-            if (map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([52.2297, 21.0122], 12);
+            if (map) {
+                map.invalidateSize();
+                return;
+            }
+
+            // Parse current location from input
+            const currentLoc = locInput?.value?.trim();
+            let lat = 52.2297, lng = 21.0122; // Default
+
+            if (currentLoc && currentLoc.includes(',')) {
+                const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                    lat = parts[0];
+                    lng = parts[1];
+                    chosenLatLng = { lat, lng };
+                }
+            }
+
+            map = L.map('map').setView([lat, lng], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+            // Add marker if location exists
+            if (chosenLatLng) {
+                marker = L.marker([lat, lng]).addTo(map);
+            }
+
             map.on('click', (e) => {
                 chosenLatLng = e.latlng;
                 if (!marker) { marker = L.marker(e.latlng).addTo(map); }
@@ -173,6 +221,86 @@
         editBtn?.addEventListener('click', () => avatarInput?.click());
 
         // Avatar save handled with the main form submit
+
+        // Favourite sports manager (mock-based)
+        const addRow = document.getElementById('addFavRow');
+        const addList = document.getElementById('addFavList');
+
+        const profileData = document.getElementById('profileData');
+        const allSports = profileData ? JSON.parse(profileData.dataset.allSports || '[]') : [];
+        const sportMap = Object.fromEntries((allSports || []).map(s => [String(s.id), s]));
+        let favouriteIds = profileData ? JSON.parse(profileData.dataset.selected || '[]') : [];
+
+        function renderSelect() {
+            if (!addList) return;
+            addList.innerHTML = '';
+
+            // Render all sports in catalog order
+            (allSports || []).forEach(s => {
+                const isSelected = favouriteIds.includes(s.id);
+                const label = document.createElement('label');
+                label.className = 'tile selectable';
+                label.dataset.sportId = String(s.id);
+
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                input.checked = isSelected;
+
+                const iconWrap = document.createElement('div');
+                iconWrap.className = 'tile-icon material';
+                iconWrap.textContent = s.icon;
+
+                const textWrap = document.createElement('div');
+                const title = document.createElement('h3');
+                title.className = 'text-compact-strong';
+                title.textContent = s.name;
+                textWrap.appendChild(title);
+
+                label.appendChild(input);
+                label.appendChild(iconWrap);
+                label.appendChild(textWrap);
+
+                // Listen to input change event
+                input.addEventListener('change', () => {
+                    if (input.checked) {
+                        if (!favouriteIds.includes(s.id)) {
+                            favouriteIds.push(s.id);
+                        }
+                    } else {
+                        favouriteIds = favouriteIds.filter(v => v !== s.id);
+                    }
+                    renderFavs();
+                });
+
+                addList.appendChild(label);
+            });
+        }
+
+        function renderFavs() {
+            renderSelect();
+        }
+
+        // Handle form submission with favourite sports
+        const form = document.querySelector('.form');
+        const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
+        form?.addEventListener('submit', (e) => {
+            if (isAdmin) { e.preventDefault(); return; }
+            // Create hidden inputs for favourite sports
+            const existingInputs = form.querySelectorAll('input[name="favourite_sports[]"]');
+            existingInputs.forEach(inp => inp.remove());
+
+            favouriteIds.forEach(sportId => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'favourite_sports[]';
+                input.value = sportId;
+                form.appendChild(input);
+            });
+        });
+
+
+        renderSelect();
+        renderFavs();
     })();
 </script>
 

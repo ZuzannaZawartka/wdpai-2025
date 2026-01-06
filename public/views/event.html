@@ -16,7 +16,8 @@
     </div>
 
     <div class="section panel">
-        <div class="hero-map" aria-label="Map preview" data-location="<?= htmlspecialchars($event['coords'] ?? ($event['location'] ?? '')) ?>">
+        <div class="hero-map" aria-label="Map preview"
+            data-location="<?= htmlspecialchars($event['coords'] ?? ($event['location'] ?? '')) ?>">
             <div id="eventLocationEmpty" class="hero-map-empty">
                 <span class="material">location_on</span>
                 <div class="text-small">No location available</div>
@@ -51,7 +52,7 @@
                     </div>
                 </div>
 
-                <div id="revealed-info" class="card panel" hidden>
+                <div id="revealed-info" class="card panel" <?=($event['isUserParticipant'] ?? false) ? '' : 'hidden' ?>>
                     <div class="text-title">Location &amp; Contact</div>
                     <div class="grid-info">
                         <div class="icon-row">
@@ -87,9 +88,13 @@
                         <div class="text-small">
                             <?= (int)($event['participants']['current'] ?? 0) ?>
                         </div>
+                        <?php if ($event['participants']['max'] !== null): ?>
                         <div class="text-small">/
                             <?= (int)($event['participants']['max'] ?? 0) ?> joined
                         </div>
+                        <?php else: ?>
+                        <div class="text-small">joined</div>
+                        <?php endif; ?>
                     </div>
                     <div class="text-note">
                         <span class="text-compact-strong">Minimum needed:</span>
@@ -97,7 +102,29 @@
                     </div>
                 </div>
                 <div class="join-actions">
-                    <button id="joinBtn" class="button accent">Join Match</button>
+                    <?php if ($event['isOwner'] ?? false): ?>
+                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                    <button id="deleteBtn" class="button danger text-size-small"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
+                    <?php elseif(($_SESSION['user_role'] ?? 'basic') === 'admin'): ?>
+                    <!-- Admin can edit and delete any event -->
+                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                    <button id="deleteBtn" class="button danger text-size-small"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
+                    <?php else: ?>
+                    <?php 
+                        $isParticipant = $event['isUserParticipant'] ?? false; 
+                        $isFull = $event['isFull'] ?? false;
+                    ?>
+                    <?php if ($isFull && !$isParticipant): ?>
+                    <div class="button muted text-size-small" disabled style="cursor: not-allowed;">Event Full</div>
+                    <?php else: ?>
+                    <button id="joinBtn" class="button accent <?= $isParticipant ? 'hidden' : '' ?>"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Join Match</button>
+                    <button id="cancelBtn" class="button muted text-size-small <?= $isParticipant ? '' : 'hidden' ?>"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Cancel Participation</button>
+                    <?php endif; ?>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -108,7 +135,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     (function () {
-        
+
         const wrap = document.querySelector('.hero-map');
         const locStr = wrap?.getAttribute('data-location')?.trim();
         const emptyEl = document.getElementById('eventLocationEmpty');
@@ -166,20 +193,72 @@
         }
 
         (async function initEventMap() {
-            if (!wrap || !locStr) return; 
+            if (!wrap || !locStr) return;
             const coords = tryParseLatLng(locStr) || await geocode(locStr);
             if (coords) ensurePreview(coords.lat, coords.lng);
         })();
 
         const joinBtn = document.getElementById('joinBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
         const revealed = document.getElementById('revealed-info');
-        let joined = false;
+
+        function getEventId() {
+            return joinBtn?.getAttribute('data-event-id') || cancelBtn?.getAttribute('data-event-id');
+        }
+
         joinBtn?.addEventListener('click', function () {
-            if (!joined) {
-                revealed?.removeAttribute('hidden');
-                this.textContent = 'Joined';
-                this.disabled = true;
-                joined = true;
+            if (!confirm('Do you want to join this match?')) {
+                return;
+            }
+            const eventId = getEventId();
+            fetch(`/event/${eventId}/join`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        revealed?.removeAttribute('hidden');
+                        joinBtn.classList.add('hidden');
+                        cancelBtn?.classList.remove('hidden');
+                    } else {
+                        alert('Failed to join event');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        });
+
+        cancelBtn?.addEventListener('click', function () {
+            if (!confirm('Are you sure you want to cancel your participation?')) {
+                return;
+            }
+            const eventId = getEventId();
+            fetch(`/event/${eventId}/delete`, { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        cancelBtn.classList.add('hidden');
+                        joinBtn?.classList.remove('hidden');
+                        revealed?.setAttribute('hidden', '');
+                    } else {
+                        alert('Failed to cancel participation');
+                    }
+                })
+                .catch(err => alert('Error: ' + err.message));
+        });
+
+        deleteBtn?.addEventListener('click', function () {
+            const eventId = this.getAttribute('data-event-id');
+            if (confirm('Are you sure you want to delete this event?')) {
+                fetch(`/event/${eventId}/delete`, { method: 'POST' })
+                    .then(response => {
+                        if (response.ok) {
+                            // Redirect based on user role - admin goes to /sports, others to /my
+                            const isAdmin = <?= ($_SESSION['user_role'] ?? 'basic') === 'admin' ? 'true' : 'false' ?>;
+                            window.location.href = isAdmin ? '/sports' : '/my';
+                        } else {
+                            alert('Failed to delete event');
+                        }
+                    })
+                    .catch(err => alert('Error deleting event: ' + err.message));
             }
         });
     })();

@@ -91,8 +91,15 @@
     margin-top: 0.75rem;
 }
 
+.event-page .join-actions {
+    display: flex;
+    flex-direction: row;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
 .event-page .join-actions .button {
-    width: 100%;
+    flex: 1;
 }
 
 .event-page .details-grid .right .card+.card {
@@ -101,4 +108,13 @@
 
 .event-page .details-grid .right .join-actions {
     margin-top: 1rem;
+}
+
+.event-page .details-grid .left .card+.card {
+    margin-top: 1rem;
+}
+
+.event-page .join-actions #joinBtn.hidden,
+.event-page .join-actions #cancelBtn.hidden {
+    display: none;
 }

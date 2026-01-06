@@ -20,7 +20,8 @@
             </div>
         </div>
 
-        <form class="form" method="post" action="#" enctype="multipart/form-data">
+        <form class="form" method="post" action="/edit/<?= htmlspecialchars($eventId ?? '') ?>"
+            enctype="multipart/form-data">
             <div class="form-grid">
                 <div class="field input-group">
                     <label class="text-small" for="title">Event Name</label>
@@ -89,26 +90,26 @@
                     <div class="participants-inputs">
                         <div class="row" data-mode="specific">
                             <label class="text-small" for="playersSpecific">Players</label>
-                            <input id="playersSpecific" name="playersSpecific" type="number" min="1" step="1"
+                            <input id="playersSpecific" name="playersSpecific" type="number" min="0" step="1"
                                 class="input-common" placeholder="e.g., 10"
                                 value="<?= htmlspecialchars((string)($event['participants']['specific'] ?? '')) ?>" />
                         </div>
                         <div class="row hidden" data-mode="minimum">
                             <label class="text-small" for="playersMin">Minimum Players</label>
-                            <input id="playersMin" name="playersMin" type="number" min="1" step="1" class="input-common"
+                            <input id="playersMin" name="playersMin" type="number" min="0" step="1" class="input-common"
                                 placeholder="e.g., 6"
                                 value="<?= htmlspecialchars((string)($event['participants']['minimum'] ?? '')) ?>" />
                         </div>
                         <div class="row hidden" data-mode="range">
                             <div class="half">
                                 <label class="text-small" for="playersRangeMin">Min Players</label>
-                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="1" step="1"
+                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="0" step="1"
                                     class="input-common" placeholder="e.g., 6"
                                     value="<?= htmlspecialchars((string)($event['participants']['rangeMin'] ?? '')) ?>" />
                             </div>
                             <div class="half">
                                 <label class="text-small" for="playersRangeMax">Max Players</label>
-                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="1" step="1"
+                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="0" step="1"
                                     class="input-common" placeholder="e.g., 12"
                                     value="<?= htmlspecialchars((string)($event['participants']['rangeMax'] ?? '')) ?>" />
                             </div>
@@ -119,7 +120,7 @@
                 <div class="field input-group full">
                     <label class="text-small" for="desc">Description</label>
                     <textarea id="desc" name="desc" class="input-common" rows="5"
-                        placeholder="Add details participants should know..."></textarea>
+                        placeholder="Add details participants should know..."><?= htmlspecialchars($event['desc'] ?? '') ?></textarea>
                 </div>
             </div>
 
@@ -161,8 +162,18 @@
 
         function ensureMap() {
             if (map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([52.2297, 21.0122], 12);
+            let initialLocation = [52.2297, 21.0122];
+            const savedLoc = (locInput?.value || '').trim();
+            if (savedLoc) {
+                const m = savedLoc.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
+                if (m) {
+                    initialLocation = [parseFloat(m[1]), parseFloat(m[2])];
+                    chosenLatLng = { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+                }
+            }
+            map = L.map('map').setView(initialLocation, 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+            if (chosenLatLng) { marker = L.marker([chosenLatLng.lat, chosenLatLng.lng]).addTo(map); }
             map.on('click', (e) => {
                 chosenLatLng = e.latlng;
                 if (!marker) { marker = L.marker(e.latlng).addTo(map); }
@@ -203,6 +214,23 @@
             });
         }
         typeWrap?.addEventListener('change', updateParticipants);
+
+        // Auto-select radio when user focuses a matching input
+        const radioSpecific = typeWrap?.querySelector('input[value="specific"]');
+        const radioMinimum = typeWrap?.querySelector('input[value="minimum"]');
+        const radioRange = typeWrap?.querySelector('input[value="range"]');
+        document.getElementById('playersSpecific')?.addEventListener('focus', () => {
+            if (radioSpecific) { radioSpecific.checked = true; updateParticipants(); }
+        });
+        document.getElementById('playersMin')?.addEventListener('focus', () => {
+            if (radioMinimum) { radioMinimum.checked = true; updateParticipants(); }
+        });
+        document.getElementById('playersRangeMin')?.addEventListener('focus', () => {
+            if (radioRange) { radioRange.checked = true; updateParticipants(); }
+        });
+        document.getElementById('playersRangeMax')?.addEventListener('focus', () => {
+            if (radioRange) { radioRange.checked = true; updateParticipants(); }
+        });
 
         updateParticipants();
         const initialLoc = (locInput?.value || '').trim();

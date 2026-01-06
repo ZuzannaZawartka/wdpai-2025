@@ -5,6 +5,20 @@
     margin-left: auto;
 }
 
+.sports-page .match-link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.sports-page .match-link:hover {
+    text-decoration: none;
+}
+
+.sports-page .match-link:focus {
+    outline: none;
+}
+
 .sports-page .matches .match .match-body {
     align-items: center;
 }

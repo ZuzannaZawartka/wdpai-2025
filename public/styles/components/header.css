@@ -57,7 +57,7 @@
 .user-area {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1.25rem;
 }
 
 .logout {
@@ -77,5 +77,4 @@
     border-radius: 50%;
     background-size: cover;
     background-position: center;
-    background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCOdQng9qujhWHOAXiXeGemeWZRiFWZLM6d-1bjEItXNzJR0DhrmEE3_ulCj4x5pIVliCBsKTuhCQpliQh4pAMqx6_Z-v7sc2KH_73rlEE9UUDPFVS03PWZB3xYNwjq-46u37VzCUCGbQuPVczvaHEgCU00M4QyMmHU0R3PeD8sV2scqSwdvoCQvct8G8-AM6CKpnKXxyv6YN4-KxwqyjEf-_J1F0AZI2cAykEm9CrnlqqM02Ub-lgo7RX1YuHNMPKP-MLGtlXRzQ5W');
 }

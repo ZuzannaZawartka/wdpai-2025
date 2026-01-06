@@ -14,42 +14,100 @@
         ?>
         <?php if (!empty($list)): ?>
         <?php foreach($list as $m): ?>
-        <article class="match">
-            <div class="match-body">
-                <div class="copy">
-                    <div class="text-title-smaller">
-                        <?= htmlspecialchars($m['title']) ?>
+        <a href="/event/<?= (int)($m['id'] ?? 0) ?>" class="match-link">
+            <article class="match">
+                <div class="match-body">
+                    <div class="copy">
+                        <div class="text-title-smaller">
+                            <?= htmlspecialchars($m['title']) ?>
+                        </div>
+                        <div class="meta-row text-small">
+                            <span>
+                                <?= htmlspecialchars($m['datetime']) ?>
+                            </span>
+                            <span>👥
+                                <?= htmlspecialchars($m['players']) ?>
+                            </span>
+                            <?php if (isset($m['level'])): ?>
+                            <span class="level"
+                                style="--level-color: <?= htmlspecialchars($m['levelColor'] ?? '#999') ?>;">
+                                <?= htmlspecialchars($m['level']) ?>
+                            </span>
+                            <?php endif; ?>
+                        </div>
                     </div>
-                    <div class="meta-row text-small">
-                        <span>
-                            <?= htmlspecialchars($m['datetime']) ?>
-                        </span>
-                        <span>👥
-                            <?= htmlspecialchars($m['players']) ?>
-                        </span>
-                        <?php if (isset($m['level'])): ?>
-                        <span class="level" style="--level-color: <?= htmlspecialchars($m['levelColor'] ?? '#999') ?>;">
-                            <?= htmlspecialchars($m['level']) ?>
-                        </span>
-                        <?php endif; ?>
+                    <div class="my-actions" onclick="event.stopPropagation();">
+                        <a href="/edit/<?= (int)($m['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                        <button type="button" class="button danger text-size-small delete-btn"
+                            data-id="<?= (int)($m['id'] ?? 0) ?>"
+                            data-title="<?= htmlspecialchars($m['title'] ?? '') ?>">Delete</button>
                     </div>
                 </div>
-                <div class="my-actions">
-                    <button type="button" class="button accent text-size-small">Edit</button>
-                    <button type="button" class="button danger text-size-small">Delete</button>
-                </div>
-            </div>
-        </article>
+            </article>
+        </a>
         <?php endforeach; ?>
         <?php else: ?>
         <div class="empty-panel empty-dashed">
             <span class="material">event_busy</span>
             <div class="text-title-smaller">You haven't created any events yet.</div>
             <p class="text-body">Ready to get a game going?</p>
-            <a href="#" class="button accent text-size-small">Create a Match</a>
+            <a href="/create" class="button accent text-size-small">Create a Match</a>
         </div>
         <?php endif; ?>
     </div>
 </section>
+
+<div id="deleteModal" class="map-modal" hidden>
+    <div class="map-modal-backdrop"></div>
+    <div class="map-modal-content">
+        <div>
+            <div class="text-title-smaller">Delete event?</div>
+            <p class="text-body" id="deleteEventTitle">Are you sure you want to delete this event?</p>
+        </div>
+        <div class="map-actions">
+            <button type="button" class="button muted" id="cancelDelete">Cancel</button>
+            <button type="button" class="button danger" id="confirmDelete">Delete</button>
+        </div>
+    </div>
+    <form id="deleteForm" method="post" action="/my" hidden>
+        <input type="hidden" name="deleteId" id="deleteIdInput" />
+        <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>" />
+    </form>
+
+</div>
+
+<script>
+    (function () {
+        const modal = document.getElementById('deleteModal');
+        const cancelBtn = document.getElementById('cancelDelete');
+        const confirmBtn = document.getElementById('confirmDelete');
+        const titleEl = document.getElementById('deleteEventTitle');
+        const idInput = document.getElementById('deleteIdInput');
+
+        let pendingId = null;
+        function openModal(id, title) {
+            pendingId = id;
+            idInput.value = String(id);
+            titleEl.textContent = title ? `Are you sure you want to delete "${title}"?` : 'Are you sure you want to delete this event?';
+            modal.removeAttribute('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+        function closeModal() {
+            modal.setAttribute('hidden', '');
+            pendingId = null;
+            document.body.style.overflow = '';
+        }
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', function () {
+                const id = Number(this.getAttribute('data-id')) || 0;
+                const title = this.getAttribute('data-title') || '';
+                openModal(id, title);
+            });
+        });
+        cancelBtn?.addEventListener('click', function (e) { e.preventDefault(); closeModal(); });
+        modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', function () { closeModal(); });
+        confirmBtn?.addEventListener('click', function (e) { e.preventDefault(); if (pendingId) { document.getElementById('deleteForm')?.submit(); } });
+    })();
+</script>
 
 <?php include __DIR__ . '/components/footer.html'; ?>

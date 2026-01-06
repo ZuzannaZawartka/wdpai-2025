@@ -33,6 +33,9 @@
     <?php if (isset($activeNav) && $activeNav === 'profile'): ?>
     <link rel="stylesheet" href="/public/styles/profile.css" />
     <?php endif; ?>
+
+    <!-- Ensure modal styles load last to override page-specific rules -->
+    <link rel="stylesheet" href="/public/styles/components/modal.css" />
 </head>
 
 <body class="app">
@@ -44,6 +47,12 @@
                 </div>
                 <nav class="site-nav">
                     <?php $active = $activeNav ?? 'dashboard'; ?>
+                    <?php $isAdmin = ($_SESSION['user_role'] ?? 'basic') === 'admin'; ?>
+
+                    <?php if ($isAdmin): ?>
+                    <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
+                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Accounts</a>
+                    <?php else: ?>
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
                     <a class="nav-link search-tile with-icon text-compact-strong button accent <?= $active==='create' ? 'active' : '' ?>"
@@ -51,10 +60,12 @@
                         Event</a>
                     <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
                     <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>
+                    <?php endif; ?>
                 </nav>
                 <div class="user-area">
                     <a class="logout" href="/logout">Logout</a>
-                    <a href="/profile" class="avatar" role="img" aria-label="User profile picture"></a>
+                    <a href="/profile" class="avatar" role="img" aria-label="User profile picture"
+                        style="background-image: url('<?= isset($user['avatar']) && $user['avatar'] ? htmlspecialchars($user['avatar']) : DEFAULT_AVATAR ?>')"></a>
                 </div>
             </div>
         </header>

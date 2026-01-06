@@ -21,17 +21,30 @@
         </div>
 
         <form class="form" method="post" action="#" enctype="multipart/form-data">
+            <?php if (!empty($errors)): ?>
+            <div class="alert error"
+                style="margin-bottom: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #fcc; border-radius: 0.375rem; color: #c33;">
+                <strong>Please fix the following errors:</strong>
+                <ul style="margin: 0.5rem 0 0 1.25rem;">
+                    <?php foreach ($errors as $error): ?>
+                    <li>
+                        <?= htmlspecialchars($error) ?>
+                    </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+            <?php endif; ?>
             <div class="form-grid">
                 <div class="field input-group">
-                    <label class="text-small" for="title">Event Name</label>
+                    <label class="text-small" for="title">Event Name *</label>
                     <input id="title" name="title" type="text" class="input-common"
-                        placeholder="e.g., Morning Basketball Game" />
+                        placeholder="e.g., Morning Basketball Game" required />
                 </div>
 
                 <div class="field input-group">
-                    <label class="text-small" for="datetime">Date & Time</label>
+                    <label class="text-small" for="datetime">Date & Time *</label>
                     <div class="control with-icon">
-                        <input id="datetime" name="datetime" type="datetime-local" class="input-common" />
+                        <input id="datetime" name="datetime" type="datetime-local" class="input-common" required />
                     </div>
                 </div>
 
@@ -68,7 +81,7 @@
                     <label class="text-small">Participants</label>
                     <div class="radio-tiles compact" id="participantsType">
                         <label class="tile">
-                            <input type="radio" name="participantsType" value="specific" checked />
+                            <input type="radio" name="participantsType" value="specific" />
                             <span>Specific Number</span>
                         </label>
                         <label class="tile">
@@ -76,30 +89,30 @@
                             <span>Minimum</span>
                         </label>
                         <label class="tile">
-                            <input type="radio" name="participantsType" value="range" />
+                            <input type="radio" name="participantsType" value="range" checked />
                             <span>Range</span>
                         </label>
                     </div>
                     <div class="participants-inputs">
-                        <div class="row" data-mode="specific">
+                        <div class="row hidden" data-mode="specific">
                             <label class="text-small" for="playersSpecific">Players</label>
-                            <input id="playersSpecific" name="playersSpecific" type="number" min="1" step="1"
+                            <input id="playersSpecific" name="playersSpecific" type="number" min="0" step="1"
                                 class="input-common" placeholder="e.g., 10" />
                         </div>
                         <div class="row hidden" data-mode="minimum">
                             <label class="text-small" for="playersMin">Minimum Players</label>
-                            <input id="playersMin" name="playersMin" type="number" min="1" step="1" class="input-common"
+                            <input id="playersMin" name="playersMin" type="number" min="0" step="1" class="input-common"
                                 placeholder="e.g., 6" />
                         </div>
-                        <div class="row hidden" data-mode="range">
+                        <div class="row" data-mode="range">
                             <div class="half">
                                 <label class="text-small" for="playersRangeMin">Min Players</label>
-                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="1" step="1"
+                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="0" step="1"
                                     class="input-common" placeholder="e.g., 6" />
                             </div>
                             <div class="half">
                                 <label class="text-small" for="playersRangeMax">Max Players</label>
-                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="1" step="1"
+                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="0" step="1"
                                     class="input-common" placeholder="e.g., 12" />
                             </div>
                         </div>

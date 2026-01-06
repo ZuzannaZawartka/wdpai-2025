@@ -6,8 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="public/styles/main.css">
     <link rel="stylesheet" type="text/css" href="public/styles/register.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
     <title>Register - SportMatch</title>
 </head>
 
@@ -18,6 +20,8 @@
         <form method="POST" action="register" class="register-form">
             <input type="hidden" name="csrf_token"
                 value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
+            <input type="hidden" name="latitude" id="latitude">
+            <input type="hidden" name="longitude" id="longitude">
             <div class="form-header">
                 <?php include __DIR__ . '/components/logo.html'; ?>
                 <h1 class="text-title">
@@ -61,6 +65,46 @@
                 </div>
                 <div class="input-group">
                     <label class="text-body">
+                        Date of Birth
+                    </label>
+                    <input type="date" class="input-common" name="birth_date" required>
+                </div>
+                <div class="input-group full-width">
+                    <label class="text-body">
+                        Your Location
+                    </label>
+                    <div class="faux-input">
+                        <button type="button" class="pick-map" aria-label="Pick location on map">Choose on map</button>
+                    </div>
+                    <div id="locationDisplay" class="location-display"
+                        style="display: none; margin-top: 0.5rem; font-size: 0.875rem; color: #666;">
+                        <span id="locationText"></span>
+                    </div>
+                </div>
+
+                <div class="input-group full-width">
+                    <label class="text-body">Favourite Sports</label>
+                    <div class="sports-tiles">
+                        <?php $selectedSports = $_POST['favourite_sports'] ?? []; ?>
+                        <?php foreach(($allSports ?? []) as $sport): ?>
+                        <label class="tile-sport">
+                            <input type="checkbox" name="favourite_sports[]" value="<?= (int)($sport['id'] ?? 0) ?>"
+                                <?php if(in_array((string)($sport['id'] ?? '' ), array_map('strval', $selectedSports),
+                                true)) echo 'checked' ; ?> />
+                            <div class="tile-content">
+                                <div class="tile-icon material">
+                                    <?= htmlspecialchars($sport['icon'] ?? '') ?>
+                                </div>
+                                <div class="tile-name">
+                                    <?= htmlspecialchars($sport['name'] ?? '') ?>
+                                </div>
+                            </div>
+                        </label>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label class="text-body">
                         <?= $lang['password'] ?>
                     </label>
                     <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>" name="password"
@@ -86,6 +130,85 @@
             </p>
         </form>
     </div>
+
+    <!-- Map modal for picking location -->
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        let registerMap = null;
+        let registerMarker = null;
+        const defaultLat = 40.7128;
+        const defaultLng = -74.0060;
+
+        // Make submit button require location selection
+        const form = document.querySelector('.register-form');
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const updateSubmitState = () => {
+            const lat = document.getElementById('latitude').value;
+            const lng = document.getElementById('longitude').value;
+            submitBtn.disabled = !lat || !lng;
+        };
+        updateSubmitState(); // Initial state
+        form.addEventListener('input', updateSubmitState);
+
+        document.querySelector('.pick-map').addEventListener('click', (e) => {
+            e.preventDefault();
+            const modal = document.getElementById('mapModal');
+            modal.removeAttribute('hidden');
+
+            if (!registerMap) {
+                registerMap = L.map('map').setView([defaultLat, defaultLng], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 18,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(registerMap);
+
+                registerMap.on('click', (e) => {
+                    const { lat, lng } = e.latlng;
+                    if (registerMarker) registerMarker.remove();
+                    registerMarker = L.marker([lat, lng]).addTo(registerMap);
+                });
+            }
+
+            setTimeout(() => registerMap.invalidateSize(), 100);
+        });
+
+        document.querySelector('.close-map').addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('mapModal').setAttribute('hidden', '');
+        });
+
+        document.querySelector('.apply-map').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (registerMarker) {
+                const { lat, lng } = registerMarker.getLatLng();
+                document.getElementById('latitude').value = lat.toFixed(6);
+                document.getElementById('longitude').value = lng.toFixed(6);
+                document.getElementById('locationText').textContent = `Selected: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                document.getElementById('locationDisplay').style.display = 'block';
+                document.getElementById('mapModal').setAttribute('hidden', '');
+                updateSubmitState(); // Update submit button state
+            } else {
+                alert('Please click on the map to select a location first');
+            }
+        });
+
+        document.getElementById('mapModal').addEventListener('click', (e) => {
+            if (e.target.classList.contains('map-modal-backdrop')) {
+                document.getElementById('mapModal').setAttribute('hidden', '');
+            }
+        });
+    </script>
 </body>
 
 </html>
