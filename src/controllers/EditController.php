@@ -1,7 +1,8 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
 
 class EditController extends AppController {
 
@@ -9,17 +10,24 @@ class EditController extends AppController {
     {
         $this->ensureSession();
         
-        $event = MockRepository::getEventById((int)$id);
+        $repo = new EventRepository();
+        $row = $repo->getEventById((int)$id);
         
-        if (!$this->isAdmin() && MockRepository::isEventPast((int)$id)) {
+        if (!$row) {
             $this->render('404');
             return;
         }
         
-        $skillLevels = array_values(MockRepository::levels());
+        if (!$this->isAdmin() && $repo->isEventPast((int)$id)) {
+            $this->render('404');
+            return;
+        }
         
-        $minPeople = $event['participants']['minNeeded'] ?? 6;
-        $maxPeople = array_key_exists('max', $event['participants']) ? $event['participants']['max'] : null;
+        $sportsRepo = new SportsRepository();
+        $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        
+        $minPeople = (int)($row['min_needed'] ?? 6);
+        $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
         
         $participantsType = 'range';
         $specificValue = null;
@@ -27,11 +35,10 @@ class EditController extends AppController {
         $rangeMinValue = null;
         $rangeMaxValue = null;
         
-        if ($minPeople === $maxPeople) {
+        if ($minPeople === $maxPeople && $maxPeople !== null) {
             $participantsType = 'specific';
             $specificValue = $minPeople;
         } elseif ($maxPeople === null) {
-
             $participantsType = 'minimum';
             $minimumValue = $minPeople;
         } else {
@@ -40,13 +47,30 @@ class EditController extends AppController {
             $rangeMaxValue = $maxPeople;
         }
         
+        // Parse coords
+        $coordsString = '';
+        if (isset($row['latitude'], $row['longitude'])) {
+            $coordsString = $row['latitude'] . ', ' . $row['longitude'];
+        }
+        
+        // Format datetime for input
+        $datetimeInput = '';
+        if (!empty($row['start_time'])) {
+            try {
+                $dt = new DateTime($row['start_time']);
+                $datetimeInput = $dt->format('Y-m-d\TH:i');
+            } catch (Throwable $e) {
+                $datetimeInput = '';
+            }
+        }
+        
         $formEvent = [
-            'id' => $event['id'] ?? $id,
-            'title' => $event['title'] ?? '',
-            'datetime' => $event['dateTime'] ? date('Y-m-d\TH:i', strtotime($event['dateTime'])) : '',
-            'skillLevel' => $event['skillLevel'] ?? 'Intermediate',
-            'location' => $event['coords'] ?? '',
-            'desc' => $event['desc'] ?? '',
+            'id' => $row['id'] ?? $id,
+            'title' => $row['title'] ?? '',
+            'datetime' => $datetimeInput,
+            'skillLevel' => $row['level_name'] ?? 'Intermediate',
+            'location' => $coordsString,
+            'desc' => $row['description'] ?? '',
             'participants' => [
                 'type' => $participantsType,
                 'specific' => $specificValue,
@@ -69,7 +93,8 @@ class EditController extends AppController {
     {
         $this->ensureSession();
         
-        if (MockRepository::isEventPast((int)$id) && !$this->isAdmin()) {
+        $repo = new EventRepository();
+        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
             http_response_code(403);
             echo json_encode(['error' => 'Cannot edit past events']);
             return;
@@ -101,18 +126,40 @@ class EditController extends AppController {
             $maxPlayers = ($rawMax === '' ? 0 : (int)$rawMax);
         }
         
+        // Parse location coords
+        $latitude = null;
+        $longitude = null;
+        if (!empty($location) && str_contains($location, ',')) {
+            $parts = array_map('trim', explode(',', $location));
+            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                $latitude = (float)$parts[0];
+                $longitude = (float)$parts[1];
+            }
+        }
+        
+        // Format datetime for DB
+        $startTime = null;
+        if (!empty($datetime)) {
+            try {
+                $dt = new DateTime($datetime);
+                $startTime = $dt->format('Y-m-d H:i:s');
+            } catch (Throwable $e) {
+                $startTime = null;
+            }
+        }
+        
         $updates = [
             'title' => $title,
-            'dateText' => date('D, M j, g:i A', strtotime($datetime)),
-            'isoDate' => $datetime,
-            'coords' => $location,
-            'levelId' => $this->skillLevelToId($skill),
-            'maxPlayers' => $maxPlayers,
-            'minNeeded' => $minNeeded,
-            'desc' => $desc
+            'start_time' => $startTime,
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'level_id' => $this->skillLevelToId($skill),
+            'max_players' => $maxPlayers ?? 0,
+            'min_needed' => $minNeeded,
+            'description' => $desc
         ];
         
-        $result = MockRepository::updateEvent((int)$id, $updates);
+        $result = $repo->updateEvent((int)$id, $updates);
         
         if ($result) {
             header('Location: /event/' . (int)$id);

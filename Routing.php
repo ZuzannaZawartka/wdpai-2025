@@ -216,7 +216,7 @@ class Routing{
     
     private static function checkOwnership($controller, int $resourceId, string $resourceType): void
     {
-        require_once __DIR__ . '/src/repository/MockRepository.php';
+        require_once __DIR__ . '/src/repository/EventRepository.php';
         
         if ($controller->isAdmin()) {
             return;
@@ -232,12 +232,10 @@ class Routing{
         $isOwner = false;
         
         if ($resourceType === 'event') {
-            $allEvents = MockRepository::events();
-            foreach ($allEvents as $ev) {
-                if ($ev['id'] == $resourceId && ($ev['ownerId'] ?? null) === $userId) {
-                    $isOwner = true;
-                    break;
-                }
+            $repo = new EventRepository();
+            $event = $repo->getEventById($resourceId);
+            if ($event && isset($event['owner_id']) && (int)$event['owner_id'] === (int)$userId) {
+                $isOwner = true;
             }
         }
                 

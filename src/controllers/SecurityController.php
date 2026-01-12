@@ -4,7 +4,7 @@ require_once 'AppController.php';
 
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/AuthRepository.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class SecurityController extends AppController {
@@ -81,7 +81,7 @@ class SecurityController extends AppController {
         }
 
         // Do not clear IP-level counters on success; they decay by window
-        $avatar = $user['avatar'] ?? null;
+        $avatar = $user['avatar_url'] ?? null;
         $this->setAuthContext((int)$user['id'], $user['email'], $user['role'] ?? 'basic', $avatar);
         header("Location: /dashboard", true, 303);
         exit();
@@ -96,11 +96,11 @@ class SecurityController extends AppController {
             return $this->render("register");
         }
         if($this->isGet()){
-            $allSports = array_values(MockRepository::sportsCatalog());
+            $allSports = (new SportsRepository())->getAllSports();
             return $this->render("register", ['allSports' => $allSports]);
         }
 
-        $allSports = array_values(MockRepository::sportsCatalog());
+        $allSports = (new SportsRepository())->getAllSports();
 
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
@@ -176,8 +176,8 @@ class SecurityController extends AppController {
                 (float)$longitude
             );
 
-            if ($newUserId && !empty($favouriteSports)) {
-                MockRepository::setUserFavouriteSports($newUserId, $favouriteSports);
+            if ($newUserId) {
+                (new SportsRepository())->setFavouriteSports($newUserId, $favouriteSports);
             }
         } catch (Throwable $e) {
             error_log("Registration error: " . $e->getMessage());

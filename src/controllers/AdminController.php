@@ -3,7 +3,6 @@
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
 
 class AdminController extends AppController {
     
@@ -113,33 +112,24 @@ class AdminController extends AppController {
     public function events() {
         $this->requireRole('admin');
         
-        $allEvents = MockRepository::events();
+        $allEvents = $this->eventRepository->getAllForListing(true);
         
-        // Enrich events with organizer info and participants count
-        $users = MockRepository::users();
-        $participants = MockRepository::eventParticipants();
-        
-        $enriched = array_map(function($event) use ($users, $participants) {
-            $ownerId = $event['ownerId'] ?? null;
-            $organizer = null;
-            if ($ownerId && isset($users[$ownerId])) {
-                $organizer = $users[$ownerId];
-            }
-            
+        // Map to admin view format
+        $enriched = array_map(function($event) {
             return [
-                'id' => $event['id'],
-                'title' => $event['title'],
-                'name' => $event['title'],
-                'dateTime' => $event['dateText'] ?? '',
-                'date' => $event['dateText'] ?? '',
-                'location' => $event['location'] ?? '',
-                'coords' => $event['coords'] ?? '',
-                'imageUrl' => $event['imageUrl'] ?? '',
-                'organizer_email' => $organizer['email'] ?? '',
-                'email' => $organizer['email'] ?? '',
-                'current_participants' => count($participants[$event['id']] ?? []),
-                'max_participants' => $event['maxPlayers'] ?? 0,
-                'participants' => $event['maxPlayers'] ?? 0,
+                'id' => (int)$event['id'],
+                'title' => (string)$event['title'],
+                'name' => (string)$event['title'],
+                'dateTime' => !empty($event['start_time']) ? (new DateTime($event['start_time']))->format('D, M j, g:i A') : 'TBD',
+                'date' => !empty($event['start_time']) ? (new DateTime($event['start_time']))->format('D, M j, g:i A') : 'TBD',
+                'location' => (string)($event['location_text'] ?? ''),
+                'coords' => isset($event['latitude'], $event['longitude']) ? ($event['latitude'] . ', ' . $event['longitude']) : '',
+                'imageUrl' => (string)($event['image_url'] ?? ''),
+                'organizer_email' => (string)($event['owner_email'] ?? ''),
+                'email' => (string)($event['owner_email'] ?? ''),
+                'current_participants' => (int)($event['current_players'] ?? 0),
+                'max_participants' => (int)($event['max_players'] ?? 0),
+                'participants' => (int)($event['max_players'] ?? 0),
             ];
         }, $allEvents);
         
@@ -166,7 +156,7 @@ class AdminController extends AppController {
         }
         
         try {
-            $deleted = MockRepository::deleteEvent($eventId);
+            $deleted = $this->eventRepository->deleteEvent($eventId);
             
             if ($deleted) {
                 header('Content-Type: application/json');

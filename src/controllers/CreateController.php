@@ -1,7 +1,8 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
 
 class CreateController extends AppController {
 
@@ -23,8 +24,9 @@ class CreateController extends AppController {
 
     protected function renderForm(): void
     {
-        $allLevels = MockRepository::levels();
-        $skillLevels = array_values($allLevels); // Convert to indexed array for form
+        $sportsRepo = new SportsRepository();
+        $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        
         parent::render('create', [
             'pageTitle' => 'SportMatch - Create Event',
             'activeNav' => 'create',
@@ -60,8 +62,9 @@ class CreateController extends AppController {
         }
         
         if (!empty($errors)) {
-            $allLevels = MockRepository::levels();
-            $skillLevels = array_values($allLevels);
+            $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            
             parent::render('create', [
                 'pageTitle' => 'SportMatch - Create Event',
                 'activeNav' => 'create',
@@ -71,8 +74,6 @@ class CreateController extends AppController {
             ]);
             return;
         }
-        
-        error_log('Create event: passed validation, adding event');
         
         // Parse participants based on selected type from form inputs
         $minNeeded = 0;
@@ -93,32 +94,51 @@ class CreateController extends AppController {
             $maxPlayers = (int)($_POST['playersRangeMax'] ?? 0);
         }
         
+        // Parse location coords
+        $latitude = null;
+        $longitude = null;
+        if (!empty($location) && str_contains($location, ',')) {
+            $parts = array_map('trim', explode(',', $location));
+            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
+                $latitude = (float)$parts[0];
+                $longitude = (float)$parts[1];
+            }
+        }
+        
+        // Format datetime for DB
+        $startTime = null;
+        if (!empty($datetime)) {
+            try {
+                $dt = new DateTime($datetime);
+                $startTime = $dt->format('Y-m-d H:i:s');
+            } catch (Throwable $e) {
+                $startTime = null;
+            }
+        }
+        
         // Get current user as owner
         $ownerId = $this->getCurrentUserId();
         
         // Create new event
         $newEvent = [
+            'owner_id' => $ownerId,
             'title' => $title,
-            'dateText' => date('D, M j, g:i A', strtotime($datetime)),
-            'isoDate' => $datetime,
-            'location' => 'Event Location',
-            'coords' => $location ?: '0, 0',
-            'sportId' => 1,  // Default sport
-            'levelId' => $this->skillLevelToId($skill),
-            'imageUrl' => 'https://picsum.photos/seed/new-event/800/600',
-            'desc' => $description,
-            'ownerId' => $ownerId,
-            'maxPlayers' => $maxPlayers,
-            'minNeeded' => $minNeeded
+            'description' => $description,
+            'sport_id' => 1,  // Default sport
+            'location_text' => 'Event Location',
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'start_time' => $startTime,
+            'level_id' => $this->skillLevelToId($skill),
+            'image_url' => 'https://picsum.photos/seed/new-event/800/600',
+            'max_players' => $maxPlayers ?? 0,
+            'min_needed' => $minNeeded
         ];
         
-        // Add to mock repository
-        error_log('Adding event with data: ' . json_encode($newEvent));
-        $eventId = MockRepository::addEvent($newEvent);
-        error_log('Event created with ID: ' . ($eventId ?? 'null'));
+        $repo = new EventRepository();
+        $eventId = $repo->createEvent($newEvent);
         
         if ($eventId) {
-            error_log('Redirecting to /event/' . $eventId);
             header('Location: /event/' . $eventId);
             exit;
         } else {

@@ -2,7 +2,7 @@
 
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
 
 class UserController extends AppController {
 
@@ -45,43 +45,33 @@ class UserController extends AppController {
             $profile['birthDate'] = $dbUser['birth_date'] ?? '';
             $profile['latitude'] = $dbUser['latitude'] ?? null;
             $profile['longitude'] = $dbUser['longitude'] ?? null;
-            if (!empty($dbUser['avatar'])) {
-                $profile['avatar'] = $dbUser['avatar'];
+            if (!empty($dbUser['avatar_url'])) {
+                $profile['avatar'] = $dbUser['avatar_url'];
             }
             if ($profile['latitude'] && $profile['longitude']) {
                 $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
             }
             // Keep session avatar in sync for header on other pages
             $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
-        } elseif ($userId) {
-            $users = MockRepository::users();
-            if (isset($users[$userId])) {
-                $name = trim((string)($users[$userId]['name'] ?? ''));
-                $parts = preg_split('/\s+/', $name, 2) ?: [];
-                $profile['firstName'] = $parts[0] ?? '';
-                $profile['lastName'] = $parts[1] ?? '';
-                $profile['avatar'] = $users[$userId]['avatar'] ?? $profile['avatar'];
-                // Convert stored lat/lng to display string
-                if (isset($users[$userId]['location']['lat'], $users[$userId]['location']['lng'])) {
-                    $profile['location'] = $users[$userId]['location']['lat'] . ', ' . $users[$userId]['location']['lng'];
-                }
-                $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
-            }
         }
 
-        $favouriteSports = MockRepository::favouriteSports($userId);
-        $allSports = array_values(MockRepository::sportsCatalog());
-        $selectedSportIds = array_values(array_filter(array_map(function($item) {
-            return is_array($item) && isset($item['id']) ? (int)$item['id'] : null;
-        }, $favouriteSports)));
+        $sportsRepo = new SportsRepository();
+        $allSports = $sportsRepo->getAllSports();
+        $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];
+        
+        // Build sport id to icon map
+        $sportIdToIcon = [];
+        foreach ($allSports as $sport) {
+            $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
+        }
 
         $this->render("profile", [
             'pageTitle' => 'SportMatch - Profile',
             'activeNav' => 'profile',
             'user' => $profile,
-            'favouriteSports' => $favouriteSports,
             'allSports' => $allSports,
-            'selectedSportIds' => $selectedSportIds
+            'selectedSportIds' => $selectedSportIds,
+            'sportIdToIcon' => $sportIdToIcon
         ]);
     }
 
@@ -157,7 +147,7 @@ class UserController extends AppController {
 
         $repo = new UserRepository();
         $existingUser = $repo->getUserByEmail($email);
-        $existingAvatar = $existingUser['avatar'] ?? null;
+        $existingAvatar = $existingUser['avatar_url'] ?? null;
         
         // Verify old password FIRST if changing password
         if (!empty($newPassword)) {
@@ -165,11 +155,8 @@ class UserController extends AppController {
                 $dbUser = $existingUser;
                 if (!$dbUser || !$this->verifyPassword($oldPassword, $dbUser['password'])) {
                     header('HTTP/1.1 401 Unauthorized');
-                    $allSports = array_values(MockRepository::sportsCatalog());
-                    $favouriteSports = MockRepository::favouriteSports($userId);
-                    $selectedSportIds = array_values(array_filter(array_map(function($item) {
-                        return is_array($item) && isset($item['id']) ? (int)$item['id'] : null;
-                    }, $favouriteSports)));
+                    $allSports = (new SportsRepository())->getAllSports();
+                    $selectedSportIds = $userId ? (new SportsRepository())->getFavouriteSportsIds($userId) : [];
                     $this->render('profile', [
                         'messages' => 'Current password is incorrect',
                         'allSports' => $allSports,
@@ -221,7 +208,7 @@ class UserController extends AppController {
                 'birth_date' => $birthDate ?: null,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'avatar' => $avatarPath
+                'avatar_url' => $avatarPath
             ]);
             
             // Update password if provided (already verified above)
@@ -231,9 +218,7 @@ class UserController extends AppController {
             }
             
             // Update favourite sports
-            if (!empty($favouriteSports)) {
-                MockRepository::setUserFavouriteSports($userId, $favouriteSports);
-            }
+            (new SportsRepository())->setFavouriteSports($userId, $favouriteSports);
 
             // Update session avatar for header usage
             if (!empty($avatarPath)) {

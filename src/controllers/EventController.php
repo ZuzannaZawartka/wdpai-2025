@@ -1,21 +1,44 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
 
 class EventController extends AppController {
 
     public function details($id = null, $action = null) {
-        $mock = MockRepository::getEventById((int)$id);
-        
-        if ($mock && $this->isAdmin()) {
-            $mock['isUserParticipant'] = true;
+        $repo = new EventRepository();
+        $row = $repo->getEventById((int)$id);
+        $event = null;
+        $userId = $this->getCurrentUserId();
+        if ($row) {
+            $event = [
+                'id' => (int)$row['id'],
+                'title' => (string)$row['title'],
+                'location' => (string)($row['location_text'] ?? ''),
+                'coords' => isset($row['latitude'],$row['longitude']) ? ($row['latitude'] . ', ' . $row['longitude']) : null,
+                'dateTime' => (new DateTime($row['start_time']))->format('D, M j, g:i A'),
+                'skillLevel' => (string)($row['level_name'] ?? 'Intermediate'),
+                'organizer' => [
+                    'name' => (trim($row['firstname'] ?? '') . ' ' . trim($row['lastname'] ?? '')) ?: 'Organizer',
+                    'avatar' => (string)($row['avatar_url'] ?? '')
+                ],
+                'participants' => [
+                    'current' => (int)($row['current_players'] ?? 0),
+                    'max' => (int)($row['max_players'] ?? 0),
+                    'minNeeded' => (int)($row['min_needed'] ?? 0)
+                ]
+            ];
+            if ($userId) {
+                $isOwner = (int)$row['owner_id'] === (int)$userId;
+                $event['isUserParticipant'] = $isOwner || $repo->isUserParticipant($userId, (int)$id);
+                $event['isOwner'] = $isOwner;
+                $event['isFull'] = $repo->isEventFull((int)$id);
+            }
         }
-        
         $this->render('event', [
             'pageTitle' => 'SportMatch - Match Details',
             'activeNav' => 'sports',
-            'event' => $mock ?? [
+            'event' => $event ?? [
                 'id' => (int)$id,
                 'title' => 'Match Details',
                 'location' => 'Unknown',
@@ -23,7 +46,7 @@ class EventController extends AppController {
                 'dateTime' => 'TBD',
                 'skillLevel' => 'Intermediate',
                 'organizer' => [
-                    'name' => 'John Doe',
+                    'name' => 'Organizer',
                     'avatar' => ''
                 ],
                 'participants' => [
@@ -44,23 +67,25 @@ class EventController extends AppController {
             return;
         }
 
-        $result = MockRepository::joinEvent($userId, (int)$id);
+        $repo = new EventRepository();
+        if ($repo->isEventPast((int)$id)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Event has already passed']);
+            return;
+        }
+        if ($repo->isEventFull((int)$id)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Event is full']);
+            return;
+        }
+        $result = $repo->joinEvent($userId, (int)$id);
         
         if ($result) {
             http_response_code(200);
             echo json_encode(['status' => 'success', 'message' => 'Joined event']);
         } else {
-            // Check specific failure reasons
-            if (MockRepository::isEventPast((int)$id)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Event has already passed']);
-            } elseif (MockRepository::isEventFull((int)$id)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Event is full']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
-            }
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
         }
     }
 
@@ -76,7 +101,8 @@ class EventController extends AppController {
         }
 
         // Get event to check ownership
-        $event = MockRepository::getEventById((int)$id);
+        $repo = new EventRepository();
+        $event = $repo->getEventById((int)$id);
         
         if (!$event) {
             http_response_code(404);
@@ -85,12 +111,12 @@ class EventController extends AppController {
         }
         
         // Check if owner or admin - if so, delete event instead
-        $isOwner = ($event['ownerId'] ?? null) === $userId;
+        $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
         $isAdmin = $this->isAdmin();
         
         if ($isOwner || $isAdmin) {
             // Delete event
-            $result = MockRepository::deleteEvent((int)$id);
+            $result = (new EventRepository())->deleteEvent((int)$id);
             
             if ($result) {
                 http_response_code(200);
@@ -101,7 +127,7 @@ class EventController extends AppController {
             }
         } else {
             // Cancel participation
-            $result = MockRepository::cancelEventParticipation($userId, (int)$id);
+            $result = $repo->cancelParticipation($userId, (int)$id);
             
             if ($result) {
                 http_response_code(200);

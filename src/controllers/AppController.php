@@ -140,8 +140,8 @@ class AppController {
                 try {
                     $repo = new UserRepository();
                     $dbUser = $repo->getUserById($uid);
-                    if ($dbUser && !empty($dbUser['avatar'])) {
-                        $avatar = $dbUser['avatar'];
+                    if ($dbUser && !empty($dbUser['avatar_url'])) {
+                        $avatar = $dbUser['avatar_url'];
                         $_SESSION['user_avatar'] = $avatar;
                     }
                 } catch (Throwable $e) {
