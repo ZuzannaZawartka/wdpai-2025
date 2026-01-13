@@ -9,6 +9,15 @@ class EventRepository {
         $this->db = (new Database())->connect();
     }
 
+    private function setAuditUser(int $userId): void {
+        try {
+            $stmt = $this->db->prepare("SELECT set_config('app.user_id', :uid, true)");
+            $stmt->execute([':uid' => (string)$userId]);
+        } catch (Throwable $e) {
+            // Audit context is optional; ignore failures.
+        }
+    }
+
     public function getMyEvents(int $ownerId): array {
         $sql = "
             SELECT
@@ -21,7 +30,7 @@ class EventRepository {
               (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN levels l ON l.id = e.level_id
-            WHERE e.owner_id = :owner
+            WHERE e.owner_id = :owner AND e.start_time >= NOW()
             ORDER BY e.start_time ASC
         ";
         $stmt = $this->db->prepare($sql);
@@ -146,6 +155,7 @@ class EventRepository {
 
     public function joinEvent(int $userId, int $eventId): bool {
         try {
+            $this->setAuditUser($userId);
             $ins = $this->db->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
             return $ins->execute([$eventId, $userId]);
         } catch (Throwable $e) {
@@ -160,6 +170,7 @@ class EventRepository {
     }
 
     public function cancelParticipation(int $userId, int $eventId): bool {
+        $this->setAuditUser($userId);
         $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
         $stmt->execute([$eventId, $userId]);
         return $stmt->rowCount() > 0;
@@ -272,8 +283,6 @@ class EventRepository {
             $params[':min_needed'] = $data['min_needed'];
         }
         
-        $fields[] = 'updated_at = NOW()';
-        
         if (empty($fields)) {
             return false;
         }
@@ -322,6 +331,8 @@ class EventRepository {
         try {
             $this->db->beginTransaction();
 
+            $this->setAuditUser($userId);
+
             // Check if event exists and is not full
             if ($this->isEventFull($eventId)) {
                 $this->db->rollBack();
@@ -359,6 +370,8 @@ class EventRepository {
     public function cancelParticipationWithTransaction(int $userId, int $eventId): bool {
         try {
             $this->db->beginTransaction();
+
+            $this->setAuditUser($userId);
 
             // Remove user from event
             $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');

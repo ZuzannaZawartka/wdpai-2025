@@ -3,6 +3,7 @@
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../validators/EventFormValidator.php';
 
 class EditController extends AppController {
 
@@ -18,14 +19,61 @@ class EditController extends AppController {
             return;
         }
         
-        if (!$this->isAdmin() && $repo->isEventPast((int)$id)) {
-            $this->render('404');
-            return;
-        }
-        
+        $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         
+        $this->renderEditForm($id, $row, $skillLevels, $isReadOnly);
+    }
+    
+    public function save($id): void
+    {
+        $this->ensureSession();
+        
+        $repo = new EventRepository();
+        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
+            http_response_code(403);
+            echo json_encode(['error' => 'Cannot edit past events']);
+            return;
+        }
+        
+        // Validate form using EventFormValidator
+        $validation = EventFormValidator::validate($_POST);
+        
+        if (!empty($validation['errors'])) {
+            // Re-render form with errors
+            $row = $repo->getEventById((int)$id);
+            $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            
+            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors']);
+            return;
+        }
+        
+        $updates = [
+            'title' => $validation['data']['title'],
+            'start_time' => $validation['data']['start_time'],
+            'latitude' => $validation['data']['latitude'],
+            'longitude' => $validation['data']['longitude'],
+            'level_id' => $validation['data']['skill_level_id'],
+            'max_players' => $validation['data']['max_players'],
+            'min_needed' => $validation['data']['min_needed'],
+            'description' => $validation['data']['description']
+        ];
+        
+        $result = $repo->updateEvent((int)$id, $updates);
+        
+        if ($result) {
+            header('Location: /event/' . (int)$id);
+            exit;
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to update event']);
+        }
+    }
+    
+    private function renderEditForm($id, $row, $skillLevels, $isReadOnly, $errors = []): void
+    {
         $minPeople = (int)($row['min_needed'] ?? 6);
         $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
         
@@ -80,103 +128,21 @@ class EditController extends AppController {
             ]
         ];
 
-        $this->render('edit', [
+        $renderData = [
             'pageTitle' => 'SportMatch - Edit Event',
             'activeNav' => 'edit',
             'skillLevels' => $skillLevels,
             'event' => $formEvent,
             'eventId' => $id,
-        ]);
-    }
-    
-    public function save($id): void
-    {
-        $this->ensureSession();
-        
-        $repo = new EventRepository();
-        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Cannot edit past events']);
-            return;
-        }
-        
-        $title = $_POST['title'] ?? '';
-        $datetime = $_POST['datetime'] ?? '';
-        $location = $_POST['location'] ?? '';
-        $skill = $_POST['skill'] ?? 'Intermediate';
-        $desc = $_POST['desc'] ?? '';
-        $participantsType = $_POST['participantsType'] ?? 'range';
-        
-        $minNeeded = 0;
-        $maxPlayers = null;
-        
-        if ($participantsType === 'specific') {
-            $raw = $_POST['playersSpecific'] ?? '';
-            $value = ($raw === '' ? 0 : (int)$raw);
-            $minNeeded = $value;
-            $maxPlayers = $value;
-        } elseif ($participantsType === 'minimum') {
-            $raw = $_POST['playersMin'] ?? '';
-            $minNeeded = ($raw === '' ? 0 : (int)$raw);
-            $maxPlayers = null;
-        } else {
-            $rawMin = $_POST['playersRangeMin'] ?? '';
-            $rawMax = $_POST['playersRangeMax'] ?? '';
-            $minNeeded = ($rawMin === '' ? 0 : (int)$rawMin);
-            $maxPlayers = ($rawMax === '' ? 0 : (int)$rawMax);
-        }
-        
-        // Parse location coords
-        $latitude = null;
-        $longitude = null;
-        if (!empty($location) && str_contains($location, ',')) {
-            $parts = array_map('trim', explode(',', $location));
-            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
-                $latitude = (float)$parts[0];
-                $longitude = (float)$parts[1];
-            }
-        }
-        
-        // Format datetime for DB
-        $startTime = null;
-        if (!empty($datetime)) {
-            try {
-                $dt = new DateTime($datetime);
-                $startTime = $dt->format('Y-m-d H:i:s');
-            } catch (Throwable $e) {
-                $startTime = null;
-            }
-        }
-        
-        $updates = [
-            'title' => $title,
-            'start_time' => $startTime,
-            'latitude' => $latitude,
-            'longitude' => $longitude,
-            'level_id' => $this->skillLevelToId($skill),
-            'max_players' => $maxPlayers ?? 0,
-            'min_needed' => $minNeeded,
-            'description' => $desc
+            'isReadOnly' => $isReadOnly,
         ];
         
-        $result = $repo->updateEvent((int)$id, $updates);
-        
-        if ($result) {
-            header('Location: /event/' . (int)$id);
-            exit;
-        } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update event']);
+        // Add errors and formData only if there are errors
+        if (!empty($errors)) {
+            $renderData['errors'] = $errors;
+            $renderData['formData'] = $_POST;
         }
-    }
-    
-    private function skillLevelToId(string $skill): int
-    {
-        $map = [
-            'Beginner' => 1,
-            'Intermediate' => 2,
-            'Advanced' => 3,
-        ];
-        return $map[$skill] ?? 2;
+
+        parent::render('edit', $renderData);
     }
 }

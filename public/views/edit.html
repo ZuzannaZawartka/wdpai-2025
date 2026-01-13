@@ -1,6 +1,19 @@
-<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Edit Event'; $activeNav = $activeNav ?? 'edit'; ?>
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Edit Event'; $activeNav = $activeNav ?? 'edit'; $isReadOnly = $isReadOnly ?? false; ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
+<?php if($isReadOnly): ?>
+<section class="create-page">
+    <div class="section panel">
+        <div style="text-align: center;">
+            <div class="text-title-large">Event in the Past</div>
+            <p class="text-desc" style="margin: 15px 0;">This event's date has already passed. You cannot edit events
+                that have already
+                occurred.</p>
+            <a href="/my" class="button accent">Back to My Events</a>
+        </div>
+    </div>
+</section>
+<?php else: ?>
 <section class="create-page">
     <div class="section">
         <div class="text-title-large">Edit Event</div>
@@ -9,7 +22,6 @@
     </div>
 
     <div class="section panel">
-        <!-- Selected location preview (matches form width) -->
         <div class="hero-map">
             <div id="locationEmpty" class="hero-map-empty">
                 <span class="material">location_on</span>
@@ -22,6 +34,7 @@
 
         <form class="form" method="post" action="/edit/<?= htmlspecialchars($eventId ?? '') ?>"
             enctype="multipart/form-data">
+            <?php include __DIR__ . '/components/form-errors.html'; ?>
             <div class="form-grid">
                 <div class="field input-group">
                     <label class="text-small" for="title">Event Name</label>
@@ -265,5 +278,6 @@
         }
     })();
 </script>
+<?php endif; ?>
 
 <?php include __DIR__ . '/components/footer.html'; ?>

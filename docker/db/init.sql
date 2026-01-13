@@ -197,13 +197,28 @@ CREATE TABLE IF NOT EXISTS audit_log (
 CREATE OR REPLACE FUNCTION audit_event_participant_change()
 RETURNS TRIGGER AS $$
 BEGIN
+
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, new_data, changed_at)
-        VALUES ('event_participants', 'INSERT', NEW.event_id, row_to_json(NEW), NOW());
+        INSERT INTO audit_log (table_name, operation, record_id, new_data, changed_by, changed_at)
+        VALUES (
+            'event_participants',
+            'INSERT',
+            NEW.event_id,
+            row_to_json(NEW),
+            NULLIF(current_setting('app.user_id', true), '')::INTEGER,
+            NOW()
+        );
         RETURN NEW;
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO audit_log (table_name, operation, record_id, old_data, changed_at)
-        VALUES ('event_participants', 'DELETE', OLD.event_id, row_to_json(OLD), NOW());
+        INSERT INTO audit_log (table_name, operation, record_id, old_data, changed_by, changed_at)
+        VALUES (
+            'event_participants',
+            'DELETE',
+            OLD.event_id,
+            row_to_json(OLD),
+            NULLIF(current_setting('app.user_id', true), '')::INTEGER,
+            NOW()
+        );
         RETURN OLD;
     END IF;
     RETURN NULL;

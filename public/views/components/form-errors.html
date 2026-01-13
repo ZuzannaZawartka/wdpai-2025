@@ -1,0 +1,12 @@
+<?php if (!empty($errors)): ?>
+<div class="messages">
+    <strong>Please fix the following errors:</strong>
+    <ul>
+        <?php foreach ($errors as $error): ?>
+        <li>
+            <?= htmlspecialchars($error) ?>
+        </li>
+        <?php endforeach; ?>
+    </ul>
+</div>
+<?php endif; ?>
