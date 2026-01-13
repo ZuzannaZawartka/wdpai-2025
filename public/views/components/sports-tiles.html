@@ -1,0 +1,72 @@
+<?php
+// Reusable sports tiles component.
+// Inputs:
+// - $tilesSports (array) or fallback to $allSports / $sportsGrid
+// - $tilesType: 'radio' | 'checkbox' (default 'radio')
+// - $tilesName: input name (default 'sport')
+// - $tilesSelected: scalar or array of selected values
+// - $tilesValueField: 'id' | 'name' (default 'id')
+// - $tilesWrapperClass: wrapper class (default 'sports-tiles')
+// - $tilesLabelClass: label class (default 'tile-sport')
+// - $tilesLayout: 'sport' | 'quick' (default 'sport')
+// - $tilesRequired: bool (applies only to radio)
+
+$tilesSports = $tilesSports ?? ($allSports ?? ($sportsGrid ?? []));
+$tilesType = $tilesType ?? 'radio';
+$tilesName = $tilesName ?? 'sport';
+$tilesSelected = $tilesSelected ?? null;
+$tilesValueField = $tilesValueField ?? 'id';
+$tilesWrapperClass = $tilesWrapperClass ?? 'sports-tiles';
+$tilesLabelClass = $tilesLabelClass ?? 'tile-sport';
+$tilesLayout = $tilesLayout ?? 'sport';
+$tilesRequired = (bool)($tilesRequired ?? false);
+
+$selectedArr = is_array($tilesSelected) ? array_map('strval', $tilesSelected) : null;
+$selectedVal = !is_array($tilesSelected) && $tilesSelected !== null ? (string)$tilesSelected : null;
+$applyRequired = $tilesRequired && $tilesType === 'radio';
+?>
+
+<div class="<?= htmlspecialchars((string)$tilesWrapperClass) ?>">
+    <?php foreach(($tilesSports ?? []) as $sport): ?>
+    <?php
+            $value = '';
+            if ($tilesValueField === 'name') {
+                $value = (string)($sport['name'] ?? '');
+            } else {
+                $value = (string)((int)($sport['id'] ?? 0));
+            }
+
+            $isChecked = false;
+            if ($selectedArr !== null) {
+                $isChecked = in_array((string)$value, $selectedArr, true);
+            } elseif ($selectedVal !== null && $selectedVal !== '') {
+                $isChecked = ((string)$value === $selectedVal);
+            }
+        ?>
+    <label class="<?= htmlspecialchars((string)$tilesLabelClass) ?>">
+        <input type="<?= htmlspecialchars((string)$tilesType) ?>" name="<?= htmlspecialchars((string)$tilesName) ?>"
+            value="<?= htmlspecialchars((string)$value) ?>" <?=$isChecked ? 'checked' : '' ?>
+        <?= $applyRequired ? 'required' : '' ?>
+        />
+        <?php if ($tilesLayout === 'quick'): ?>
+        <div class="tile-icon material">
+            <?= htmlspecialchars((string)($sport['icon'] ?? '')) ?>
+        </div>
+        <div>
+            <h3 class="text-compact-strong">
+                <?= htmlspecialchars((string)($sport['name'] ?? '')) ?>
+            </h3>
+        </div>
+        <?php else: ?>
+        <div class="tile-content">
+            <div class="tile-icon material">
+                <?= htmlspecialchars((string)($sport['icon'] ?? '')) ?>
+            </div>
+            <div class="tile-name">
+                <?= htmlspecialchars((string)($sport['name'] ?? '')) ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </label>
+    <?php endforeach; ?>
+</div>

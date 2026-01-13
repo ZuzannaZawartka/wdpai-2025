@@ -1,4 +1,23 @@
-<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile'; $activeNav = $activeNav ?? 'profile'; $isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin'); ?>
+<?php
+$pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Profile';
+$activeNav = $activeNav ?? 'profile';
+$isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin');
+
+// View-model fallbacks (some controller error paths render with partial data)
+$user = $user ?? [
+    'firstName' => '',
+    'lastName' => '',
+    'email' => ($_SESSION['user_email'] ?? ''),
+    'birthDate' => '',
+    'age' => null,
+    'location' => '',
+    'latitude' => null,
+    'longitude' => null,
+    'avatar' => DEFAULT_AVATAR,
+];
+$allSports = $allSports ?? [];
+$selectedSportIds = $selectedSportIds ?? [];
+?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
 <section class="profile-page sports-page">
@@ -85,13 +104,18 @@
 
                 <div class="field input-group full">
                     <label class="text-small">Favorite Sports</label>
-                    <div id="profileData"
-                        data-all-sports='<?= htmlspecialchars(json_encode($allSports ?? []), ENT_QUOTES); ?>'
-                        data-selected='<?= htmlspecialchars(json_encode($selectedSportIds ?? []), ENT_QUOTES); ?>'>
-                    </div>
-                    <div class="add-fav-chips" id="addFavRow">
-                        <div class="chip-wrap" id="addFavList"></div>
-                    </div>
+                    <?php
+                        $tilesSports = $allSports;
+                        $tilesType = 'checkbox';
+                        $tilesName = 'favourite_sports[]';
+                        $tilesSelected = $selectedSportIds;
+                        $tilesValueField = 'id';
+                        $tilesWrapperClass = 'sports-tiles';
+                        $tilesLabelClass = 'tile-sport';
+                        $tilesLayout = 'sport';
+                        $tilesRequired = false;
+                        include __DIR__ . '/components/sports-tiles.html';
+                    ?>
 
                 </div>
                 <?php endif; ?>
@@ -228,86 +252,6 @@
         editBtn?.addEventListener('click', () => avatarInput?.click());
 
         // Avatar save handled with the main form submit
-
-        // Favourite sports manager (mock-based)
-        const addRow = document.getElementById('addFavRow');
-        const addList = document.getElementById('addFavList');
-
-        const profileData = document.getElementById('profileData');
-        const allSports = profileData ? JSON.parse(profileData.dataset.allSports || '[]') : [];
-        const sportMap = Object.fromEntries((allSports || []).map(s => [String(s.id), s]));
-        let favouriteIds = profileData ? JSON.parse(profileData.dataset.selected || '[]') : [];
-
-        function renderSelect() {
-            if (!addList) return;
-            addList.innerHTML = '';
-
-            // Render all sports in catalog order
-            (allSports || []).forEach(s => {
-                const isSelected = favouriteIds.includes(s.id);
-                const label = document.createElement('label');
-                label.className = 'tile selectable';
-                label.dataset.sportId = String(s.id);
-
-                const input = document.createElement('input');
-                input.type = 'checkbox';
-                input.checked = isSelected;
-
-                const iconWrap = document.createElement('div');
-                iconWrap.className = 'tile-icon material';
-                iconWrap.textContent = s.icon;
-
-                const textWrap = document.createElement('div');
-                const title = document.createElement('h3');
-                title.className = 'text-compact-strong';
-                title.textContent = s.name;
-                textWrap.appendChild(title);
-
-                label.appendChild(input);
-                label.appendChild(iconWrap);
-                label.appendChild(textWrap);
-
-                // Listen to input change event
-                input.addEventListener('change', () => {
-                    if (input.checked) {
-                        if (!favouriteIds.includes(s.id)) {
-                            favouriteIds.push(s.id);
-                        }
-                    } else {
-                        favouriteIds = favouriteIds.filter(v => v !== s.id);
-                    }
-                    renderFavs();
-                });
-
-                addList.appendChild(label);
-            });
-        }
-
-        function renderFavs() {
-            renderSelect();
-        }
-
-        // Handle form submission with favourite sports
-        const form = document.querySelector('.form');
-        const isAdmin = <?= $isAdmin ? 'true' : 'false' ?>;
-        form?.addEventListener('submit', (e) => {
-            if (isAdmin) { e.preventDefault(); return; }
-            // Create hidden inputs for favourite sports
-            const existingInputs = form.querySelectorAll('input[name="favourite_sports[]"]');
-            existingInputs.forEach(inp => inp.remove());
-
-            favouriteIds.forEach(sportId => {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'favourite_sports[]';
-                input.value = sportId;
-                form.appendChild(input);
-            });
-        });
-
-
-        renderSelect();
-        renderFavs();
     })();
 </script>
 

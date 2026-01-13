@@ -27,11 +27,13 @@ class CreateController extends AppController {
     {
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        $allSports = $sportsRepo->getAllSports();
         
         parent::render('create', [
             'pageTitle' => 'SportMatch - Create Event',
             'activeNav' => 'create',
             'skillLevels' => $skillLevels,
+            'allSports' => $allSports,
         ]);
     }
 
@@ -45,11 +47,13 @@ class CreateController extends AppController {
         if (!empty($validation['errors'])) {
             $sportsRepo = new SportsRepository();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
             
             parent::render('create', [
                 'pageTitle' => 'SportMatch - Create Event',
                 'activeNav' => 'create',
                 'skillLevels' => $skillLevels,
+                'allSports' => $allSports,
                 'errors' => $validation['errors'],
                 'formData' => $_POST
             ]);
@@ -59,10 +63,9 @@ class CreateController extends AppController {
         // Get current user as owner
         $ownerId = $this->getCurrentUserId();
         
-        // Create event with validated data
+        // Create event with validated data (sport_id already included from validator)
         $newEvent = array_merge($validation['data'], [
             'owner_id' => $ownerId,
-            'sport_id' => 1,  // Default sport
             'image_url' => 'https://picsum.photos/seed/new-event/800/600'
         ]);
         

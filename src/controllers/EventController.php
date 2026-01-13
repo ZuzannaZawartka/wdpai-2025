@@ -14,12 +14,15 @@ class EventController extends AppController {
             $event = [
                 'id' => (int)$row['id'],
                 'title' => (string)$row['title'],
+                'description' => (string)($row['description'] ?? ''),
+                'sportName' => (string)($row['sport_name'] ?? ''),
                 'location' => (string)($row['location_text'] ?? ''),
                 'coords' => isset($row['latitude'],$row['longitude']) ? ($row['latitude'] . ', ' . $row['longitude']) : null,
                 'dateTime' => (new DateTime($row['start_time']))->format('D, M j, g:i A'),
                 'skillLevel' => (string)($row['level_name'] ?? 'Intermediate'),
                 'organizer' => [
                     'name' => (trim($row['firstname'] ?? '') . ' ' . trim($row['lastname'] ?? '')) ?: 'Organizer',
+                    'email' => (string)($row['owner_email'] ?? ''),
                     'avatar' => (string)($row['avatar_url'] ?? '')
                 ],
                 'participants' => [
@@ -41,12 +44,15 @@ class EventController extends AppController {
             'event' => $event ?? [
                 'id' => (int)$id,
                 'title' => 'Match Details',
+                'description' => '',
+                'sportName' => '',
                 'location' => 'Unknown',
                 'coords' => null,
                 'dateTime' => 'TBD',
                 'skillLevel' => 'Intermediate',
                 'organizer' => [
                     'name' => 'Organizer',
+                    'email' => '',
                     'avatar' => ''
                 ],
                 'participants' => [

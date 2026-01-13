@@ -22,8 +22,9 @@ class EditController extends AppController {
         $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        $allSports = $sportsRepo->getAllSports();
         
-        $this->renderEditForm($id, $row, $skillLevels, $isReadOnly);
+        $this->renderEditForm($id, $row, $skillLevels, $isReadOnly, [], $allSports);
     }
     
     public function save($id): void
@@ -45,17 +46,19 @@ class EditController extends AppController {
             $row = $repo->getEventById((int)$id);
             $sportsRepo = new SportsRepository();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
             
-            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors']);
+            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors'], $allSports);
             return;
         }
         
         $updates = [
             'title' => $validation['data']['title'],
+            'sport_id' => $validation['data']['sport_id'],
             'start_time' => $validation['data']['start_time'],
             'latitude' => $validation['data']['latitude'],
             'longitude' => $validation['data']['longitude'],
-            'level_id' => $validation['data']['skill_level_id'],
+            'level_id' => $validation['data']['level_id'],
             'max_players' => $validation['data']['max_players'],
             'min_needed' => $validation['data']['min_needed'],
             'description' => $validation['data']['description']
@@ -72,7 +75,7 @@ class EditController extends AppController {
         }
     }
     
-    private function renderEditForm($id, $row, $skillLevels, $isReadOnly, $errors = []): void
+    private function renderEditForm($id, $row, $skillLevels, $isReadOnly, $errors = [], $allSports = []): void
     {
         $minPeople = (int)($row['min_needed'] ?? 6);
         $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
@@ -117,6 +120,7 @@ class EditController extends AppController {
             'title' => $row['title'] ?? '',
             'datetime' => $datetimeInput,
             'skillLevel' => $row['level_name'] ?? 'Intermediate',
+            'sportId' => $row['sport_id'] ?? 0,
             'location' => $coordsString,
             'desc' => $row['description'] ?? '',
             'participants' => [
@@ -132,6 +136,7 @@ class EditController extends AppController {
             'pageTitle' => 'SportMatch - Edit Event',
             'activeNav' => 'edit',
             'skillLevels' => $skillLevels,
+            'allSports' => $allSports,
             'event' => $formEvent,
             'eventId' => $id,
             'isReadOnly' => $isReadOnly,

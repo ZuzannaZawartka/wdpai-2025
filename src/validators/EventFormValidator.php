@@ -9,13 +9,21 @@ class EventFormValidator {
         $title = trim($postData['title'] ?? '');
         $datetime = $postData['datetime'] ?? '';
         $location = $postData['location'] ?? '';
+        $locationText = trim((string)($postData['location_text'] ?? ''));
         $skill = $postData['skill'] ?? 'Intermediate';
+        $sport = $postData['sport'] ?? '';
         $description = trim($postData['desc'] ?? '');
         $participantsType = $postData['participantsType'] ?? 'range';
         
         // Validate title
         if (empty($title)) {
             $errors[] = 'Event name is required';
+        }
+        
+        // Validate sport
+        $sportId = (int)$sport;
+        if ($sportId <= 0) {
+            $errors[] = 'Please select a sport';
         }
         
         // Validate datetime
@@ -32,6 +40,40 @@ class EventFormValidator {
         if (empty($location)) {
             $errors[] = 'Location is required - please choose on map';
         }
+
+        // Validate participants inputs
+        if (!in_array($participantsType, ['specific', 'minimum', 'range'], true)) {
+            $errors[] = 'Invalid participants type';
+        } else {
+            if ($participantsType === 'specific') {
+                $raw = trim((string)($postData['playersSpecific'] ?? ''));
+                if ($raw === '' || !ctype_digit($raw) || (int)$raw <= 0) {
+                    $errors[] = 'Please provide a valid number of players';
+                }
+            } elseif ($participantsType === 'minimum') {
+                $raw = trim((string)($postData['playersMin'] ?? ''));
+                if ($raw === '' || !ctype_digit($raw) || (int)$raw <= 0) {
+                    $errors[] = 'Please provide a valid minimum number of players';
+                }
+            } else { // range
+                $rawMin = trim((string)($postData['playersRangeMin'] ?? ''));
+                $rawMax = trim((string)($postData['playersRangeMax'] ?? ''));
+
+                if ($rawMin === '' || $rawMax === '') {
+                    $errors[] = 'Please provide both min and max players for the range';
+                } elseif (!ctype_digit($rawMin) || !ctype_digit($rawMax)) {
+                    $errors[] = 'Players range must be numeric';
+                } else {
+                    $minVal = (int)$rawMin;
+                    $maxVal = (int)$rawMax;
+                    if ($minVal <= 0 || $maxVal <= 0) {
+                        $errors[] = 'Players range values must be greater than 0';
+                    } elseif ($minVal > $maxVal) {
+                        $errors[] = 'Players range min cannot be greater than max';
+                    }
+                }
+            }
+        }
         
         // If there are errors, return early
         if (!empty($errors)) {
@@ -46,19 +88,15 @@ class EventFormValidator {
         $maxPlayers = 0;
         
         if ($participantsType === 'specific') {
-            $raw = $postData['playersSpecific'] ?? '';
-            $value = ($raw === '' ? 0 : (int)$raw);
+            $value = (int)trim((string)($postData['playersSpecific'] ?? '0'));
             $minNeeded = $value;
             $maxPlayers = $value;
         } elseif ($participantsType === 'minimum') {
-            $raw = $postData['playersMin'] ?? '';
-            $minNeeded = ($raw === '' ? 0 : (int)$raw);
+            $minNeeded = (int)trim((string)($postData['playersMin'] ?? '0'));
             $maxPlayers = 0;
         } else { // range
-            $rawMin = $postData['playersRangeMin'] ?? '';
-            $rawMax = $postData['playersRangeMax'] ?? '';
-            $minNeeded = ($rawMin === '' ? 0 : (int)$rawMin);
-            $maxPlayers = ($rawMax === '' ? 0 : (int)$rawMax);
+            $minNeeded = (int)trim((string)($postData['playersRangeMin'] ?? '0'));
+            $maxPlayers = (int)trim((string)($postData['playersRangeMax'] ?? '0'));
         }
         
         // Parse location coords
@@ -90,11 +128,12 @@ class EventFormValidator {
             'data' => [
                 'title' => $title,
                 'description' => $description,
+                'sport_id' => $sportId,
                 'start_time' => $startTime,
-                'location_text' => 'Event Location',
+                'location_text' => ($locationText !== '' ? substr($locationText, 0, 255) : substr((string)$location, 0, 255)),
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'skill_level_id' => $skillLevelId,
+                'level_id' => $skillLevelId,
                 'min_needed' => $minNeeded,
                 'max_players' => $maxPlayers,
             ]

@@ -51,6 +51,22 @@
                 </div>
 
                 <div class="field input-group full">
+                    <label class="text-small">Sport *</label>
+                    <?php
+                        $tilesSports = $allSports ?? [];
+                        $tilesType = 'radio';
+                        $tilesName = 'sport';
+                        $tilesSelected = $formData['sport'] ?? ($_POST['sport'] ?? null);
+                        $tilesValueField = 'id';
+                        $tilesWrapperClass = 'sports-tiles';
+                        $tilesLabelClass = 'tile-sport';
+                        $tilesLayout = 'sport';
+                        $tilesRequired = true;
+                        include __DIR__ . '/components/sports-tiles.html';
+                    ?>
+                </div>
+
+                <div class="field input-group full">
                     <label class="text-small">Skill Level</label>
                     <div class="radio-tiles">
                         <?php $levelsFromCtrl = $skillLevels ?? ['Advanced','Intermediate','Beginner','For Fun','Just Started']; foreach($levelsFromCtrl as $i => $lvl): ?>

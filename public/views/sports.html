@@ -46,22 +46,18 @@
     </div>
 
     <div class="section select-row">
-        <div class="grid-quick">
-            <?php $selected = $selectedSports ?? []; foreach(($sportsGrid ?? []) as $s): ?>
-            <label class="tile selectable">
-                <input type="checkbox" name="sport[]" value="<?= htmlspecialchars($s['name']) ?>"
-                    <?=in_array($s['name'], $selected, true) ? 'checked' : '' ?> />
-                <div class="tile-icon material">
-                    <?= htmlspecialchars($s['icon']) ?>
-                </div>
-                <div>
-                    <h3 class="text-compact-strong">
-                        <?= htmlspecialchars($s['name']) ?>
-                    </h3>
-                </div>
-            </label>
-            <?php endforeach; ?>
-        </div>
+        <?php
+            $tilesSports = $sportsGrid ?? [];
+            $tilesType = 'checkbox';
+            $tilesName = 'sport[]';
+            $tilesSelected = $selectedSports ?? [];
+            $tilesValueField = 'name';
+            $tilesWrapperClass = 'grid-quick';
+            $tilesLabelClass = 'tile selectable';
+            $tilesLayout = 'quick';
+            $tilesRequired = false;
+            include __DIR__ . '/components/sports-tiles.html';
+        ?>
         <button type="button" id="applySportsFilter" class="button primary text-size-small">
             <span>Search Events</span>
         </button>
