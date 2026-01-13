@@ -106,14 +106,31 @@ class SportsController extends AppController {
         // Map to view model
         $matches = array_map(function($ev) use ($levelMap, $colors, $now) {
             $current = (int)($ev['current_players'] ?? 0);
-            $min = (int)($ev['min_needed'] ?? 0);
-            $max = (int)($ev['max_players'] ?? 0);
-            if ($max === 0) {
-                $playersText = $min . '+ Players';
-            } elseif ($min === $max) {
-                $playersText = $min . ' Players';
-            } else {
-                $playersText = $current . '/' . $min . '-' . $max . ' Players';
+
+            $maxRaw = $ev['max_players'] ?? null;
+            $max = is_numeric($maxRaw) ? (int)$maxRaw : null;
+            if ($max !== null && $max <= 0) {
+                $max = null; // 0 / NULL means "no limit"
+            }
+
+            $minRaw = $ev['min_needed'] ?? null;
+            $min = is_numeric($minRaw) ? (int)$minRaw : null;
+            if ($min !== null && $min <= 0) {
+                $min = null;
+            }
+
+            $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
+
+            $note = '';
+            if ($min !== null && $max !== null) {
+                $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
+            } elseif ($min !== null) {
+                $note = 'Minimum ' . $min;
+            } elseif ($max !== null) {
+                $note = 'Players ' . $max;
+            }
+            if ($note !== '') {
+                $playersText .= ' · ' . $note;
             }
             $levelName = (string)($ev['level_name'] ?? 'Intermediate');
             // try id mapping color by reverse lookup

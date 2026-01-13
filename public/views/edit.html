@@ -63,6 +63,15 @@
 
                 <div class="field input-group file-field">
                     <label class="text-small" for="image">Event Image</label>
+                    <?php 
+                            $imgUrl = $event['imageUrl'] ?? $event['image_url'] ?? null;
+                            if (!empty($imgUrl)):
+                        ?>
+                    <div class="event-image-preview">
+                        <img src="<?= htmlspecialchars($imgUrl) ?>" alt="Current event image"
+                            class="event-image-thumb" />
+                    </div>
+                    <?php endif; ?>
                     <input id="image" name="image" type="file" accept="image/*" class="input-common" />
                 </div>
 

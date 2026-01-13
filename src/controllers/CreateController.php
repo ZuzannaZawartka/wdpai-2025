@@ -40,15 +40,12 @@ class CreateController extends AppController {
     protected function save(): void
     {
         $this->ensureSession();
-        
         // Validate form using EventFormValidator
         $validation = EventFormValidator::validate($_POST);
-        
         if (!empty($validation['errors'])) {
             $sportsRepo = new SportsRepository();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
-            
             parent::render('create', [
                 'pageTitle' => 'SportMatch - Create Event',
                 'activeNav' => 'create',
@@ -59,19 +56,26 @@ class CreateController extends AppController {
             ]);
             return;
         }
-        
-        // Get current user as owner
         $ownerId = $this->getCurrentUserId();
-        
-        // Create event with validated data (sport_id already included from validator)
+        $imageUrl = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = 'event_' . uniqid() . '.' . $ext;
+            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+            if (move_uploaded_file($tmpName, $targetPath)) {
+                $imageUrl = '/public/images/events/' . $fileName;
+            }
+        }
+        if (!$imageUrl) {
+            $imageUrl = '/public/images/boisko.png';
+        }
         $newEvent = array_merge($validation['data'], [
             'owner_id' => $ownerId,
-            'image_url' => 'https://picsum.photos/seed/new-event/800/600'
+            'image_url' => $imageUrl
         ]);
-        
         $repo = new EventRepository();
         $eventId = $repo->createEvent($newEvent);
-        
         if ($eventId) {
             header('Location: /event/' . $eventId);
             exit;

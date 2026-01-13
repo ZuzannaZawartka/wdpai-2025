@@ -17,25 +17,11 @@
         <a href="/event/<?= (int)($m['id'] ?? 0) ?>" class="match-link">
             <article class="match">
                 <div class="match-body">
-                    <div class="copy">
-                        <div class="text-title-smaller">
-                            <?= htmlspecialchars($m['title']) ?>
-                        </div>
-                        <div class="meta-row text-small">
-                            <span>
-                                <?= htmlspecialchars($m['datetime']) ?>
-                            </span>
-                            <span>👥
-                                <?= htmlspecialchars($m['players']) ?>
-                            </span>
-                            <?php if (isset($m['level'])): ?>
-                            <span class="level"
-                                style="--level-color: <?= htmlspecialchars($m['levelColor'] ?? '#999') ?>;">
-                                <?= htmlspecialchars($m['level']) ?>
-                            </span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                    <?php
+                        $card = $m;
+                        $showDesc = false;
+                        include __DIR__ . '/components/match-card-content.html';
+                    ?>
                     <div class="my-actions" onclick="event.stopPropagation();">
                         <a href="/edit/<?= (int)($m['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                         <button type="button" class="button danger text-size-small delete-btn"

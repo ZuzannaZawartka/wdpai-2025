@@ -204,29 +204,20 @@
         <?php foreach($pageMatches as $m): ?>
         <article class="match <?= !empty($m['isPast']) ? 'past-event' : '' ?>">
             <div class="match-body">
-                <div class="copy">
-                    <div class="text-title-smaller">
-                        <?= htmlspecialchars($m['title']) ?>
-                    </div>
-                    <p class="text-small">
-                        <?= htmlspecialchars($m['datetime']) ?>
-                    </p>
-                    <p class="text-body">
-                        <?= htmlspecialchars($m['desc']) ?>
-                    </p>
-                    <div class="meta-row text-small">
-                        <span>👥
-                            <?= htmlspecialchars($m['players']) ?>
-                        </span>
-                        <span class="level" style="--level-color: <?= htmlspecialchars($m['levelColor']) ?>;">
-                            <?= htmlspecialchars($m['level']) ?>
-                        </span>
-                    </div>
+                <?php
+                    $card = $m;
+                    $showDesc = true;
+                    include __DIR__ . '/components/match-card-content.html';
+                ?>
+                <div class="card-bottom-row">
                     <a href="/event/<?= (int)($m['id'] ?? 0) ?>"
                         class="button primary text-size-small <?= !empty($m['isPast']) ? 'past' : '' ?>">View
                         Details</a>
                 </div>
-                <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
+                <?php
+                    $imgUrl = !empty($m['imageUrl']) ? $m['imageUrl'] : '/public/images/boisko.png';
+                ?>
+                <div class="visual" data-bg="<?= htmlspecialchars($imgUrl) ?>"></div>
             </div>
         </article>
         <?php endforeach; ?>
@@ -273,5 +264,16 @@
         <?php endif; ?>
     </div>
 </section>
+
+<script>
+    (function () {
+        document.querySelectorAll('.matches .visual[data-bg]').forEach(el => {
+            const url = (el.getAttribute('data-bg') || '').trim();
+            if (!url) return;
+            // Use double-quotes inside url() to avoid quoting issues
+            el.style.backgroundImage = 'url("' + url.replace(/"/g, '\\"') + '")';
+        });
+    })();
+</script>
 
 <?php include __DIR__ . '/components/footer.html'; ?>

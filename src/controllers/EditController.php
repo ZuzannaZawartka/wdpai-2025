@@ -63,9 +63,16 @@ class EditController extends AppController {
             'min_needed' => $validation['data']['min_needed'],
             'description' => $validation['data']['description']
         ];
-        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = 'event_' . uniqid() . '.' . $ext;
+            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+            if (move_uploaded_file($tmpName, $targetPath)) {
+                $updates['image_url'] = '/public/images/events/' . $fileName;
+            }
+        }
         $result = $repo->updateEvent((int)$id, $updates);
-        
         if ($result) {
             header('Location: /event/' . (int)$id);
             exit;

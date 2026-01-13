@@ -26,6 +26,7 @@ class EventRepository {
               e.start_time,
               e.image_url,
               e.max_players,
+                            e.min_needed,
               l.name AS level_name,
               (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
@@ -38,13 +39,40 @@ class EventRepository {
         $rows = $stmt->fetchAll();
         return array_map(function($r) {
             $current = (int)($r['current_players'] ?? 0);
-            $max = (int)($r['max_players'] ?? $current);
+
+            $maxRaw = $r['max_players'] ?? null;
+            $max = is_numeric($maxRaw) ? (int)$maxRaw : null;
+            if ($max !== null && $max <= 0) {
+                $max = null; // 0 / NULL means "no limit"
+            }
+
+            $minRaw = $r['min_needed'] ?? null;
+            $min = is_numeric($minRaw) ? (int)$minRaw : null;
+            if ($min !== null && $min <= 0) {
+                $min = null;
+            }
+
+            $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
+
+            $note = '';
+            if ($min !== null && $max !== null) {
+                $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
+            } elseif ($min !== null) {
+                $note = 'Minimum ' . $min;
+            } elseif ($max !== null) {
+                $note = 'Players ' . $max;
+            }
+
+            if ($note !== '') {
+                $playersText .= ' · ' . $note;
+            }
+
             $level = is_string($r['level_name'] ?? null) ? $r['level_name'] : 'Intermediate';
             return [
                 'id' => (int)$r['id'],
                 'title' => (string)$r['title'],
                 'datetime' => $this->formatDateTime($r['start_time'] ?? null),
-                'players' => $current . '/' . $max . ' Players',
+                'players' => $playersText,
                 'level' => $level,
                 'levelColor' => $this->levelColor($level),
                 'imageUrl' => (string)($r['image_url'] ?? ''),
