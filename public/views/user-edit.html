@@ -33,11 +33,13 @@
                     <input id="email" name="email" type="email" class="input-common" placeholder="Email"
                         value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
                 </div>
+                <?php if(($user['role'] ?? 'basic') !== 'admin' && ($user['email'] ?? '') !== 'admin@gmail.com'): ?>
                 <div class="field input-group">
                     <label class="text-small" for="birthDate">Birth Date</label>
                     <input id="birthDate" name="birthDate" type="date" class="input-common"
                         value="<?= isset($user['birth_date']) ? htmlspecialchars($user['birth_date']) : '' ?>" />
                 </div>
+                <?php endif; ?>
             </div>
 
             <div class="form-grid">
