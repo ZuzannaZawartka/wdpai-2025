@@ -143,7 +143,14 @@ class UserRepository extends Repository{
         ]);
 
         $row = $query->fetch(PDO::FETCH_ASSOC);
-        return $row && isset($row['id']) ? (int)$row['id'] : null;
+        $userId = $row && isset($row['id']) ? (int)$row['id'] : null;
+        
+        // Inicjalizuj statystyki dla nowego użytkownika
+        if ($userId) {
+            $this->initializeUserStatistics($userId);
+        }
+        
+        return $userId;
     }
 
     public function updateUser(string $email, array $data): bool {
@@ -208,6 +215,67 @@ class UserRepository extends Repository{
         error_log("Password update - executed: " . ($result ? 'true' : 'false') . ", rows affected: $rowCount");
         
         return $rowCount > 0;
+    }
+
+    // UŻYCIE WIDOKU: Pobiera statystyki użytkowników z widoku vw_user_stats
+    public function getUsersStatistics(): array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM vw_user_stats ORDER BY full_name
+        ');
+        $query->execute();
+        return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    // UŻYCIE WIDOKU: Pobiera statystyki konkretnego użytkownika
+    public function getUserStatisticsById(int $userId): ?array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM vw_user_stats WHERE id = :id
+        ');
+        $query->bindParam(':id', $userId, PDO::PARAM_INT);
+        $query->execute();
+        return $query->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // UŻYCIE FUNKCJI: Oblicza wiek użytkownika
+    public function getUserAge(int $userId): ?int {
+        $user = $this->getUserById($userId);
+        if (!$user || !isset($user['birth_date'])) {
+            return null;
+        }
+
+        $query = $this->database->connect()->prepare('
+            SELECT calculate_user_age(:birth_date) AS age
+        ');
+        $query->bindParam(':birth_date', $user['birth_date'], PDO::PARAM_STR);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+        return $result ? (int)$result['age'] : null;
+    }
+
+    // UŻYCIE TABELI: Inicjalizacja statystyk dla nowego użytkownika
+    public function initializeUserStatistics(int $userId): bool {
+        try {
+            $query = $this->database->connect()->prepare('
+                INSERT INTO user_statistics (user_id, total_events_joined, total_events_created)
+                VALUES (:user_id, 0, 0)
+                ON CONFLICT (user_id) DO NOTHING
+            ');
+            $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            return $query->execute();
+        } catch (Throwable $e) {
+            error_log("Initialize statistics error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // UŻYCIE TABELI: Pobiera statystyki użytkownika
+    public function getUserStatistics(int $userId): ?array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM user_statistics WHERE user_id = :user_id
+        ');
+        $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $query->execute();
+        return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
 }

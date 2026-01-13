@@ -145,7 +145,7 @@ SELECT
     COUNT(DISTINCT ufs.sport_id) as favorite_sports_count,
     COUNT(DISTINCT ep.event_id) as events_joined_count,
     COUNT(DISTINCT e.id) as events_created_count,
-    COALESCE(MAX(e.start_time), u.created_at) as last_activity
+    COALESCE(MAX(e.start_time), NOW()) as last_activity
 FROM users u
 LEFT JOIN user_favourite_sports ufs ON u.id = ufs.user_id
 LEFT JOIN event_participants ep ON u.id = ep.user_id

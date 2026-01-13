@@ -112,7 +112,8 @@ class AdminController extends AppController {
     public function events() {
         $this->requireRole('admin');
         
-        $allEvents = $this->eventRepository->getAllForListing(true);
+        // UŻYCIE WIDOKU vw_events_full, pobiera pełne informacje o wszystkich eventach z widoku
+        $allEvents = $this->eventRepository->getEventsFromView();
         
         // Map to admin view format
         $enriched = array_map(function($event) {
@@ -125,8 +126,8 @@ class AdminController extends AppController {
                 'location' => (string)($event['location_text'] ?? ''),
                 'coords' => isset($event['latitude'], $event['longitude']) ? ($event['latitude'] . ', ' . $event['longitude']) : '',
                 'imageUrl' => (string)($event['image_url'] ?? ''),
-                'organizer_email' => (string)($event['owner_email'] ?? ''),
-                'email' => (string)($event['owner_email'] ?? ''),
+                'organizer_email' => (string)($event['owner_name'] ?? ''),
+                'email' => (string)($event['owner_name'] ?? ''),
                 'current_participants' => (int)($event['current_players'] ?? 0),
                 'max_participants' => (int)($event['max_players'] ?? 0),
                 'participants' => (int)($event['max_players'] ?? 0),

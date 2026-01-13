@@ -78,7 +78,7 @@ class EventController extends AppController {
             echo json_encode(['status' => 'error', 'message' => 'Event is full']);
             return;
         }
-        $result = $repo->joinEvent($userId, (int)$id);
+        $result = $repo->joinEventWithTransaction($userId, (int)$id);
         
         if ($result) {
             http_response_code(200);
@@ -126,8 +126,8 @@ class EventController extends AppController {
                 echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
             }
         } else {
-            // Cancel participation
-            $result = $repo->cancelParticipation($userId, (int)$id);
+            // Cancel participation - używamy transakcji
+            $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
             
             if ($result) {
                 http_response_code(200);

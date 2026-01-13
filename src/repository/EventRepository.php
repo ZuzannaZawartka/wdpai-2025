@@ -172,28 +172,55 @@ class EventRepository {
     }
 
     public function createEvent(array $data): ?int {
-        $sql = "
-            INSERT INTO events (owner_id, title, description, sport_id, location_text, latitude, longitude,
-                                start_time, level_id, image_url, max_players, min_needed)
-            VALUES (:owner_id, :title, :description, :sport_id, :location_text, :latitude, :longitude,
-                    :start_time, :level_id, :image_url, :max_players, :min_needed)
-        ";
-        $stmt = $this->db->prepare($sql);
-        $result = $stmt->execute([
-            ':owner_id' => $data['owner_id'] ?? null,
-            ':title' => $data['title'] ?? '',
-            ':description' => $data['description'] ?? '',
-            ':sport_id' => $data['sport_id'] ?? 1,
-            ':location_text' => $data['location_text'] ?? '',
-            ':latitude' => $data['latitude'] ?? null,
-            ':longitude' => $data['longitude'] ?? null,
-            ':start_time' => $data['start_time'] ?? null,
-            ':level_id' => $data['level_id'] ?? null,
-            ':image_url' => $data['image_url'] ?? null,
-            ':max_players' => $data['max_players'] ?? 0,
-            ':min_needed' => $data['min_needed'] ?? 0,
-        ]);
-        return $result ? (int)$this->db->lastInsertId() : null;
+        try {
+            $this->db->beginTransaction();
+
+            $sql = "
+                INSERT INTO events (owner_id, title, description, sport_id, location_text, latitude, longitude,
+                                    start_time, level_id, image_url, max_players, min_needed)
+                VALUES (:owner_id, :title, :description, :sport_id, :location_text, :latitude, :longitude,
+                        :start_time, :level_id, :image_url, :max_players, :min_needed)
+            ";
+            $stmt = $this->db->prepare($sql);
+            $result = $stmt->execute([
+                ':owner_id' => $data['owner_id'] ?? null,
+                ':title' => $data['title'] ?? '',
+                ':description' => $data['description'] ?? '',
+                ':sport_id' => $data['sport_id'] ?? 1,
+                ':location_text' => $data['location_text'] ?? '',
+                ':latitude' => $data['latitude'] ?? null,
+                ':longitude' => $data['longitude'] ?? null,
+                ':start_time' => $data['start_time'] ?? null,
+                ':level_id' => $data['level_id'] ?? null,
+                ':image_url' => $data['image_url'] ?? null,
+                ':max_players' => $data['max_players'] ?? 0,
+                ':min_needed' => $data['min_needed'] ?? 0,
+            ]);
+            
+            if (!$result) {
+                $this->db->rollBack();
+                return null;
+            }
+
+            $eventId = (int)$this->db->lastInsertId();
+
+            // Update user statistics, increment events created
+            if (isset($data['owner_id'])) {
+                $statStmt = $this->db->prepare('
+                    UPDATE user_statistics 
+                    SET total_events_created = total_events_created + 1 
+                    WHERE user_id = ?
+                ');
+                $statStmt->execute([$data['owner_id']]);
+            }
+
+            $this->db->commit();
+            return $eventId;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log("Create event transaction error: " . $e->getMessage());
+            return null;
+        }
     }
 
     public function updateEvent(int $eventId, array $data): bool {
@@ -273,6 +300,84 @@ class EventRepository {
             return $dt->format('D, M j, g:i A');
         } catch (Throwable $e) {
             return (string)$dbTs;
+        }
+    }
+
+    // Pobiera pełne informacje o eventach z widoku vw_events_full
+    public function getEventsFromView(int $limit = null): array {
+        $sql = "SELECT * FROM vw_events_full";
+        if ($limit) {
+            $sql .= " LIMIT :limit";
+        }
+        $stmt = $this->db->prepare($sql);
+        if ($limit) {
+            $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    //Joinowanie eventów z aktualizacją statystyk użytkownika
+    public function joinEventWithTransaction(int $userId, int $eventId): bool {
+        try {
+            $this->db->beginTransaction();
+
+            // Check if event exists and is not full
+            if ($this->isEventFull($eventId)) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            // Check if event is in the past
+            if ($this->isEventPast($eventId)) {
+                $this->db->rollBack();
+                return false;
+            }
+
+            // Add user to event
+            $ins = $this->db->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
+            $ins->execute([$eventId, $userId]);
+
+            // Update user statistics
+            $statStmt = $this->db->prepare('
+                UPDATE user_statistics 
+                SET total_events_joined = total_events_joined + 1 
+                WHERE user_id = ?
+            ');
+            $statStmt->execute([$userId]);
+
+            $this->db->commit();
+            return true;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log("Transaction error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // Opuszczanie eventu z aktualizacją statystyk, (transakcja)
+    public function cancelParticipationWithTransaction(int $userId, int $eventId): bool {
+        try {
+            $this->db->beginTransaction();
+
+            // Remove user from event
+            $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
+            $stmt->execute([$eventId, $userId]);
+
+            // Update user statistics
+            $statStmt = $this->db->prepare('
+                UPDATE user_statistics 
+                SET total_events_joined = GREATEST(total_events_joined - 1, 0) 
+                WHERE user_id = ?
+            ');
+            $statStmt->execute([$userId]);
+
+            $this->db->commit();
+            return $stmt->rowCount() > 0;
+        } catch (Throwable $e) {
+            $this->db->rollBack();
+            error_log("Transaction error: " . $e->getMessage());
+            return false;
         }
     }
 }

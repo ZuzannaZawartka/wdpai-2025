@@ -31,11 +31,13 @@ class UserController extends AppController {
             'lastName' => '',
             'email' => $email,
             'birthDate' => '',
+            'age' => null,
             'location' => '',
             'latitude' => null,
             'longitude' => null,
             'sports' => [],
-            'avatar' => DEFAULT_AVATAR
+            'avatar' => DEFAULT_AVATAR,
+            'statistics' => null
         ];
 
         if (is_array($dbUser)) {
@@ -48,13 +50,28 @@ class UserController extends AppController {
             if (!empty($dbUser['avatar_url'])) {
                 $profile['avatar'] = $dbUser['avatar_url'];
             }
-            if ($profile['latitude'] && $profile['longitude']) {
-                $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
-            }
-            // Keep session avatar in sync for header on other pages
-            $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
         }
-
+        
+        if ($profile['latitude'] && $profile['longitude']) {
+            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
+        }
+        
+        // Użycie funkcji calculate_user_age - pobierz wiek użytkownika
+        if ($userId) {
+            $profile['age'] = $repo->getUserAge($userId);
+        }
+        
+        // Użycie widoku vw_user_stats - pobierz statystyki użytkownika
+        if ($userId) {
+            $profile['statistics'] = $repo->getUserStatisticsById($userId);
+        }
+        
+        if ($profile['latitude'] && $profile['longitude']) {
+            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
+        }
+        // Keep session avatar in sync for header on other pages
+        $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
+        
         $sportsRepo = new SportsRepository();
         $allSports = $sportsRepo->getAllSports();
         $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];

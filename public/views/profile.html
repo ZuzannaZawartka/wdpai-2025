@@ -58,6 +58,13 @@
                     <input id="birthDate" name="birthDate" type="date" class="input-common"
                         value="<?= isset($user['birthDate']) ? htmlspecialchars($user['birthDate']) : '' ?>" />
                 </div>
+                <?php if(isset($user['age']) && $user['age'] !== null): ?>
+                <div class="field input-group">
+                    <label class="text-small" for="age">Age</label>
+                    <input id="age" type="text" class="input-common" value="<?= htmlspecialchars($user['age']) ?>"
+                        readonly />
+                </div>
+                <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
