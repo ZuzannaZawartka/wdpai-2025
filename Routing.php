@@ -83,8 +83,7 @@ class Routing{
         'profile-update' => [
             "controller" => 'UserController',
             "action" => 'updateProfile',
-            "auth" => true,
-            "requiresRole" => 'admin'
+            "auth" => true
         ],
         'event' => [
             "controller" => 'EventController',
@@ -98,12 +97,16 @@ class Routing{
             "auth" => true,
             "requiresRole" => 'user'
         ],
-        'event-cancel' => [
+        'event-leave' => [
             "controller" => 'EventController',
-            "action" => 'cancel',
-            "auth" => true,
-            "requiresRole" => 'user'
+            "action" => 'leave',
+            "auth" => true
         ],
+        'event-delete' => [
+            "controller" => 'EventController',
+            "action" => 'delete',
+            "auth" => true
+        ], 
         'edit' => [
             "controller" => 'EditController',
             "action" => 'edit',
@@ -149,7 +152,9 @@ class Routing{
                 if ($eventAction === 'join') {
                     self::dispatch('event-join', [$eventId]);
                 } elseif ($eventAction === 'delete') {
-                    self::dispatch('event-cancel', [$eventId]);
+                    self::dispatch('event-delete', [$eventId]);
+                } elseif ($eventAction === 'leave') {
+                    self::dispatch('event-leave', [$eventId]);
                 } else {
                     self::dispatch('event', [$eventId]);
                 }
@@ -189,9 +194,17 @@ class Routing{
 
     private static function dispatch(string $action, array $parameters = []): void
     {
+        // Sesja jest zarządzana przez ensureSession() w AppController
+        $isEventDelete = ($action === 'event-delete');
         if (!isset(self::$routes[$action])) {
-            include 'public/views/404.html';
-            echo "<h2>404</h2>";
+            if ($isEventDelete) {
+                header('Content-Type: application/json');
+                http_response_code(404);
+                echo json_encode(['status' => 'error', 'message' => 'Route not found for event-delete']);
+            } else {
+                include 'public/views/404.html';
+                echo "<h2>404</h2>";
+            }
             return;
         }
 
@@ -207,6 +220,12 @@ class Routing{
 
         $requiresAuth = !array_key_exists('auth', self::$routes[$action]) || !empty(self::$routes[$action]['auth']);
         if ($requiresAuth) {
+            if ($isEventDelete && !isset($_SESSION['user_id'])) {
+                header('Content-Type: application/json');
+                http_response_code(401);
+                echo json_encode(['status' => 'error', 'message' => 'Not authenticated: user_id missing in session']);
+                exit();
+            }
             $controller->requireAuth();
         }
         
@@ -221,9 +240,20 @@ class Routing{
         if (isset(self::$routes[$action]['requiresRole'])) {
             $requiredRole = self::$routes[$action]['requiresRole'];
             if (($_SESSION['user_role'] ?? null) !== $requiredRole) {
-                http_response_code(403);
-                include 'public/views/404.html';
-                exit();
+                if ($isEventDelete) {
+                    header('Content-Type: application/json');
+                    http_response_code(403);
+                    $actualRole = $_SESSION['user_role'] ?? null;
+                    echo json_encode([
+                        'status' => 'error',
+                        'message' => 'Forbidden: requires role ' . $requiredRole . ', got ' . var_export($actualRole, true)
+                    ]);
+                    exit();
+                } else {
+                    http_response_code(403);
+                    include 'public/views/404.html';
+                    exit();
+                }
             }
         }
         

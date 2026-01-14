@@ -70,13 +70,13 @@
                     return;
                 }
                 const eventId = this.getAttribute('data-event-id');
-                fetch(`/event/${eventId}/cancel`, { method: 'POST' })
+                fetch(`/event/${eventId}/leave`, { method: 'POST', credentials: 'same-origin' })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'success') {
                             this.closest('article').remove();
                         } else {
-                            alert('Failed to cancel participation');
+                            alert('Failed to leave event');
                         }
                     })
                     .catch(err => alert('Error: ' + err.message));

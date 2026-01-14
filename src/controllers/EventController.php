@@ -95,35 +95,26 @@ class EventController extends AppController {
         }
     }
 
-    public function cancel($id) {
+    public function delete($id) {
         header('Content-Type: application/json');
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
-        
         if (!$userId) {
             http_response_code(401);
             echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
             exit();
         }
-
-        // Get event to check ownership
         $repo = new EventRepository();
         $event = $repo->getEventById((int)$id);
-        
         if (!$event) {
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => 'Event not found']);
             exit();
         }
-        
-        // Check if owner or admin - if so, delete event instead
         $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
         $isAdmin = $this->isAdmin();
-        
         if ($isOwner || $isAdmin) {
-            // Delete event
             $result = (new EventRepository())->deleteEvent((int)$id);
-            
             if ($result) {
                 http_response_code(200);
                 echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
@@ -132,16 +123,41 @@ class EventController extends AppController {
                 echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
             }
         } else {
-            // Cancel participation - używamy transakcji
-            $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
-            
-            if ($result) {
-                http_response_code(200);
-                echo json_encode(['status' => 'success', 'message' => 'Cancelled participation']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to cancel participation']);
-            }
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'Only owner or admin can delete event']);
+        }
+        exit();
+    }
+
+    public function leave($id) {
+        header('Content-Type: application/json');
+        $this->ensureSession();
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
+            exit();
+        }
+        $repo = new EventRepository();
+        $event = $repo->getEventById((int)$id);
+        if (!$event) {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Event not found']);
+            exit();
+        }
+        // Nie pozwól ownerowi opuścić własnego eventu (może tylko usunąć)
+        if ((int)$event['owner_id'] === (int)$userId) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Owner cannot leave their own event']);
+            exit();
+        }
+        $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
+        if ($result) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'message' => 'Left event']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to leave event']);
         }
         exit();
     }

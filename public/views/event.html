@@ -284,24 +284,33 @@
                 return;
             }
             const eventId = getEventId();
-            fetch(`/event/${eventId}/cancel`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        cancelBtn.classList.add('hidden');
-                        joinBtn?.classList.remove('hidden');
-                        revealed?.setAttribute('hidden', '');
-                    } else {
-                        alert('Failed to cancel participation');
+            fetch(`/event/${eventId}/leave`, { method: 'POST', credentials: 'same-origin' })
+                .then(async res => {
+                    const text = await res.text();
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.status === 'success') {
+                            cancelBtn.classList.add('hidden');
+                            joinBtn?.classList.remove('hidden');
+                            revealed?.setAttribute('hidden', '');
+                        } else {
+                            alert('Failed to leave event: ' + (data.message || ''));
+                        }
+                    } catch (e) {
+                        console.error('Response is not valid JSON:', text);
+                        alert('Error: Response is not valid JSON. See console for details.');
                     }
                 })
-                .catch(err => alert('Error: ' + err.message));
+                .catch(err => {
+                    console.error('Network or JS error:', err);
+                    alert('Error: ' + err.message);
+                });
         });
 
         deleteBtn?.addEventListener('click', function () {
             const eventId = this.getAttribute('data-event-id');
             if (confirm('Are you sure you want to delete this event?')) {
-                fetch(`/event/${eventId}/delete`, { method: 'POST' })
+                fetch(`/event/${eventId}/delete`, { method: 'POST', credentials: 'same-origin' })
                     .then(response => {
                         if (response.ok) {
                             // Redirect based on user role - admin goes to /sports, others to /my

@@ -26,6 +26,7 @@ VALUES (
     TRUE
 );
 
+
 -- Global login attempts tracking (per email + IP)
 CREATE TABLE IF NOT EXISTS login_attempts (
     email VARCHAR(150) NOT NULL,
