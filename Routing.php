@@ -220,12 +220,6 @@ class Routing{
 
         $requiresAuth = !array_key_exists('auth', self::$routes[$action]) || !empty(self::$routes[$action]['auth']);
         if ($requiresAuth) {
-            if ($isEventDelete && !isset($_SESSION['user_id'])) {
-                header('Content-Type: application/json');
-                http_response_code(401);
-                echo json_encode(['status' => 'error', 'message' => 'Not authenticated: user_id missing in session']);
-                exit();
-            }
             $controller->requireAuth();
         }
         

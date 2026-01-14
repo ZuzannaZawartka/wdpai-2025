@@ -113,18 +113,22 @@ class EventController extends AppController {
         }
         $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
         $isAdmin = $this->isAdmin();
-        if ($isOwner || $isAdmin) {
-            $result = (new EventRepository())->deleteEvent((int)$id);
-            if ($result) {
-                http_response_code(200);
-                echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
-            } else {
-                http_response_code(500);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
-            }
+        $repo = new EventRepository();
+        if ($isOwner) {
+            $result = $repo->deleteEventByOwner((int)$id, (int)$userId);
+        } elseif ($isAdmin) {
+            $result = $repo->deleteEvent((int)$id);
         } else {
             http_response_code(403);
             echo json_encode(['status' => 'error', 'message' => 'Only owner or admin can delete event']);
+            exit();
+        }
+        if ($result) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
         }
         exit();
     }
