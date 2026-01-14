@@ -89,7 +89,7 @@ class Routing{
             "controller" => 'EventController',
             "action" => 'details',
             "auth" => true,
-            "requiresRole" => 'user'
+            "requiresRole" => ['user', 'admin']
         ],
         'event-join' => [
             "controller" => 'EventController',
@@ -108,11 +108,11 @@ class Routing{
             "auth" => true
         ], 
         'edit' => [
-            "controller" => 'EditController',
+            "controller" => 'EventController',
             "action" => 'edit',
             "auth" => true,
             "requiresOwnership" => 'event',
-            "requiresRole" => 'user'
+            "requiresRole" => ['user', 'admin']
         ],
         'accounts-edit' => [
             "controller" => 'AdminController',
@@ -233,14 +233,21 @@ class Routing{
         
         if (isset(self::$routes[$action]['requiresRole'])) {
             $requiredRole = self::$routes[$action]['requiresRole'];
-            if (($_SESSION['user_role'] ?? null) !== $requiredRole) {
+            $userRole = $_SESSION['user_role'] ?? null;
+            $roleMatch = false;
+            if (is_array($requiredRole)) {
+                $roleMatch = in_array($userRole, $requiredRole, true);
+            } else {
+                $roleMatch = ($userRole === $requiredRole);
+            }
+            if (!$roleMatch) {
                 if ($isEventDelete) {
                     header('Content-Type: application/json');
                     http_response_code(403);
                     $actualRole = $_SESSION['user_role'] ?? null;
                     echo json_encode([
                         'status' => 'error',
-                        'message' => 'Forbidden: requires role ' . $requiredRole . ', got ' . var_export($actualRole, true)
+                        'message' => 'Forbidden: requires role ' . (is_array($requiredRole) ? implode(',', $requiredRole) : $requiredRole) . ', got ' . var_export($actualRole, true)
                     ]);
                     exit();
                 } else {
