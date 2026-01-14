@@ -7,6 +7,10 @@
 
 @import url('components/edit-user-form.css');
 
+html {
+    overflow-y: scroll;
+}
+
 :root {
     --primary: #13a4ec;
     --background-light-grey: #f0f0f1;

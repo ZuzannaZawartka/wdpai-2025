@@ -178,7 +178,8 @@ class SecurityController extends AppController {
                 $lastname,
                 $birth_date,
                 (float)$latitude,
-                (float)$longitude
+                (float)$longitude,
+                'user' 
             );
 
             if ($newUserId) {

@@ -3,7 +3,11 @@
 // Użyj: include __DIR__ . '/components/edit-user-form.html';
 ?>
 
-<form class="form" method="post" enctype="multipart/form-data" action="/profile-update">
+<form class="form" method="post" enctype="multipart/form-data" action="<?php
+    // Jeśli admin edytuje użytkownika, kieruj na /accounts/edit/{id}
+    if (isset($user['role']) && $user['role'] === 'admin' || isset($pageTitle) && strpos($pageTitle, 'Admin') !== false || (isset($activeNav) && $activeNav === 'admin')) {
+        $editId = isset($user['id']) ? (int)$user['id'] : 0;
+        echo " /accounts/edit/{$editId}"; } else { echo "/profile-update" ; } ?>">
     <?php if(isset($messages)): ?>
     <div class="messages">
         <?= $messages ?>
@@ -77,7 +81,7 @@
         <div class="field input-group">
             <label class="text-small" for="birthDate">Date of Birth</label>
             <input id="birthDate" name="birthDate" type="date" class="input-common"
-                value="<?= isset($user['birth_date']) ? htmlspecialchars($user['birth_date']) : '' ?>" />
+                value="<?= isset($user['birthDate']) ? htmlspecialchars($user['birthDate']) : '' ?>" />
         </div>
         <div class="field input-group full">
             <label class="text-small" for="location">Location</label>

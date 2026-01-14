@@ -138,8 +138,8 @@ class AdminController extends AppController {
                 $hashedPassword = $this->hashPassword($newPassword);
                 $this->userRepository->updateUserPassword($email, $hashedPassword);
             }
-           
-            header('Location: /accounts', true, 303);
+
+            header('Location: /accounts/edit/' . $userId, true, 303);
             exit();
         } catch (Throwable $e) {
             error_log("Admin user update error: " . $e->getMessage());

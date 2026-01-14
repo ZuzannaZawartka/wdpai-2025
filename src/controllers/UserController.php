@@ -127,8 +127,9 @@ class UserController extends AppController {
 
         // Validate password change if any password field is filled
         $errors = [];
+        $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
         if (!empty($oldPassword) || !empty($newPassword) || !empty($confirmPassword)) {
-            if (empty($oldPassword)) {
+            if (!$isAdmin && empty($oldPassword)) {
                 $errors[] = "Current password is required to change password";
             }
             if (empty($newPassword)) {
@@ -167,7 +168,8 @@ class UserController extends AppController {
         $existingAvatar = $existingUser['avatar_url'] ?? null;
         
         // Verify old password FIRST if changing password
-        if (!empty($newPassword)) {
+        $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
+        if (!empty($newPassword) && !$isAdmin) {
             try {
                 $dbUser = $existingUser;
                 if (!$dbUser || !$this->verifyPassword($oldPassword, $dbUser['password'])) {
@@ -249,7 +251,7 @@ class UserController extends AppController {
         }
 
         header('Location: /profile', true, 303);
-        exit();
+        // Nie wywołuj exit() by umożliwić dalsze przetwarzanie lub testy
     }
     
     public function editUser($userId = null) {
