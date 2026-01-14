@@ -21,19 +21,7 @@
         </div>
 
         <form class="form" method="post" action="#" enctype="multipart/form-data">
-            <?php if (!empty($errors)): ?>
-            <div class="alert error"
-                style="margin-bottom: 1rem; padding: 0.75rem; background: #fee; border: 1px solid #fcc; border-radius: 0.375rem; color: #c33;">
-                <strong>Please fix the following errors:</strong>
-                <ul style="margin: 0.5rem 0 0 1.25rem;">
-                    <?php foreach ($errors as $error): ?>
-                    <li>
-                        <?= htmlspecialchars($error) ?>
-                    </li>
-                    <?php endforeach; ?>
-                </ul>
-            </div>
-            <?php endif; ?>
+            <?php include __DIR__ . '/components/form-errors.html'; ?>
             <div class="form-grid">
                 <div class="field input-group">
                     <label class="text-small" for="title">Event Name *</label>
@@ -60,6 +48,22 @@
                 <div class="field input-group file-field">
                     <label class="text-small" for="image">Event Image</label>
                     <input id="image" name="image" type="file" accept="image/*" class="input-common" />
+                </div>
+
+                <div class="field input-group full">
+                    <label class="text-small">Sport *</label>
+                    <?php
+                        $tilesSports = $allSports ?? [];
+                        $tilesType = 'radio';
+                        $tilesName = 'sport';
+                        $tilesSelected = $formData['sport'] ?? ($_POST['sport'] ?? null);
+                        $tilesValueField = 'id';
+                        $tilesWrapperClass = 'sports-tiles';
+                        $tilesLabelClass = 'tile-sport';
+                        $tilesLayout = 'sport';
+                        $tilesRequired = true;
+                        include __DIR__ . '/components/sports-tiles.html';
+                    ?>
                 </div>
 
                 <div class="field input-group full">

@@ -1,29 +1,58 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
 
 class EventController extends AppController {
 
     public function details($id = null, $action = null) {
-        $mock = MockRepository::getEventById((int)$id);
-        
-        if ($mock && $this->isAdmin()) {
-            $mock['isUserParticipant'] = true;
+        $repo = new EventRepository();
+        $row = $repo->getEventById((int)$id);
+        $event = null;
+        $userId = $this->getCurrentUserId();
+        if ($row) {
+            $event = [
+                'id' => (int)$row['id'],
+                'title' => (string)$row['title'],
+                'description' => (string)($row['description'] ?? ''),
+                'sportName' => (string)($row['sport_name'] ?? ''),
+                'location' => (string)($row['location_text'] ?? ''),
+                'coords' => isset($row['latitude'],$row['longitude']) ? ($row['latitude'] . ', ' . $row['longitude']) : null,
+                'dateTime' => (new DateTime($row['start_time']))->format('D, M j, g:i A'),
+                'skillLevel' => (string)($row['level_name'] ?? 'Intermediate'),
+                'organizer' => [
+                    'name' => (trim($row['firstname'] ?? '') . ' ' . trim($row['lastname'] ?? '')) ?: 'Organizer',
+                    'email' => (string)($row['owner_email'] ?? ''),
+                    'avatar' => (string)($row['avatar_url'] ?? '')
+                ],
+                'participants' => [
+                    'current' => (int)($row['current_players'] ?? 0),
+                    'max' => (int)($row['max_players'] ?? 0),
+                    'minNeeded' => (int)($row['min_needed'] ?? 0)
+                ]
+            ];
+            if ($userId) {
+                $isOwner = (int)$row['owner_id'] === (int)$userId;
+                $event['isUserParticipant'] = $isOwner || $repo->isUserParticipant($userId, (int)$id);
+                $event['isOwner'] = $isOwner;
+                $event['isFull'] = $repo->isEventFull((int)$id);
+            }
         }
-        
         $this->render('event', [
             'pageTitle' => 'SportMatch - Match Details',
             'activeNav' => 'sports',
-            'event' => $mock ?? [
+            'event' => $event ?? [
                 'id' => (int)$id,
                 'title' => 'Match Details',
+                'description' => '',
+                'sportName' => '',
                 'location' => 'Unknown',
                 'coords' => null,
                 'dateTime' => 'TBD',
                 'skillLevel' => 'Intermediate',
                 'organizer' => [
-                    'name' => 'John Doe',
+                    'name' => 'Organizer',
+                    'email' => '',
                     'avatar' => ''
                 ],
                 'participants' => [
@@ -44,72 +73,95 @@ class EventController extends AppController {
             return;
         }
 
-        $result = MockRepository::joinEvent($userId, (int)$id);
+        $repo = new EventRepository();
+        if ($repo->isEventPast((int)$id)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Event has already passed']);
+            return;
+        }
+        if ($repo->isEventFull((int)$id)) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Event is full']);
+            return;
+        }
+        $result = $repo->joinEventWithTransaction($userId, (int)$id);
         
         if ($result) {
             http_response_code(200);
             echo json_encode(['status' => 'success', 'message' => 'Joined event']);
         } else {
-            // Check specific failure reasons
-            if (MockRepository::isEventPast((int)$id)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Event has already passed']);
-            } elseif (MockRepository::isEventFull((int)$id)) {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Event is full']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
-            }
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
         }
     }
 
-    public function cancel($id) {
+    public function delete($id) {
         header('Content-Type: application/json');
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
-        
         if (!$userId) {
             http_response_code(401);
             echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
             exit();
         }
-
-        // Get event to check ownership
-        $event = MockRepository::getEventById((int)$id);
-        
+        $repo = new EventRepository();
+        $event = $repo->getEventById((int)$id);
         if (!$event) {
             http_response_code(404);
             echo json_encode(['status' => 'error', 'message' => 'Event not found']);
             exit();
         }
-        
-        // Check if owner or admin - if so, delete event instead
-        $isOwner = ($event['ownerId'] ?? null) === $userId;
+        $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
         $isAdmin = $this->isAdmin();
-        
-        if ($isOwner || $isAdmin) {
-            // Delete event
-            $result = MockRepository::deleteEvent((int)$id);
-            
-            if ($result) {
-                http_response_code(200);
-                echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
-            } else {
-                http_response_code(500);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
-            }
+        $repo = new EventRepository();
+        if ($isOwner) {
+            $result = $repo->deleteEventByOwner((int)$id, (int)$userId);
+        } elseif ($isAdmin) {
+            $result = $repo->deleteEvent((int)$id);
         } else {
-            // Cancel participation
-            $result = MockRepository::cancelEventParticipation($userId, (int)$id);
-            
-            if ($result) {
-                http_response_code(200);
-                echo json_encode(['status' => 'success', 'message' => 'Cancelled participation']);
-            } else {
-                http_response_code(400);
-                echo json_encode(['status' => 'error', 'message' => 'Failed to cancel participation']);
-            }
+            http_response_code(403);
+            echo json_encode(['status' => 'error', 'message' => 'Only owner or admin can delete event']);
+            exit();
+        }
+        if ($result) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
+        } else {
+            http_response_code(500);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
+        }
+        exit();
+    }
+
+    public function leave($id) {
+        header('Content-Type: application/json');
+        $this->ensureSession();
+        $userId = $this->getCurrentUserId();
+        if (!$userId) {
+            http_response_code(401);
+            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
+            exit();
+        }
+        $repo = new EventRepository();
+        $event = $repo->getEventById((int)$id);
+        if (!$event) {
+            http_response_code(404);
+            echo json_encode(['status' => 'error', 'message' => 'Event not found']);
+            exit();
+        }
+        // Nie pozwól ownerowi opuścić własnego eventu (może tylko usunąć)
+        if ((int)$event['owner_id'] === (int)$userId) {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Owner cannot leave their own event']);
+            exit();
+        }
+        $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
+        if ($result) {
+            http_response_code(200);
+            echo json_encode(['status' => 'success', 'message' => 'Left event']);
+        } else {
+            http_response_code(400);
+            echo json_encode(['status' => 'error', 'message' => 'Failed to leave event']);
         }
         exit();
     }

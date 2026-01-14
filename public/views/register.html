@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="public/styles/main.css">
     <link rel="stylesheet" type="text/css" href="public/styles/register.css">
+    <link rel="stylesheet" type="text/css" href="public/styles/components/sports-tiles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
@@ -84,24 +85,18 @@
 
                 <div class="input-group full-width">
                     <label class="text-body">Favourite Sports</label>
-                    <div class="sports-tiles">
-                        <?php $selectedSports = $_POST['favourite_sports'] ?? []; ?>
-                        <?php foreach(($allSports ?? []) as $sport): ?>
-                        <label class="tile-sport">
-                            <input type="checkbox" name="favourite_sports[]" value="<?= (int)($sport['id'] ?? 0) ?>"
-                                <?php if(in_array((string)($sport['id'] ?? '' ), array_map('strval', $selectedSports),
-                                true)) echo 'checked' ; ?> />
-                            <div class="tile-content">
-                                <div class="tile-icon material">
-                                    <?= htmlspecialchars($sport['icon'] ?? '') ?>
-                                </div>
-                                <div class="tile-name">
-                                    <?= htmlspecialchars($sport['name'] ?? '') ?>
-                                </div>
-                            </div>
-                        </label>
-                        <?php endforeach; ?>
-                    </div>
+                    <?php
+                        $tilesSports = $allSports ?? [];
+                        $tilesType = 'checkbox';
+                        $tilesName = 'favourite_sports[]';
+                        $tilesSelected = $_POST['favourite_sports'] ?? [];
+                        $tilesValueField = 'id';
+                        $tilesWrapperClass = 'sports-tiles';
+                        $tilesLabelClass = 'tile-sport';
+                        $tilesLayout = 'sport';
+                        $tilesRequired = false;
+                        include __DIR__ . '/components/sports-tiles.html';
+                    ?>
                 </div>
                 <div class="input-group">
                     <label class="text-body">

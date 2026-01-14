@@ -14,7 +14,7 @@ class UserRepository extends Repository{
     public function getUsers(): array {
         try {
             $query = $this->database->connect()->prepare('
-                SELECT id, firstname, lastname, email, role, birth_date, latitude, longitude, avatar FROM users
+                SELECT id, firstname, lastname, email, role, birth_date, latitude, longitude, avatar_url FROM users
             ');
 
             $query->execute();
@@ -26,7 +26,7 @@ class UserRepository extends Repository{
             // If query fails, try without role column
             try {
                 $query = $this->database->connect()->prepare('
-                    SELECT id, firstname, lastname, email, birth_date, latitude, longitude, avatar FROM users
+                    SELECT id, firstname, lastname, email, birth_date, latitude, longitude, avatar_url FROM users
                 ');
                 $query->execute();
                 $users = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -80,14 +80,14 @@ class UserRepository extends Repository{
         $conn = $this->database->connect();
         
         // Try to add missing columns
-        $columns = ['birth_date', 'latitude', 'longitude', 'role', 'avatar'];
+        $columns = ['birth_date', 'latitude', 'longitude', 'role', 'avatar_url'];
         foreach ($columns as $col) {
             try {
                 if ($col === 'birth_date') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col DATE");
                 } elseif ($col === 'role') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col VARCHAR(20) DEFAULT 'basic'");
-                } elseif ($col === 'avatar') {
+                } elseif ($col === 'avatar_url') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col TEXT");
                 } else {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col DECIMAL(9,6)");
@@ -121,11 +121,11 @@ class UserRepository extends Repository{
         $this->columnCache = true;
     }
 
-    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'basic', ?string $avatar = null): ?int {
+    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'basic', ?string $avatarUrl = null): ?int {
         $this->ensureColumns();
         
         $query = $this->database->connect()->prepare('
-            INSERT INTO users (firstname, lastname, email, password, birth_date, latitude, longitude, role, avatar)
+            INSERT INTO users (firstname, lastname, email, password, birth_date, latitude, longitude, role, avatar_url)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             RETURNING id
         ');
@@ -139,11 +139,18 @@ class UserRepository extends Repository{
             $latitude,
             $longitude,
             $role,
-            $avatar
+            $avatarUrl
         ]);
 
         $row = $query->fetch(PDO::FETCH_ASSOC);
-        return $row && isset($row['id']) ? (int)$row['id'] : null;
+        $userId = $row && isset($row['id']) ? (int)$row['id'] : null;
+        
+        // Inicjalizuj statystyki dla nowego użytkownika
+        if ($userId) {
+            $this->initializeUserStatistics($userId);
+        }
+        
+        return $userId;
     }
 
     public function updateUser(string $email, array $data): bool {
@@ -176,9 +183,9 @@ class UserRepository extends Repository{
             $fields[] = 'role = ?';
             $params[] = $data['role'];
         }
-        if (array_key_exists('avatar', $data)) {
-            $fields[] = 'avatar = ?';
-            $params[] = $data['avatar'];
+        if (array_key_exists('avatar_url', $data)) {
+            $fields[] = 'avatar_url = ?';
+            $params[] = $data['avatar_url'];
         }
         
         if (empty($fields)) {
@@ -208,6 +215,67 @@ class UserRepository extends Repository{
         error_log("Password update - executed: " . ($result ? 'true' : 'false') . ", rows affected: $rowCount");
         
         return $rowCount > 0;
+    }
+
+    // UŻYCIE WIDOKU: Pobiera statystyki użytkowników z widoku vw_user_stats
+    public function getUsersStatistics(): array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM vw_user_stats ORDER BY full_name
+        ');
+        $query->execute();
+        return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    // UŻYCIE WIDOKU: Pobiera statystyki konkretnego użytkownika
+    public function getUserStatisticsById(int $userId): ?array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM vw_user_stats WHERE id = :id
+        ');
+        $query->bindParam(':id', $userId, PDO::PARAM_INT);
+        $query->execute();
+        return $query->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // UŻYCIE FUNKCJI: Oblicza wiek użytkownika
+    public function getUserAge(int $userId): ?int {
+        $user = $this->getUserById($userId);
+        if (!$user || !isset($user['birth_date'])) {
+            return null;
+        }
+
+        $query = $this->database->connect()->prepare('
+            SELECT calculate_user_age(:birth_date) AS age
+        ');
+        $query->bindParam(':birth_date', $user['birth_date'], PDO::PARAM_STR);
+        $query->execute();
+        $result = $query->fetch(PDO::FETCH_ASSOC);
+        return $result ? (int)$result['age'] : null;
+    }
+
+    // UŻYCIE TABELI: Inicjalizacja statystyk dla nowego użytkownika
+    public function initializeUserStatistics(int $userId): bool {
+        try {
+            $query = $this->database->connect()->prepare('
+                INSERT INTO user_statistics (user_id, total_events_joined, total_events_created)
+                VALUES (:user_id, 0, 0)
+                ON CONFLICT (user_id) DO NOTHING
+            ');
+            $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            return $query->execute();
+        } catch (Throwable $e) {
+            error_log("Initialize statistics error: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    // UŻYCIE TABELI: Pobiera statystyki użytkownika
+    public function getUserStatistics(int $userId): ?array {
+        $query = $this->database->connect()->prepare('
+            SELECT * FROM user_statistics WHERE user_id = :user_id
+        ');
+        $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
+        $query->execute();
+        return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
 }

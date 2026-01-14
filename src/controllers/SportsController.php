@@ -1,7 +1,8 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
 
 class SportsController extends AppController {
 
@@ -41,14 +42,15 @@ class SportsController extends AppController {
             }
         }
 
-        $sportsCatalog = MockRepository::sportsCatalog();
-        $sportsGrid = array_map(function($sport) {
+        $sportsRepo = new SportsRepository();
+        $sportsFromDb = $sportsRepo->getAllSports();
+        $sportsGrid = array_map(function($row) {
             return [
-                'id' => $sport['id'],
-                'name' => $sport['name'],
-                'icon' => $sport['icon']
+                'id' => (int)$row['id'],
+                'name' => (string)$row['name'],
+                'icon' => $this->sportIcon((string)$row['name'])
             ];
-        }, array_values($sportsCatalog));
+        }, $sportsFromDb);
 
         if (!empty($selectedSports)) {
             $valid = array_column($sportsGrid, 'name');
@@ -57,28 +59,99 @@ class SportsController extends AppController {
         
         $selectedSportIds = [];
         foreach ($selectedSports as $sportName) {
-            foreach ($sportsCatalog as $id => $sport) {
-                if ($sport['name'] === $sportName) {
-                    $selectedSportIds[] = $id;
-                    break;
-                }
+            foreach ($sportsGrid as $s) {
+                if ($s['name'] === $sportName) { $selectedSportIds[] = (int)$s['id']; break; }
             }
         }
 
-        $allLevels = MockRepository::levels();
-        $validLevels = array_merge(['Any'], array_values($allLevels));
+        $levels = $sportsRepo->getAllLevels();
+        $levelMap = [];
+        foreach ($levels as $l) { $levelMap[(int)$l['id']] = (string)$l['name']; }
+        $validLevels = array_merge(['Any'], array_values($levelMap));
         if (!in_array($selectedLevel, $validLevels, true)) {
             $selectedLevel = 'Any';
         }
 
         $levelForFilter = $selectedLevel !== 'Any' ? $selectedLevel : null;
         
-        // Admin sees all events without filtering
-        if ($this->isAdmin()) {
-            $matches = $this->getAllEventsForAdmin($selectedSportIds, $levelForFilter, $center, $radiusKm);
-        } else {
-            $matches = MockRepository::sportsMatches(null, $selectedSportIds, $levelForFilter, $center, $radiusKm);
-        }
+        $eventsRepo = new EventRepository();
+        $rows = $this->isAdmin() ? $eventsRepo->getAllForListing(true) : $eventsRepo->getAllForListing(false);
+        $now = time();
+        $colors = $this->getLevelColors();
+
+        $filtered = array_filter($rows, function($ev) use ($selectedSportIds, $levelForFilter, $center, $radiusKm, $eventsRepo) {
+            if (!empty($selectedSportIds)) {
+                $sid = (int)($ev['sport_id'] ?? 0);
+                if ($sid === 0 || !in_array($sid, $selectedSportIds, true)) { return false; }
+            }
+            if ($levelForFilter !== null) {
+                $lname = (string)($ev['level_name'] ?? '');
+                if ($lname !== $levelForFilter) { return false; }
+            }
+            if ($center && $radiusKm !== null) {
+                $lat2 = isset($ev['latitude']) ? (float)$ev['latitude'] : null;
+                $lng2 = isset($ev['longitude']) ? (float)$ev['longitude'] : null;
+                if ($lat2 === null || $lng2 === null) { return false; }
+                $dist = $this->distanceKm((float)$center[0], (float)$center[1], $lat2, $lng2);
+                if (!is_finite($dist) || $dist > $radiusKm) { return false; }
+            }
+            if (!$this->isAdmin()) {
+                // For non-admin: filter out full events too
+                $eid = (int)$ev['id'];
+                if ($eventsRepo->isEventFull($eid)) { return false; }
+            }
+            return true;
+        });
+
+        // Map to view model
+        $matches = array_map(function($ev) use ($levelMap, $colors, $now) {
+            $current = (int)($ev['current_players'] ?? 0);
+
+            $maxRaw = $ev['max_players'] ?? null;
+            $max = is_numeric($maxRaw) ? (int)$maxRaw : null;
+            if ($max !== null && $max <= 0) {
+                $max = null; // 0 / NULL means "no limit"
+            }
+
+            $minRaw = $ev['min_needed'] ?? null;
+            $min = is_numeric($minRaw) ? (int)$minRaw : null;
+            if ($min !== null && $min <= 0) {
+                $min = null;
+            }
+
+            $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
+
+            $note = '';
+            if ($min !== null && $max !== null) {
+                $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
+            } elseif ($min !== null) {
+                $note = 'Minimum ' . $min;
+            } elseif ($max !== null) {
+                $note = 'Players ' . $max;
+            }
+            if ($note !== '') {
+                $playersText .= ' · ' . $note;
+            }
+            $levelName = (string)($ev['level_name'] ?? 'Intermediate');
+            // try id mapping color by reverse lookup
+            $levelColor = '#eab308';
+            foreach ($levelMap as $lid => $lname) {
+                if ($lname === $levelName) { $levelColor = $colors[$lid] ?? '#eab308'; break; }
+            }
+            $ts = strtotime((string)$ev['start_time']);
+            $isPast = $ts ? ($ts < $now) : false;
+            return [
+                'id' => (int)$ev['id'],
+                'title' => (string)$ev['title'],
+                'datetime' => $ts ? date('D, M j, g:i A', $ts) : 'TBD',
+                'desc' => (string)($ev['description'] ?? ''),
+                'players' => $playersText,
+                'level' => $levelName,
+                'levelColor' => $levelColor,
+                'imageUrl' => (string)($ev['image_url'] ?? ''),
+                'isPast' => $this->isAdmin() ? $isPast : false
+            ];
+        }, array_values($filtered));
 
         $this->render('sports', [
             'pageTitle' => 'SportMatch - Sports',
@@ -90,78 +163,6 @@ class SportsController extends AppController {
             'selectedLoc' => $selectedLoc,
             'radiusKm' => $radiusKm,
         ]);
-    }
-
-    private function getAllEventsForAdmin(array $selectedSports = [], ?string $level = null, ?array $center = null, ?float $radiusKm = null): array {
-        $catalog = MockRepository::sportsCatalog();
-        $levels = MockRepository::levels();
-        $events = MockRepository::events();
-        
-        // Filter only by user selections, not by full/past status
-        $filtered = array_filter($events, function($ev) use ($selectedSports, $level, $center, $radiusKm) {
-            if (!empty($selectedSports)) {
-                $sid = $ev['sportId'] ?? null;
-                if (!$sid || !in_array($sid, $selectedSports, true)) { return false; }
-            }
-
-            if ($level !== null) {
-                $lid = $ev['levelId'] ?? null;
-                $levels = MockRepository::levels();
-                $lname = $lid && isset($levels[$lid]) ? $levels[$lid] : null;
-                if ($lname !== $level) { return false; }
-            }
-
-            if ($center && $radiusKm !== null) {
-                $coords = $ev['coords'] ?? '';
-                if (!is_string($coords) || $coords === '') { return false; }
-                $parts = array_map('trim', explode(',', $coords));
-                if (count($parts) !== 2) { return false; }
-                $lat2 = (float)$parts[0];
-                $lng2 = (float)$parts[1];
-                $dist = $this->distanceKm((float)$center[0], (float)$center[1], $lat2, $lng2);
-                if (!is_finite($dist) || $dist > $radiusKm) { return false; }
-            }
-            return true;
-        });
-        
-        // Sort by date descending (newest first)
-        usort($filtered, function($a, $b) {
-            $dateA = strtotime($a['isoDate'] ?? '');
-            $dateB = strtotime($b['isoDate'] ?? '');
-            return $dateB <=> $dateA; // DESC order
-        });
-        
-        $colors = $this->getLevelColors();
-        $participants = MockRepository::eventParticipants();
-        $uid = $this->getCurrentUserId();
-        $now = time();
-        
-        return array_map(function($ev) use ($levels, $colors, $participants, $uid, $now) {
-            $current = count($participants[$ev['id']] ?? []);
-            $eventTime = strtotime($ev['isoDate'] ?? '');
-            $isPast = $eventTime && $eventTime < $now;
-
-            if ($ev['maxPlayers'] === null) {
-                $playersText = $ev['minNeeded'] . '+ Players';
-            } elseif ($ev['minNeeded'] === $ev['maxPlayers']) {
-                $playersText = $ev['minNeeded'] . ' Players';
-            } else {
-                $playersText = $current . '/' . $ev['minNeeded'] . '-' . $ev['maxPlayers'] . ' Players';
-            }
-            return [
-                'id' => $ev['id'],
-                'title' => $ev['title'],
-                'datetime' => $ev['dateText'],
-                'desc' => $ev['desc'],
-                'players' => $playersText,
-                'level' => $levels[$ev['levelId']],
-                'levelColor' => $colors[$ev['levelId']],
-                'imageUrl' => $ev['imageUrl'],
-                'isUserParticipant' => MockRepository::isUserParticipant($uid, $ev['id']),
-                'isFull' => MockRepository::isEventFull($ev['id']),
-                'isPast' => $isPast
-            ];
-        }, array_values($filtered));
     }
 
     private function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float {
@@ -179,5 +180,16 @@ class SportsController extends AppController {
             2 => '#eab308',
             3 => '#ef4444',
         ];
+    }
+
+    private function sportIcon(string $name): string {
+        switch ($name) {
+            case 'Soccer': return '⚽';
+            case 'Basketball': return '🏀';
+            case 'Tennis': return '🎾';
+            case 'Running': return '🏃';
+            case 'Cycling': return '🚴';
+            default: return '🏅';
+        }
     }
 }

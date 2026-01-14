@@ -1,7 +1,9 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../validators/EventFormValidator.php';
 
 class EditController extends AppController {
 
@@ -9,111 +11,63 @@ class EditController extends AppController {
     {
         $this->ensureSession();
         
-        $event = MockRepository::getEventById((int)$id);
+        $repo = new EventRepository();
+        $row = $repo->getEventById((int)$id);
         
-        if (!$this->isAdmin() && MockRepository::isEventPast((int)$id)) {
+        if (!$row) {
             $this->render('404');
             return;
         }
         
-        $skillLevels = array_values(MockRepository::levels());
+        $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
+        $sportsRepo = new SportsRepository();
+        $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        $allSports = $sportsRepo->getAllSports();
         
-        $minPeople = $event['participants']['minNeeded'] ?? 6;
-        $maxPeople = array_key_exists('max', $event['participants']) ? $event['participants']['max'] : null;
-        
-        $participantsType = 'range';
-        $specificValue = null;
-        $minimumValue = null;
-        $rangeMinValue = null;
-        $rangeMaxValue = null;
-        
-        if ($minPeople === $maxPeople) {
-            $participantsType = 'specific';
-            $specificValue = $minPeople;
-        } elseif ($maxPeople === null) {
-
-            $participantsType = 'minimum';
-            $minimumValue = $minPeople;
-        } else {
-            $participantsType = 'range';
-            $rangeMinValue = $minPeople;
-            $rangeMaxValue = $maxPeople;
-        }
-        
-        $formEvent = [
-            'id' => $event['id'] ?? $id,
-            'title' => $event['title'] ?? '',
-            'datetime' => $event['dateTime'] ? date('Y-m-d\TH:i', strtotime($event['dateTime'])) : '',
-            'skillLevel' => $event['skillLevel'] ?? 'Intermediate',
-            'location' => $event['coords'] ?? '',
-            'desc' => $event['desc'] ?? '',
-            'participants' => [
-                'type' => $participantsType,
-                'specific' => $specificValue,
-                'minimum' => $minimumValue,
-                'rangeMin' => $rangeMinValue,
-                'rangeMax' => $rangeMaxValue
-            ]
-        ];
-
-        $this->render('edit', [
-            'pageTitle' => 'SportMatch - Edit Event',
-            'activeNav' => 'edit',
-            'skillLevels' => $skillLevels,
-            'event' => $formEvent,
-            'eventId' => $id,
-        ]);
+        $this->renderEditForm($id, $row, $skillLevels, $isReadOnly, [], $allSports);
     }
     
     public function save($id): void
     {
         $this->ensureSession();
         
-        if (MockRepository::isEventPast((int)$id) && !$this->isAdmin()) {
+        $repo = new EventRepository();
+        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
             http_response_code(403);
             echo json_encode(['error' => 'Cannot edit past events']);
             return;
         }
         
-        $title = $_POST['title'] ?? '';
-        $datetime = $_POST['datetime'] ?? '';
-        $location = $_POST['location'] ?? '';
-        $skill = $_POST['skill'] ?? 'Intermediate';
-        $desc = $_POST['desc'] ?? '';
-        $participantsType = $_POST['participantsType'] ?? 'range';
+        // Validate form using EventFormValidator
+        $validation = EventFormValidator::validate($_POST);
         
-        $minNeeded = 0;
-        $maxPlayers = null;
-        
-        if ($participantsType === 'specific') {
-            $raw = $_POST['playersSpecific'] ?? '';
-            $value = ($raw === '' ? 0 : (int)$raw);
-            $minNeeded = $value;
-            $maxPlayers = $value;
-        } elseif ($participantsType === 'minimum') {
-            $raw = $_POST['playersMin'] ?? '';
-            $minNeeded = ($raw === '' ? 0 : (int)$raw);
-            $maxPlayers = null;
-        } else {
-            $rawMin = $_POST['playersRangeMin'] ?? '';
-            $rawMax = $_POST['playersRangeMax'] ?? '';
-            $minNeeded = ($rawMin === '' ? 0 : (int)$rawMin);
-            $maxPlayers = ($rawMax === '' ? 0 : (int)$rawMax);
+        if (!empty($validation['errors'])) {
+            // Re-render form with errors
+            $row = $repo->getEventById((int)$id);
+            $sportsRepo = new SportsRepository();
         }
         
         $updates = [
-            'title' => $title,
-            'dateText' => date('D, M j, g:i A', strtotime($datetime)),
-            'isoDate' => $datetime,
-            'coords' => $location,
-            'levelId' => $this->skillLevelToId($skill),
-            'maxPlayers' => $maxPlayers,
-            'minNeeded' => $minNeeded,
-            'desc' => $desc
+            'title' => $validation['data']['title'],
+            'sport_id' => $validation['data']['sport_id'],
+            'start_time' => $validation['data']['start_time'],
+            'latitude' => $validation['data']['latitude'],
+            'longitude' => $validation['data']['longitude'],
+            'level_id' => $validation['data']['level_id'],
+            'max_players' => $validation['data']['max_players'],
+            'min_needed' => $validation['data']['min_needed'],
+            'description' => $validation['data']['description']
         ];
-        
-        $result = MockRepository::updateEvent((int)$id, $updates);
-        
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = 'event_' . uniqid() . '.' . $ext;
+            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+            if (move_uploaded_file($tmpName, $targetPath)) {
+                $updates['image_url'] = '/public/images/events/' . $fileName;
+            }
+        }
+        $result = $repo->updateEvent((int)$id, $updates);
         if ($result) {
             header('Location: /event/' . (int)$id);
             exit;
@@ -123,13 +77,80 @@ class EditController extends AppController {
         }
     }
     
-    private function skillLevelToId(string $skill): int
+    private function renderEditForm($id, $row, $skillLevels, $isReadOnly, $errors = [], $allSports = []): void
     {
-        $map = [
-            'Beginner' => 1,
-            'Intermediate' => 2,
-            'Advanced' => 3,
+        $minPeople = (int)($row['min_needed'] ?? 6);
+        $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
+        
+                    // Removed redirect logic as Routing.php handles it
+                    // header('Location: /event/' . (int)$id);
+                    // exit;
+        $minimumValue = null;
+        $rangeMinValue = null;
+        $rangeMaxValue = null;
+        
+        if ($minPeople === $maxPeople && $maxPeople !== null) {
+            $participantsType = 'specific';
+            $specificValue = $minPeople;
+        } elseif ($maxPeople === null) {
+            $participantsType = 'minimum';
+            $minimumValue = $minPeople;
+        } else {
+            $participantsType = 'range';
+            $rangeMinValue = $minPeople;
+            $rangeMaxValue = $maxPeople;
+        }
+        
+        // Parse coords
+        $coordsString = '';
+        if (isset($row['latitude'], $row['longitude'])) {
+            $coordsString = $row['latitude'] . ', ' . $row['longitude'];
+        }
+        
+        // Format datetime for input
+        $datetimeInput = '';
+        if (!empty($row['start_time'])) {
+            try {
+                $dt = new DateTime($row['start_time']);
+                $datetimeInput = $dt->format('Y-m-d\TH:i');
+            } catch (Throwable $e) {
+                $datetimeInput = '';
+            }
+        }
+        
+        $formEvent = [
+            'id' => $row['id'] ?? $id,
+            'title' => $row['title'] ?? '',
+            'datetime' => $datetimeInput,
+            'skillLevel' => $row['level_name'] ?? 'Intermediate',
+            'sportId' => $row['sport_id'] ?? 0,
+            'location' => $coordsString,
+            'desc' => $row['description'] ?? '',
+            'participants' => [
+                'type' => $participantsType,
+                'specific' => $specificValue,
+                'minimum' => $minimumValue,
+                'rangeMin' => $rangeMinValue,
+                'rangeMax' => $rangeMaxValue
+            ]
         ];
-        return $map[$skill] ?? 2;
+
+        $renderData = [
+            'pageTitle' => 'SportMatch - Edit Event',
+            'activeNav' => 'edit',
+            'skillLevels' => $skillLevels,
+            'allSports' => $allSports,
+            'event' => $formEvent,
+            'eventId' => $id,
+            'isReadOnly' => $isReadOnly,
+        ];
+        
+        // Add errors and formData only if there are errors
+        if (!empty($errors)) {
+            $renderData['errors'] = $errors;
+            $renderData['formData'] = $_POST;
+        }
+
+        parent::render('edit', $renderData);
     }
 }

@@ -1,0 +1,47 @@
+<?php
+// Shared "match card" content for lists like Sports / My Events.
+// Expected input: $card (array) or fallback to $m.
+// Optional: $showDesc (bool, default true)
+
+$card = $card ?? ($m ?? []);
+$showDesc = (bool)($showDesc ?? true);
+
+$title = (string)($card['title'] ?? '');
+$datetime = (string)($card['datetime'] ?? '');
+$desc = (string)($card['desc'] ?? '');
+$players = (string)($card['players'] ?? '');
+$level = (string)($card['level'] ?? '');
+$levelColor = (string)($card['levelColor'] ?? '#999');
+?>
+
+<div class="copy">
+    <div class="text-title-smaller">
+        <?= htmlspecialchars($title) ?>
+    </div>
+
+    <?php if ($datetime !== ''): ?>
+    <p class="text-small">
+        <?= htmlspecialchars($datetime) ?>
+    </p>
+    <?php endif; ?>
+
+    <?php if ($showDesc && $desc !== ''): ?>
+    <p class="text-body">
+        <?= htmlspecialchars($desc) ?>
+    </p>
+    <?php endif; ?>
+
+    <div class="meta-row text-small">
+        <?php if ($players !== ''): ?>
+        <span>👥
+            <?= htmlspecialchars($players) ?>
+        </span>
+        <?php endif; ?>
+
+        <?php if ($level !== ''): ?>
+        <span class="level" style="--level-color: <?= htmlspecialchars($levelColor) ?>;">
+            <?= htmlspecialchars($level) ?>
+        </span>
+        <?php endif; ?>
+    </div>
+</div>

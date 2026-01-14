@@ -2,16 +2,15 @@
 <?php include __DIR__ . '/components/header.html'; ?>
 <link rel="stylesheet" href="/public/styles/event.css" />
 
+<?php
+    $isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin');
+    $canSeeContact = $isAdmin || ($event['isOwner'] ?? false) || ($event['isUserParticipant'] ?? false);
+?>
+
 <section class="event-page">
     <div class="section">
         <div class="text-title-large">
             <?= htmlspecialchars($event['title'] ?? 'Match Details') ?>
-        </div>
-        <div class="text-body icon-row">
-            <span class="material">location_on</span>
-            <span>
-                <?= htmlspecialchars($event['location'] ?? '') ?>
-            </span>
         </div>
     </div>
 
@@ -31,10 +30,21 @@
             <div class="left">
                 <div class="card panel">
                     <div class="text-title">Match Details</div>
-                    <p class="text-body">A friendly game of football for intermediate
-                        players. Bring your own boots and water. We'll play 6-a-side with rotating goalkeepers. Please
-                        be on time as we have a limited booking.</p>
+                    <?php if (!empty($event['description'] ?? '')): ?>
+                    <p class="text-body">
+                        <?= nl2br(htmlspecialchars($event['description'])) ?>
+                    </p>
+                    <?php else: ?>
+                    <p class="text-body text-note">No description provided.</p>
+                    <?php endif; ?>
                     <div class="grid-info">
+                        <div class="icon-row">
+                            <span class="material">sports</span>
+                            <span class="text-small">Sport</span>
+                        </div>
+                        <div class="text-small">
+                            <?= htmlspecialchars($event['sportName'] ?? '') ?>
+                        </div>
                         <div class="icon-row">
                             <span class="material">event</span>
                             <span class="text-small">Date &amp; Time</span>
@@ -52,19 +62,30 @@
                     </div>
                 </div>
 
-                <div id="revealed-info" class="card panel" <?=($event['isUserParticipant'] ?? false) ? '' : 'hidden' ?>>
+                <div id="revealed-info" class="card panel" <?=$canSeeContact ? '' : 'hidden' ?>>
                     <div class="text-title">Location &amp; Contact</div>
                     <div class="grid-info">
                         <div class="icon-row">
                             <span class="material">pin_drop</span>
                             <span class="text-small">Exact Location</span>
                         </div>
-                        <div class="text-small">Great Lawn, Central Park, New York, NY</div>
+                        <div class="text-small">
+                            <?= htmlspecialchars(($event['coords'] ?? '') ?: ($event['location'] ?? '')) ?>
+                        </div>
                         <div class="icon-row">
                             <span class="material">contact_mail</span>
                             <span class="text-small">Contact Organizer</span>
                         </div>
-                        <div class="text-small">john.doe@email.com</div>
+                        <div class="text-small">
+                            <?php $orgEmail = (string)($event['organizer']['email'] ?? ''); ?>
+                            <?php if ($orgEmail !== ''): ?>
+                            <a class="a-link" href="mailto:<?= htmlspecialchars($orgEmail) ?>">
+                                <?= htmlspecialchars($orgEmail) ?>
+                            </a>
+                            <?php else: ?>
+                            <span class="text-note">Not available</span>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -72,7 +93,13 @@
                 <div class="card panel">
                     <div class="text-title">Organizer</div>
                     <div class="organizer-info">
-                        <img src="<?= htmlspecialchars($event['organizer']['avatar'] ?? '') ?>" alt="Organizer avatar"
+                        <?php
+                            $organizerAvatar = (string)($event['organizer']['avatar'] ?? '');
+                            if ($organizerAvatar === '') {
+                                $organizerAvatar = DEFAULT_AVATAR;
+                            }
+                        ?>
+                        <img src="<?= htmlspecialchars($organizerAvatar) ?>" alt="Organizer avatar"
                             class="organizer-avatar" />
                         <div>
                             <div class="text-title-smaller">
@@ -83,23 +110,49 @@
                 </div>
                 <div class="card panel">
                     <div class="text-title">Participants</div>
+                    <?php
+                        $currentJoined = (int)($event['participants']['current'] ?? 0);
+                        $maxPlayersRaw = $event['participants']['max'] ?? null;
+                        $minNeededRaw = $event['participants']['minNeeded'] ?? null;
+
+                        $maxPlayers = is_numeric($maxPlayersRaw) ? (int)$maxPlayersRaw : null;
+                        if ($maxPlayers !== null && $maxPlayers <= 0) { $maxPlayers = null; }
+
+                        $minNeeded = is_numeric($minNeededRaw) ? (int)$minNeededRaw : null;
+                        if ($minNeeded !== null && $minNeeded <= 0) { $minNeeded = null; }
+
+                        $participantsNote = '';
+                        if ($minNeeded !== null && $maxPlayers !== null) {
+                            // Range
+                            $participantsNote = "Range: {$minNeeded}–{$maxPlayers} players";
+                        } elseif ($minNeeded !== null) {
+                            // Minimum
+                            $participantsNote = "Minimum: {$minNeeded} players";
+                        } elseif ($maxPlayers !== null) {
+                            // Fixed number / limit
+                            $participantsNote = "Players: {$maxPlayers}";
+                        }
+                    ?>
                     <div class="participants-stats">
                         <span class="material">groups</span>
                         <div class="text-small">
-                            <?= (int)($event['participants']['current'] ?? 0) ?>
+                            <?= $currentJoined ?>
                         </div>
-                        <?php if ($event['participants']['max'] !== null): ?>
-                        <div class="text-small">/
-                            <?= (int)($event['participants']['max'] ?? 0) ?> joined
+                        <div class="text-small">
+                            <?php if ($maxPlayers !== null): ?>
+                            /
+                            <?= $maxPlayers ?>
+                            <?php endif; ?>
+                            joined
                         </div>
-                        <?php else: ?>
-                        <div class="text-small">joined</div>
-                        <?php endif; ?>
                     </div>
+                    <?php if ($participantsNote !== ''): ?>
                     <div class="text-note">
-                        <span class="text-compact-strong">Minimum needed:</span>
-                        <?= (int)($event['participants']['minNeeded'] ?? 0) ?> players
+                        <span class="text-compact-strong">
+                            <?= htmlspecialchars($participantsNote) ?>
+                        </span>
                     </div>
+                    <?php endif; ?>
                 </div>
                 <div class="join-actions">
                     <?php if ($event['isOwner'] ?? false): ?>
@@ -231,28 +284,37 @@
                 return;
             }
             const eventId = getEventId();
-            fetch(`/event/${eventId}/delete`, { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        cancelBtn.classList.add('hidden');
-                        joinBtn?.classList.remove('hidden');
-                        revealed?.setAttribute('hidden', '');
-                    } else {
-                        alert('Failed to cancel participation');
+            fetch(`/event/${eventId}/leave`, { method: 'POST', credentials: 'same-origin' })
+                .then(async res => {
+                    const text = await res.text();
+                    try {
+                        const data = JSON.parse(text);
+                        if (data.status === 'success') {
+                            cancelBtn.classList.add('hidden');
+                            joinBtn?.classList.remove('hidden');
+                            revealed?.setAttribute('hidden', '');
+                        } else {
+                            alert('Failed to leave event: ' + (data.message || ''));
+                        }
+                    } catch (e) {
+                        console.error('Response is not valid JSON:', text);
+                        alert('Error: Response is not valid JSON. See console for details.');
                     }
                 })
-                .catch(err => alert('Error: ' + err.message));
+                .catch(err => {
+                    console.error('Network or JS error:', err);
+                    alert('Error: ' + err.message);
+                });
         });
 
         deleteBtn?.addEventListener('click', function () {
             const eventId = this.getAttribute('data-event-id');
             if (confirm('Are you sure you want to delete this event?')) {
-                fetch(`/event/${eventId}/delete`, { method: 'POST' })
+                fetch(`/event/${eventId}/delete`, { method: 'POST', credentials: 'same-origin' })
                     .then(response => {
                         if (response.ok) {
                             // Redirect based on user role - admin goes to /sports, others to /my
-                            const isAdmin = <?= ($_SESSION['user_role'] ?? 'basic') === 'admin' ? 'true' : 'false' ?>;
+                            const isAdmin = <?= json_encode((($_SESSION['user_role'] ?? 'basic') === 'admin')) ?>;
                             window.location.href = isAdmin ? '/sports' : '/my';
                         } else {
                             alert('Failed to delete event');

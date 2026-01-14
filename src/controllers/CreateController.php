@@ -1,7 +1,9 @@
 <?php
 
 require_once 'AppController.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../validators/EventFormValidator.php';
 
 class CreateController extends AppController {
 
@@ -23,117 +25,63 @@ class CreateController extends AppController {
 
     protected function renderForm(): void
     {
-        $allLevels = MockRepository::levels();
-        $skillLevels = array_values($allLevels); // Convert to indexed array for form
+        $sportsRepo = new SportsRepository();
+        $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        $allSports = $sportsRepo->getAllSports();
+        
         parent::render('create', [
             'pageTitle' => 'SportMatch - Create Event',
             'activeNav' => 'create',
             'skillLevels' => $skillLevels,
+            'allSports' => $allSports,
         ]);
     }
 
     protected function save(): void
     {
         $this->ensureSession();
-        
-        // Get form data
-        $title = trim($_POST['title'] ?? '');
-        $datetime = $_POST['datetime'] ?? '';
-        $location = $_POST['location'] ?? '';
-        $skill = $_POST['skill'] ?? 'Intermediate';
-        $description = trim($_POST['desc'] ?? '');
-        $participantsType = $_POST['participantsType'] ?? 'range';
-        
-        // Validation
-        $errors = [];
-        
-        if (empty($title)) {
-            $errors[] = 'Event name is required';
-        }
-        
-        if (empty($datetime)) {
-            $errors[] = 'Date and time is required';
-        }
-        
-        if (empty($location)) {
-            $errors[] = 'Location is required - please choose on map';
-        }
-        
-        if (!empty($errors)) {
-            $allLevels = MockRepository::levels();
-            $skillLevels = array_values($allLevels);
+        // Validate form using EventFormValidator
+        $validation = EventFormValidator::validate($_POST);
+        if (!empty($validation['errors'])) {
+            $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
             parent::render('create', [
                 'pageTitle' => 'SportMatch - Create Event',
                 'activeNav' => 'create',
                 'skillLevels' => $skillLevels,
-                'errors' => $errors,
+                'allSports' => $allSports,
+                'errors' => $validation['errors'],
                 'formData' => $_POST
             ]);
             return;
         }
-        
-        error_log('Create event: passed validation, adding event');
-        
-        // Parse participants based on selected type from form inputs
-        $minNeeded = 0;
-        $maxPlayers = 0;
-        
-        if ($participantsType === 'specific') {
-            // User selected specific number
-            $value = (int)($_POST['playersSpecific'] ?? 0);
-            $minNeeded = $value;
-            $maxPlayers = $value;
-        } elseif ($participantsType === 'minimum') {
-            // User selected minimum
-            $minNeeded = (int)($_POST['playersMin'] ?? 0);
-            $maxPlayers = null;
-        } else {
-            // User selected range
-            $minNeeded = (int)($_POST['playersRangeMin'] ?? 0);
-            $maxPlayers = (int)($_POST['playersRangeMax'] ?? 0);
-        }
-        
-        // Get current user as owner
         $ownerId = $this->getCurrentUserId();
-        
-        // Create new event
-        $newEvent = [
-            'title' => $title,
-            'dateText' => date('D, M j, g:i A', strtotime($datetime)),
-            'isoDate' => $datetime,
-            'location' => 'Event Location',
-            'coords' => $location ?: '0, 0',
-            'sportId' => 1,  // Default sport
-            'levelId' => $this->skillLevelToId($skill),
-            'imageUrl' => 'https://picsum.photos/seed/new-event/800/600',
-            'desc' => $description,
-            'ownerId' => $ownerId,
-            'maxPlayers' => $maxPlayers,
-            'minNeeded' => $minNeeded
-        ];
-        
-        // Add to mock repository
-        error_log('Adding event with data: ' . json_encode($newEvent));
-        $eventId = MockRepository::addEvent($newEvent);
-        error_log('Event created with ID: ' . ($eventId ?? 'null'));
-        
+        $imageUrl = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = 'event_' . uniqid() . '.' . $ext;
+            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+            if (move_uploaded_file($tmpName, $targetPath)) {
+                $imageUrl = '/public/images/events/' . $fileName;
+            }
+        }
+        if (!$imageUrl) {
+            $imageUrl = '/public/images/boisko.png';
+        }
+        $newEvent = array_merge($validation['data'], [
+            'owner_id' => $ownerId,
+            'image_url' => $imageUrl
+        ]);
+        $repo = new EventRepository();
+        $eventId = $repo->createEvent($newEvent);
         if ($eventId) {
-            error_log('Redirecting to /event/' . $eventId);
             header('Location: /event/' . $eventId);
             exit;
         } else {
             http_response_code(500);
             echo json_encode(['error' => 'Failed to create event']);
         }
-    }
-    
-    private function skillLevelToId(string $skill): int
-    {
-        $map = [
-            'Beginner' => 1,
-            'Intermediate' => 2,
-            'Advanced' => 3,
-        ];
-        return $map[$skill] ?? 2;
     }
 }

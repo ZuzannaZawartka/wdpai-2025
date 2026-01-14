@@ -38,10 +38,12 @@
                     <div class="actions">
                         <a href="/event/<?= (int)($m['id'] ?? 0) ?>" class="button primary text-size-small">View
                             Details</a>
+                        <?php if (!($m['isOwner'] ?? false)): ?>
                         <button class="a-link danger text-size-small cancel-participation-joined"
                             data-event-id="<?= (int)($m['id'] ?? 0) ?>"
                             style="background: none; border: none; cursor: pointer; color: inherit;">Cancel
                             Participation</button>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="visual" style="background-image:url('<?= htmlspecialchars($m['imageUrl']) ?>')"></div>
@@ -68,13 +70,13 @@
                     return;
                 }
                 const eventId = this.getAttribute('data-event-id');
-                fetch(`/event-cancel/${eventId}`, { method: 'POST' })
+                fetch(`/event/${eventId}/leave`, { method: 'POST', credentials: 'same-origin' })
                     .then(res => res.json())
                     .then(data => {
                         if (data.status === 'success') {
                             this.closest('article').remove();
                         } else {
-                            alert('Failed to cancel participation');
+                            alert('Failed to leave event');
                         }
                     })
                     .catch(err => alert('Error: ' + err.message));

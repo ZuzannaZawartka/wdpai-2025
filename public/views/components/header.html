@@ -14,6 +14,12 @@
     <link rel="stylesheet" href="/public/styles/main.css" />
     <link rel="stylesheet" href="/public/styles/components/header.css" />
     <?php $active = $activeNav ?? 'dashboard'; ?>
+    <?php if (
+        $active === 'admin' ||
+        (isset($activeNav) && ($activeNav === 'admin' || $activeNav === 'accounts' || $activeNav === 'edit-user'))
+    ): ?>
+    <link rel="stylesheet" href="/public/styles/accounts.css" />
+    <?php endif; ?>
     <?php if ($active === 'dashboard'): ?>
     <link rel="stylesheet" href="/public/styles/dashboard.css" />
     <?php endif; ?>
@@ -29,6 +35,8 @@
     <?php if (isset($activeNav) && ($activeNav === 'create' || $activeNav === 'edit')): ?>
     <link rel="stylesheet" href="/public/styles/create.css" />
     <?php endif; ?>
+
+    <link rel="stylesheet" href="/public/styles/components/sports-tiles.css" />
 
     <?php if (isset($activeNav) && $activeNav === 'profile'): ?>
     <link rel="stylesheet" href="/public/styles/profile.css" />
@@ -51,7 +59,7 @@
 
                     <?php if ($isAdmin): ?>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
-                    <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Accounts</a>
+                    <a class="nav-link <?= $active==='accounts' ? 'active' : '' ?>" href="/accounts">Accounts</a>
                     <?php else: ?>
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>

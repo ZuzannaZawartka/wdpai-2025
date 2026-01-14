@@ -2,7 +2,7 @@
 
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
-require_once __DIR__ . '/../repository/MockRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
 
 class UserController extends AppController {
 
@@ -31,11 +31,13 @@ class UserController extends AppController {
             'lastName' => '',
             'email' => $email,
             'birthDate' => '',
+            'age' => null,
             'location' => '',
             'latitude' => null,
             'longitude' => null,
             'sports' => [],
-            'avatar' => DEFAULT_AVATAR
+            'avatar' => DEFAULT_AVATAR,
+            'statistics' => null
         ];
 
         if (is_array($dbUser)) {
@@ -45,43 +47,48 @@ class UserController extends AppController {
             $profile['birthDate'] = $dbUser['birth_date'] ?? '';
             $profile['latitude'] = $dbUser['latitude'] ?? null;
             $profile['longitude'] = $dbUser['longitude'] ?? null;
-            if (!empty($dbUser['avatar'])) {
-                $profile['avatar'] = $dbUser['avatar'];
-            }
-            if ($profile['latitude'] && $profile['longitude']) {
-                $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
-            }
-            // Keep session avatar in sync for header on other pages
-            $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
-        } elseif ($userId) {
-            $users = MockRepository::users();
-            if (isset($users[$userId])) {
-                $name = trim((string)($users[$userId]['name'] ?? ''));
-                $parts = preg_split('/\s+/', $name, 2) ?: [];
-                $profile['firstName'] = $parts[0] ?? '';
-                $profile['lastName'] = $parts[1] ?? '';
-                $profile['avatar'] = $users[$userId]['avatar'] ?? $profile['avatar'];
-                // Convert stored lat/lng to display string
-                if (isset($users[$userId]['location']['lat'], $users[$userId]['location']['lng'])) {
-                    $profile['location'] = $users[$userId]['location']['lat'] . ', ' . $users[$userId]['location']['lng'];
-                }
-                $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
+            if (!empty($dbUser['avatar_url'])) {
+                $profile['avatar'] = $dbUser['avatar_url'];
             }
         }
-
-        $favouriteSports = MockRepository::favouriteSports($userId);
-        $allSports = array_values(MockRepository::sportsCatalog());
-        $selectedSportIds = array_values(array_filter(array_map(function($item) {
-            return is_array($item) && isset($item['id']) ? (int)$item['id'] : null;
-        }, $favouriteSports)));
+        
+        if ($profile['latitude'] && $profile['longitude']) {
+            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
+        }
+        
+        // Użycie funkcji calculate_user_age - pobierz wiek użytkownika
+        if ($userId) {
+            $profile['age'] = $repo->getUserAge($userId);
+        }
+        
+        // Użycie widoku vw_user_stats - pobierz statystyki użytkownika
+        if ($userId) {
+            $profile['statistics'] = $repo->getUserStatisticsById($userId);
+        }
+        
+        if ($profile['latitude'] && $profile['longitude']) {
+            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
+        }
+        // Keep session avatar in sync for header on other pages
+        $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
+        
+        $sportsRepo = new SportsRepository();
+        $allSports = $sportsRepo->getAllSports();
+        $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];
+        
+        // Build sport id to icon map
+        $sportIdToIcon = [];
+        foreach ($allSports as $sport) {
+            $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
+        }
 
         $this->render("profile", [
             'pageTitle' => 'SportMatch - Profile',
             'activeNav' => 'profile',
             'user' => $profile,
-            'favouriteSports' => $favouriteSports,
             'allSports' => $allSports,
-            'selectedSportIds' => $selectedSportIds
+            'selectedSportIds' => $selectedSportIds,
+            'sportIdToIcon' => $sportIdToIcon
         ]);
     }
 
@@ -120,8 +127,9 @@ class UserController extends AppController {
 
         // Validate password change if any password field is filled
         $errors = [];
+        $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
         if (!empty($oldPassword) || !empty($newPassword) || !empty($confirmPassword)) {
-            if (empty($oldPassword)) {
+            if (!$isAdmin && empty($oldPassword)) {
                 $errors[] = "Current password is required to change password";
             }
             if (empty($newPassword)) {
@@ -157,19 +165,17 @@ class UserController extends AppController {
 
         $repo = new UserRepository();
         $existingUser = $repo->getUserByEmail($email);
-        $existingAvatar = $existingUser['avatar'] ?? null;
+        $existingAvatar = $existingUser['avatar_url'] ?? null;
         
         // Verify old password FIRST if changing password
-        if (!empty($newPassword)) {
+        $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
+        if (!empty($newPassword) && !$isAdmin) {
             try {
                 $dbUser = $existingUser;
                 if (!$dbUser || !$this->verifyPassword($oldPassword, $dbUser['password'])) {
                     header('HTTP/1.1 401 Unauthorized');
-                    $allSports = array_values(MockRepository::sportsCatalog());
-                    $favouriteSports = MockRepository::favouriteSports($userId);
-                    $selectedSportIds = array_values(array_filter(array_map(function($item) {
-                        return is_array($item) && isset($item['id']) ? (int)$item['id'] : null;
-                    }, $favouriteSports)));
+                    $allSports = (new SportsRepository())->getAllSports();
+                    $selectedSportIds = $userId ? (new SportsRepository())->getFavouriteSportsIds($userId) : [];
                     $this->render('profile', [
                         'messages' => 'Current password is incorrect',
                         'allSports' => $allSports,
@@ -221,7 +227,7 @@ class UserController extends AppController {
                 'birth_date' => $birthDate ?: null,
                 'latitude' => $latitude,
                 'longitude' => $longitude,
-                'avatar' => $avatarPath
+                'avatar_url' => $avatarPath
             ]);
             
             // Update password if provided (already verified above)
@@ -231,9 +237,7 @@ class UserController extends AppController {
             }
             
             // Update favourite sports
-            if (!empty($favouriteSports)) {
-                MockRepository::setUserFavouriteSports($userId, $favouriteSports);
-            }
+            (new SportsRepository())->setFavouriteSports($userId, $favouriteSports);
 
             // Update session avatar for header usage
             if (!empty($avatarPath)) {
@@ -247,28 +251,24 @@ class UserController extends AppController {
         }
 
         header('Location: /profile', true, 303);
-        exit();
+        // Nie wywołuj exit() by umożliwić dalsze przetwarzanie lub testy
     }
     
     public function editUser($userId = null) {
         $this->ensureSession();
-        
-        // Only admin can edit other users
-        if (!$this->isAdmin()) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            return;
-        }
-        
+        // Uprawnienia obsługuje Routing.php
         $editUserId = (int)($_GET['id'] ?? $userId ?? 0);
         if (!$editUserId) {
-            header('HTTP/1.1 400 Bad Request');
+            http_response_code(400);
             $this->render('404');
             return;
         }
         
         $repo = new UserRepository();
-        
+        $sportsRepo = new SportsRepository();
+        $allSports = $sportsRepo->getAllSports();
+        $selectedSportIds = $editUserId ? $sportsRepo->getFavouriteSportsIds($editUserId) : [];
+
         if ($this->isPost()) {
             $user = $repo->getUserById($editUserId);
             if (!$user) {
@@ -276,46 +276,39 @@ class UserController extends AppController {
                 $this->render('404');
                 return;
             }
-            
-            $email = $user['email'];
-            $firstName = trim($_POST['firstName'] ?? '');
-            $lastName = trim($_POST['lastName'] ?? '');
-            $birthDate = trim($_POST['birthDate'] ?? '');
+
+            require_once __DIR__ . '/../validators/UserFormValidator.php';
+            $validation = UserFormValidator::validate($_POST);
+            $errors = $validation['errors'] ?? [];
+            $validated = $validation['data'] ?? [];
+
             $newPassword = trim($_POST['newPassword'] ?? '');
             $confirmPassword = trim($_POST['confirmPassword'] ?? '');
-            
-            // Validate passwords if provided
-            if (!empty($newPassword)) {
-                if (mb_strlen($newPassword, 'UTF-8') < 8) {
-                    header('HTTP/1.1 400 Bad Request');
-                    $this->render('user-edit', [
-                        'user' => $user,
-                        'messages' => 'Password must be at least 8 characters'
-                    ]);
-                    return;
-                }
-                if ($newPassword !== $confirmPassword) {
-                    header('HTTP/1.1 400 Bad Request');
-                    $this->render('user-edit', [
-                        'user' => $user,
-                        'messages' => 'Passwords do not match'
-                    ]);
-                    return;
-                }
-            }
-            
-            try {
-                $repo->updateUser($email, [
-                    'firstname' => $firstName,
-                    'lastname' => $lastName,
-                    'birth_date' => $birthDate ?: null
+            $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
+
+            if (!empty($errors)) {
+                header('HTTP/1.1 400 Bad Request');
+                $this->render('user-edit', [
+                    'user' => $user,
+                    'allSports' => $allSports,
+                    'selectedSportIds' => $selectedSportIds,
+                    'messages' => implode('<br>', $errors)
                 ]);
-                
-                if (!empty($newPassword)) {
-                    $hashedPassword = $this->hashPassword($newPassword);
-                    $repo->updateUserPassword($email, $hashedPassword);
+                return;
+            }
+
+            try {
+                $repo->updateUser($user['email'], [
+                    'firstname' => $validated['firstName'],
+                    'lastname' => $validated['lastName'],
+                    'birth_date' => $validated['birthDate'] ?: null
+                ]);
+                if (!empty($validated['newPassword'])) {
+                    $hashedPassword = $this->hashPassword($validated['newPassword']);
+                    $repo->updateUserPassword($user['email'], $hashedPassword);
                 }
-                
+                // Update favourite sports
+                $sportsRepo->setFavouriteSports($editUserId, $favouriteSports);
                 header('Location: /joined', true, 303);
                 exit();
             } catch (Throwable $e) {
@@ -323,21 +316,27 @@ class UserController extends AppController {
                 header('HTTP/1.1 500 Internal Server Error');
                 $this->render('user-edit', [
                     'user' => $user,
+                    'allSports' => $allSports,
+                    'selectedSportIds' => $selectedSportIds,
                     'messages' => 'Failed to update user'
                 ]);
             }
         } else {
-            // GET request - show edit form
             $user = $repo->getUserById($editUserId);
             if (!$user) {
                 header('HTTP/1.1 404 Not Found');
                 $this->render('404');
                 return;
             }
-            
+
+            if (empty($user['location']) && !empty($user['latitude']) && !empty($user['longitude'])) {
+                $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
+            }
             $this->render('user-edit', [
                 'user' => $user,
-                'pageTitle' => 'Edit User'
+                'allSports' => $allSports,
+                'selectedSportIds' => $selectedSportIds,
+                'pageTitle' => 'My Profile'
             ]);
         }
     }

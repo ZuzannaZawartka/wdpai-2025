@@ -1,0 +1,44 @@
+<?php
+
+require_once __DIR__ . '/Repository.php';
+
+class SportsRepository extends Repository {
+    public function getAllSports(): array {
+        $stmt = $this->database->connect()->prepare('SELECT id, name, icon FROM sports ORDER BY id');
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getAllLevels(): array {
+        $stmt = $this->database->connect()->prepare('SELECT id, name FROM levels ORDER BY id');
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    // Merged from UserFavouritesRepository
+    public function getFavouriteSportsIds(int $userId): array {
+        $stmt = $this->database->connect()->prepare('SELECT sport_id FROM user_favourite_sports WHERE user_id = ?');
+        $stmt->execute([$userId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(fn($r) => (int)$r['sport_id'], $rows);
+    }
+
+    public function setFavouriteSports(int $userId, array $sportIds): void {
+        $conn = $this->database->connect();
+        $conn->beginTransaction();
+        try {
+            $del = $conn->prepare('DELETE FROM user_favourite_sports WHERE user_id = ?');
+            $del->execute([$userId]);
+            if (!empty($sportIds)) {
+                $ins = $conn->prepare('INSERT INTO user_favourite_sports(user_id, sport_id) VALUES(?, ?)');
+                foreach ($sportIds as $sid) {
+                    $ins->execute([$userId, (int)$sid]);
+                }
+            }
+            $conn->commit();
+        } catch (Throwable $e) {
+            $conn->rollBack();
+            throw $e;
+        }
+    }
+}
