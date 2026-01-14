@@ -88,6 +88,7 @@ class EditController extends AppController {
         $minimumValue = null;
         $rangeMinValue = null;
         $rangeMaxValue = null;
+        $specificValue = null;
         
         if ($minPeople === $maxPeople && $maxPeople !== null) {
             $participantsType = 'specific';

@@ -269,9 +269,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        revealed?.removeAttribute('hidden');
-                        joinBtn.classList.add('hidden');
-                        cancelBtn?.classList.remove('hidden');
+                        window.location.reload();
                     } else {
                         alert('Failed to join event');
                     }
@@ -290,9 +288,7 @@
                     try {
                         const data = JSON.parse(text);
                         if (data.status === 'success') {
-                            cancelBtn.classList.add('hidden');
-                            joinBtn?.classList.remove('hidden');
-                            revealed?.setAttribute('hidden', '');
+                            window.location.reload();
                         } else {
                             alert('Failed to leave event: ' + (data.message || ''));
                         }
