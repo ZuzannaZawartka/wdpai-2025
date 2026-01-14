@@ -1,0 +1,58 @@
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'Users - Admin'; $activeNav = $activeNav ?? 'admin'; ?>
+<?php include __DIR__ . '/../components/header.html'; ?>
+
+<section class="accounts-page sports-page">
+    <div class="section">
+        <div class="text-title-large">User Management</div>
+        <p class="text-desc">View and edit all users on the platform.</p>
+    </div>
+    <div class="section">
+        <?php if (!empty($users)): ?>
+        <div class="cards-grid">
+            <?php foreach($users as $user): ?>
+            <div class="account-card card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <?= htmlspecialchars($user['firstname'] ?? '') . ' ' . htmlspecialchars($user['lastname'] ?? '') ?>
+                    </h3>
+                    <span class="role-badge <?= ($user['role'] ?? 'basic') === 'admin' ? 'admin' : 'basic' ?>">
+                        <?= htmlspecialchars($user['role'] ?? 'basic') ?>
+                    </span>
+                </div>
+                <div class="card-content">
+                    <p class="text-small"><strong>Email:</strong>
+                        <?= htmlspecialchars($user['email'] ?? '') ?>
+                    </p>
+                    <p class="text-small"><strong>Birth Date:</strong>
+                        <?= htmlspecialchars($user['birth_date'] ?? '-') ?>
+                    </p>
+                    <?php if (!empty($user['latitude']) && !empty($user['longitude'])): ?>
+                    <p class="text-small"><strong>Location:</strong>
+                        <?= round((float)$user['latitude'], 4) ?>,
+                        <?= round((float)$user['longitude'], 4) ?>
+                    </p>
+                    <?php endif; ?>
+                    <?php if (isset($user['events_joined_count']) && isset($user['events_created_count'])): ?>
+                    <p class="text-small"><strong>Events Joined:</strong>
+                        <?= (int)$user['events_joined_count'] ?>
+                    </p>
+                    <p class="text-small"><strong>Events Created:</strong>
+                        <?= (int)$user['events_created_count'] ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <div class="card-actions">
+                    <a href="/accounts/edit/<?= (int)($user['id'] ?? 0) ?>" class="button primary">Edit</a>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <?php else: ?>
+        <div class="empty-state">
+            <p class="text-note">No users found</p>
+        </div>
+        <?php endif; ?>
+    </div>
+</section>
+
+<?php include __DIR__ . '/../components/footer.html'; ?>

@@ -14,12 +14,25 @@ class AdminController extends AppController {
         $this->eventRepository = new EventRepository();
     }
     
-    public function users() {
+    public function accounts() {
         $this->requireRole('admin');
-        
+
         $allUsers = $this->userRepository->getUsers();
-        
-        return $this->render('admin/users', [
+        $stats = $this->userRepository->getUsersStatistics();
+        $statsById = [];
+        foreach ($stats as $stat) {
+            $statsById[(int)$stat['id']] = $stat;
+        }
+        foreach ($allUsers as &$user) {
+            $uid = (int)($user['id'] ?? 0);
+            if (isset($statsById[$uid])) {
+                $user['events_joined_count'] = $statsById[$uid]['events_joined_count'] ?? 0;
+                $user['events_created_count'] = $statsById[$uid]['events_created_count'] ?? 0;
+            }
+        }
+        unset($user);
+
+        return $this->render('admin/accounts', [
             'users' => $allUsers,
             'pageTitle' => 'Manage Users - Admin'
         ]);
@@ -27,25 +40,38 @@ class AdminController extends AppController {
     
     public function editUser() {
         $this->requireRole('admin');
-        
         $userId = (int)($_GET['id'] ?? 0);
         if (!$userId) {
-            header('HTTP/1.1 400 Bad Request');
+            http_response_code(400);
             return $this->render('404');
         }
-        
         if ($this->isPost()) {
             return $this->updateUserProfile($userId);
         }
-        
         $user = $this->userRepository->getUserById($userId);
         if (!$user) {
-            header('HTTP/1.1 404 Not Found');
+            http_response_code(404);
             return $this->render('404');
         }
-        
+
+        $user['firstName'] = $user['firstname'] ?? '';
+        $user['lastName'] = $user['lastname'] ?? '';
+        $user['birthDate'] = $user['birth_date'] ?? '';
+        if (!empty($user['latitude']) && !empty($user['longitude'])) {
+            $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
+        } else {
+            $user['location'] = '';
+        }
+       
+
+        require_once __DIR__ . '/../repository/SportsRepository.php';
+        $sportsRepo = new SportsRepository();
+        $allSports = $sportsRepo->getAllSports();
+        $selectedSportIds = $sportsRepo->getFavouriteSportsIds($userId);
         return $this->render('admin/edit-user', [
             'user' => $user,
+            'allSports' => $allSports,
+            'selectedSportIds' => $selectedSportIds,
             'pageTitle' => 'Edit User - Admin'
         ]);
     }
@@ -53,7 +79,7 @@ class AdminController extends AppController {
     private function updateUserProfile(int $userId): void {
         $user = $this->userRepository->getUserById($userId);
         if (!$user) {
-            header('HTTP/1.1 404 Not Found');
+            http_response_code(404);
             return;
         }
         
@@ -63,11 +89,24 @@ class AdminController extends AppController {
         $birthDate = trim($_POST['birthDate'] ?? '');
         $newPassword = trim($_POST['newPassword'] ?? '');
         $confirmPassword = trim($_POST['confirmPassword'] ?? '');
-        
-        // Validate passwords if provided
+        $location = trim($_POST['location'] ?? '');
+        $latitude = null;
+        $longitude = null;
+        if ($location && strpos($location, ',') !== false) {
+            $parts = explode(',', $location);
+            if (count($parts) === 2) {
+                $lat = floatval(trim($parts[0]));
+                $lng = floatval(trim($parts[1]));
+                if ($lat !== 0.0 && $lng !== 0.0) {
+                    $latitude = $lat;
+                    $longitude = $lng;
+                }
+            }
+        }
+
         if (!empty($newPassword)) {
             if (mb_strlen($newPassword, 'UTF-8') < 8) {
-                header('HTTP/1.1 400 Bad Request');
+                http_response_code(400);
                 $this->render('admin/edit-user', [
                     'user' => $user,
                     'messages' => 'Password must be at least 8 characters'
@@ -75,7 +114,7 @@ class AdminController extends AppController {
                 return;
             }
             if ($newPassword !== $confirmPassword) {
-                header('HTTP/1.1 400 Bad Request');
+                http_response_code(400);
                 $this->render('admin/edit-user', [
                     'user' => $user,
                     'messages' => 'Passwords do not match'
@@ -83,25 +122,28 @@ class AdminController extends AppController {
                 return;
             }
         }
-        
         try {
-            $this->userRepository->updateUser($email, [
+            $updateData = [
                 'firstname' => $firstName,
                 'lastname' => $lastName,
                 'birth_date' => $birthDate ?: null
-            ]);
-            
-            // Update password if provided (no old password verification needed for admin)
+            ];
+            if ($latitude !== null && $longitude !== null) {
+                $updateData['latitude'] = $latitude;
+                $updateData['longitude'] = $longitude;
+            }
+            $this->userRepository->updateUser($email, $updateData);
+           
             if (!empty($newPassword)) {
                 $hashedPassword = $this->hashPassword($newPassword);
                 $this->userRepository->updateUserPassword($email, $hashedPassword);
             }
-            
-            header('Location: /admin/users', true, 303);
+           
+            header('Location: /accounts', true, 303);
             exit();
         } catch (Throwable $e) {
             error_log("Admin user update error: " . $e->getMessage());
-            header('HTTP/1.1 500 Internal Server Error');
+            http_response_code(500);
             $this->render('admin/edit-user', [
                 'user' => $user,
                 'messages' => 'Failed to update user'
@@ -109,36 +151,6 @@ class AdminController extends AppController {
         }
     }
     
-    public function events() {
-        $this->requireRole('admin');
-        
-        // UŻYCIE WIDOKU vw_events_full, pobiera pełne informacje o wszystkich eventach z widoku
-        $allEvents = $this->eventRepository->getEventsFromView();
-        
-        // Map to admin view format
-        $enriched = array_map(function($event) {
-            return [
-                'id' => (int)$event['id'],
-                'title' => (string)$event['title'],
-                'name' => (string)$event['title'],
-                'dateTime' => !empty($event['start_time']) ? (new DateTime($event['start_time']))->format('D, M j, g:i A') : 'TBD',
-                'date' => !empty($event['start_time']) ? (new DateTime($event['start_time']))->format('D, M j, g:i A') : 'TBD',
-                'location' => (string)($event['location_text'] ?? ''),
-                'coords' => isset($event['latitude'], $event['longitude']) ? ($event['latitude'] . ', ' . $event['longitude']) : '',
-                'imageUrl' => (string)($event['image_url'] ?? ''),
-                'organizer_email' => (string)($event['owner_name'] ?? ''),
-                'email' => (string)($event['owner_name'] ?? ''),
-                'current_participants' => (int)($event['current_players'] ?? 0),
-                'max_participants' => (int)($event['max_players'] ?? 0),
-                'participants' => (int)($event['max_players'] ?? 0),
-            ];
-        }, $allEvents);
-        
-        return $this->render('admin/events', [
-            'events' => $enriched,
-            'pageTitle' => 'Manage Events - Admin'
-        ]);
-    }
     
     public function deleteEvent() {
         $this->requireRole('admin');

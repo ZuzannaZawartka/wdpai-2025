@@ -19,6 +19,12 @@ require_once 'src/controllers/AdminController.php';
 class Routing{
 
     public static $routes = [
+        'accounts' => [
+            "controller" => 'AdminController',
+            "action" => 'accounts',
+            "auth" => true,
+            "requiresRole" => 'admin'
+        ],
         'login' => [
             "controller" => 'SecurityController',
             "action" => 'login',
@@ -37,12 +43,14 @@ class Routing{
         'user' => [
             "controller" => 'UserController',
             "action" => 'details',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'dashboard' => [
             "controller" => 'DashboardController',
             "action" => 'index',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'sports' => [
             "controller" => 'SportsController',
@@ -52,17 +60,20 @@ class Routing{
         'joined' => [
             "controller" => 'JoinedController',
             "action" => 'index',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'my' => [
             "controller" => 'MyController',
             "action" => 'index',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'create' => [
             "controller" => 'CreateController',
             "action" => 'index',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'profile' => [
             "controller" => 'UserController',
@@ -72,28 +83,39 @@ class Routing{
         'profile-update' => [
             "controller" => 'UserController',
             "action" => 'updateProfile',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'admin'
         ],
         'event' => [
             "controller" => 'EventController',
             "action" => 'details',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'event-join' => [
             "controller" => 'EventController',
             "action" => 'join',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'event-cancel' => [
             "controller" => 'EventController',
             "action" => 'cancel',
-            "auth" => true
+            "auth" => true,
+            "requiresRole" => 'user'
         ],
         'edit' => [
             "controller" => 'EditController',
             "action" => 'edit',
             "auth" => true,
-            "requiresOwnership" => 'event'
+            "requiresOwnership" => 'event',
+            "requiresRole" => 'user'
+        ],
+        'accounts-edit' => [
+            "controller" => 'AdminController',
+            "action" => 'editUser',
+            "auth" => true,
+            "requiresRole" => 'admin'
         ]
     ];
 
@@ -105,41 +127,42 @@ class Routing{
         
         $parameters = array_slice($segments, 1);
         
-        switch($action){
-            case 'user':
+        switch(true){
+            case ($action === 'accounts' && isset($parameters[0]) && $parameters[0] === 'edit' && isset($parameters[1]) && is_numeric($parameters[1])):
+                $_GET['id'] = $parameters[1];
+                self::dispatch('accounts-edit', [$parameters[1]]);
+                break;
+            case ($action === 'user'):
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;
                 }
                 self::dispatch($action, [$parameters[0]]);
                 break;
-            case 'event':
+            case ($action === 'event'):
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;
                 }
                 $eventId = $parameters[0];
-                $action = $parameters[1] ?? null;
-                
-                if ($action === 'join') {
+                $eventAction = $parameters[1] ?? null;
+                if ($eventAction === 'join') {
                     self::dispatch('event-join', [$eventId]);
-                } elseif ($action === 'delete') {
+                } elseif ($eventAction === 'delete') {
                     self::dispatch('event-cancel', [$eventId]);
                 } else {
                     self::dispatch('event', [$eventId]);
                 }
                 break;
-            case 'edit':
+            case ($action === 'edit'):
                 if (empty($parameters)) {
                     include 'public/views/404.html';
                     return;
                 }
-
                 $resourceType = $parameters[0];
                 $resourceId = null;
                 $actionParam = null;
                 $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-
                 if (is_numeric($resourceType)) {
                     $resourceId = $resourceType;
                     $actionParam = $parameters[1] ?? null;
@@ -148,19 +171,12 @@ class Routing{
                     $resourceId = $parameters[1] ?? null;
                     $actionParam = $parameters[2] ?? null;
                 }
-
                 if ($resourceType === 'event' && $resourceId) {
                     if ($isPost || $actionParam === 'save') {
                         self::dispatch('edit', ['save', $resourceId]);
                     } else {
                         self::dispatch('edit', [$resourceId]);
                     }
-                } elseif ($resourceType === 'user' && $resourceId) {
-                    $_GET['id'] = $resourceId;
-                    $controller = UserController::getInstance();
-                    $controller->requireAuth();
-                    $controller->editUser($resourceId);
-                    return;
                 } else {
                     include 'public/views/404.html';
                 }

@@ -1,0 +1,273 @@
+<?php
+// Komponent wspólnego formularza edycji użytkownika
+// Użyj: include __DIR__ . '/components/edit-user-form.html';
+?>
+
+<form class="form" method="post" enctype="multipart/form-data" action="/profile-update">
+    <?php if(isset($messages)): ?>
+    <div class="messages">
+        <?= $messages ?>
+    </div>
+    <?php endif; ?>
+
+    <?php
+    $isAdminAccount = ($user['role'] ?? 'basic') === 'admin';
+    $isEditingOwnAdmin = $isAdminAccount && (($user['email'] ?? '') === ($_SESSION['user_email'] ?? ''));
+    ?>
+    <?php if(($user['role'] ?? 'basic') !== 'admin' && ($user['email'] ?? '') !== 'admin@gmail.com'): ?>
+    <div class="form-grid">
+        <div class="field input-group full">
+            <label class="text-small" for="avatarFile">Avatar</label>
+            <div class="avatar-row">
+                <div class="avatar-container">
+                    <div id="avatarCircle" class="avatar" role="img" aria-label="Current avatar"
+                        data-avatar-url="<?= isset($user['avatar']) && $user['avatar'] ? htmlspecialchars($user['avatar']) : (isset($user['avatar_url']) && $user['avatar_url'] ? htmlspecialchars($user['avatar_url']) : DEFAULT_AVATAR) ?>">
+                    </div>
+                    <button type="button" class="avatar-edit-btn" aria-label="Edit avatar">
+                        <span class="material" aria-hidden="true">edit</span>
+                    </button>
+                </div>
+                <div class="avatar-info">
+                    <div class="text-title-smaller">Your Photo</div>
+                    <p class="text-note">This will be displayed on your profile.</p>
+                </div>
+                <input id="avatarFile" name="avatar" type="file" accept="image/*" hidden />
+                <script>
+                    const avatarInput = document.getElementById('avatarFile');
+                    const avatarCircle = document.getElementById('avatarCircle');
+                    const initialAvatar = avatarCircle?.getAttribute('data-avatar-url');
+                    if (initialAvatar) {
+                        avatarCircle.style.backgroundImage = `url('${initialAvatar}')`;
+                        avatarCircle.style.width = '6rem';
+                        avatarCircle.style.height = '6rem';
+                        avatarCircle.style.borderRadius = '9999px';
+                        avatarCircle.style.backgroundSize = 'cover';
+                        avatarCircle.style.backgroundPosition = 'center';
+                        avatarCircle.style.border = '0.25rem solid var(--white)';
+                        avatarCircle.style.boxShadow = '0 0 0 0.125rem var(--primary)';
+                    }
+                    const editBtn = document.querySelector('.avatar-edit-btn');
+                    avatarInput?.addEventListener('change', function () {
+                        const file = this.files?.[0];
+                        if (file && avatarCircle) {
+                            const url = URL.createObjectURL(file);
+                            avatarCircle.style.backgroundImage = `url('${url}')`;
+                        }
+                    });
+                    editBtn?.addEventListener('click', () => avatarInput?.click());
+                    avatarCircle?.addEventListener('click', () => avatarInput?.click());
+                </script>
+            </div>
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="firstName">First Name</label>
+            <input id="firstName" name="firstName" type="text" class="input-common" placeholder="e.g., Alex"
+                value="<?= isset($user['firstName']) ? htmlspecialchars($user['firstName']) : '' ?>" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="lastName">Last Name</label>
+            <input id="lastName" name="lastName" type="text" class="input-common" placeholder="e.g., Morgan"
+                value="<?= isset($user['lastName']) ? htmlspecialchars($user['lastName']) : '' ?>" />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="email">Email</label>
+            <input id="email" name="email" type="email" class="input-common" placeholder="e.g., alex@example.com"
+                value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="birthDate">Date of Birth</label>
+            <input id="birthDate" name="birthDate" type="date" class="input-common"
+                value="<?= isset($user['birth_date']) ? htmlspecialchars($user['birth_date']) : '' ?>" />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="location">Location</label>
+            <div class="filters-bar">
+                <div class="control with-icon has-action">
+                    <span class="material">location_on</span>
+                    <input id="location" name="location" type="text" class="input-common" placeholder="Enter Location"
+                        value="<?= isset($user['location']) ? htmlspecialchars($user['location']) : '' ?>" />
+                    <button type="button" class="icon-btn pick-map" aria-label="Pick location on map">
+                        <span class="material">my_location</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="field input-group full">
+            <label class="text-small">Favorite Sports</label>
+            <?php
+                $tilesSports = $allSports ?? [];
+                $tilesType = 'checkbox';
+                $tilesName = 'favourite_sports[]';
+                $tilesSelected = $selectedSportIds ?? [];
+                $tilesValueField = 'id';
+                $tilesWrapperClass = 'sports-tiles';
+                $tilesLabelClass = 'tile-sport';
+                $tilesRequired = false;
+                include __DIR__ . '/sports-tiles.html';
+            ?>
+        </div>
+        <?php if($isEditingOwnAdmin): ?>
+        <div class="field input-group">
+            <label class="text-small" for="oldPassword">Current Password</label>
+            <input id="oldPassword" name="oldPassword" type="password" class="input-common"
+                placeholder="Enter current password" maxlength="128" />
+        </div>
+        <?php endif; ?>
+        <?php if($isAdminAccount): ?>
+        <div class="field input-group">
+            <label class="text-small" for="newPassword">New Password</label>
+            <input id="newPassword" name="newPassword" type="password" class="input-common"
+                placeholder="Enter new password" minlength="8" maxlength="128" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="confirmPassword">Confirm New Password</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                placeholder="Repeat new password" minlength="8" maxlength="128" />
+        </div>
+        <?php endif; ?>
+        <div class="field input-group">
+            <label class="text-small" for="newPassword">New Password</label>
+            <input id="newPassword" name="newPassword" type="password" class="input-common"
+                placeholder="Enter new password" minlength="8" maxlength="128" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="confirmPassword">Confirm New Password</label>
+            <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                placeholder="Repeat new password" minlength="8" maxlength="128" />
+        </div>
+    </div>
+    <div class="form-grid">
+        <a href="/profile" class="button danger text-size-small">Cancel</a>
+        <button type="submit" class="button primary text-size-small">Save Changes</button>
+    </div>
+
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+    <!-- Leaflet for map picking -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        (function () {
+            const modal = document.getElementById('mapModal');
+            const openBtns = document.querySelectorAll('.pick-map');
+            const closeBtn = modal?.querySelector('.close-map');
+            const applyBtn = modal?.querySelector('.apply-map');
+            const locInput = document.getElementById('location');
+
+            let map, marker, chosenLatLng;
+
+            function ensureMap() {
+                if (map) {
+                    map.invalidateSize();
+                    // Ustaw marker na aktualnej lokalizacji z inputa
+                    const currentLoc = locInput?.value?.trim();
+                    if (currentLoc && currentLoc.includes(',')) {
+                        const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                            if (!marker) {
+                                marker = L.marker([parts[0], parts[1]]).addTo(map);
+                            } else {
+                                marker.setLatLng([parts[0], parts[1]]);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Parse current location from input
+                const currentLoc = locInput?.value?.trim();
+                let lat = 52.2297, lng = 21.0122; // Default
+
+                if (currentLoc && currentLoc.includes(',')) {
+                    const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        lat = parts[0];
+                        lng = parts[1];
+                        chosenLatLng = { lat, lng };
+                    }
+                }
+
+                map = L.map('map').setView([lat, lng], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+                // Add marker if location exists
+                if (chosenLatLng) {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+
+                map.on('click', (e) => {
+                    chosenLatLng = e.latlng;
+                    if (!marker) { marker = L.marker(e.latlng).addTo(map); }
+                    else { marker.setLatLng(e.latlng); }
+                });
+            }
+            function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(ensureMap, 0); }
+            function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
+            function applyLocation(e) {
+                e?.preventDefault();
+                if (chosenLatLng && locInput) {
+                    locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+                }
+                locInput.readOnly = false;
+                closeModal();
+            }
+            openBtns?.forEach(btn => btn.addEventListener('click', openModal));
+            closeBtn?.addEventListener('click', closeModal);
+            applyBtn?.addEventListener('click', applyLocation);
+            modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+
+            // Avatar preview and actions
+            const avatarInput = document.getElementById('avatarFile');
+            const avatarCircle = document.getElementById('avatarCircle');
+            const initialAvatar = avatarCircle?.getAttribute('data-avatar-url');
+
+            if (initialAvatar) {
+                avatarCircle.style.backgroundImage = `url('${initialAvatar}')`;
+            }
+            const editBtn = document.querySelector('.avatar-edit-btn');
+
+            avatarInput?.addEventListener('change', function () {
+                const file = this.files?.[0];
+                if (file && avatarCircle) {
+                    const url = URL.createObjectURL(file);
+                    avatarCircle.style.backgroundImage = `url('${url}')`;
+                }
+            });
+
+            <!-- Removed stray/misplaced PHP else tag -->
+
+            // Avatar save handled with the main form submit
+        })();
+    </script>
+    <?php else: ?>
+    <div class="form-grid">
+        <div class="field input-group">
+            <label class="text-small" for="firstName">First Name</label>
+            <input id="firstName" name="firstName" type="text" class="input-common" placeholder="First name"
+                value="<?= isset($user['firstName']) ? htmlspecialchars($user['firstName']) : '' ?>" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="lastName">Last Name</label>
+            <input id="lastName" name="lastName" type="text" class="input-common" placeholder="Last name"
+                value="<?= isset($user['lastName']) ? htmlspecialchars($user['lastName']) : '' ?>" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="email">Email</label>
+            <input id="email" name="email" type="email" class="input-common" placeholder="Email"
+                value="<?= isset($user['email']) ? htmlspecialchars($user['email']) : '' ?>" readonly />
+        </div>
+    </div>
+    <div class="form-grid">
+        <a href="/joined" class="button danger text-size-small">Cancel</a>
+        <button type="submit" class="button primary text-size-small">Save Changes</button>
+    </div>
+    <?php endif; ?>
+</form>

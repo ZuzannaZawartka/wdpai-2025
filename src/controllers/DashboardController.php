@@ -18,11 +18,7 @@ class DashboardController extends AppController {
 
 
     public function index(?int $id =null) {
-        // Redirect admin to sports page
-        if ($this->isAdmin()) {
-            header('Location: /sports');
-            exit();
-        }
+        // Uprawnienia obsługuje Routing.php
         
         $currentUserId = $this->getCurrentUserId();
         $currentUser = $currentUserId ? $this->userRepository->getUserById($currentUserId) : null;

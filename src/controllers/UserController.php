@@ -254,23 +254,19 @@ class UserController extends AppController {
     
     public function editUser($userId = null) {
         $this->ensureSession();
-        
-        // Only admin can edit other users
-        if (!$this->isAdmin()) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            return;
-        }
-        
+        // Uprawnienia obsługuje Routing.php
         $editUserId = (int)($_GET['id'] ?? $userId ?? 0);
         if (!$editUserId) {
-            header('HTTP/1.1 400 Bad Request');
+            http_response_code(400);
             $this->render('404');
             return;
         }
         
         $repo = new UserRepository();
-        
+        $sportsRepo = new SportsRepository();
+        $allSports = $sportsRepo->getAllSports();
+        $selectedSportIds = $editUserId ? $sportsRepo->getFavouriteSportsIds($editUserId) : [];
+
         if ($this->isPost()) {
             $user = $repo->getUserById($editUserId);
             if (!$user) {
@@ -278,46 +274,39 @@ class UserController extends AppController {
                 $this->render('404');
                 return;
             }
-            
-            $email = $user['email'];
-            $firstName = trim($_POST['firstName'] ?? '');
-            $lastName = trim($_POST['lastName'] ?? '');
-            $birthDate = trim($_POST['birthDate'] ?? '');
+
+            require_once __DIR__ . '/../validators/UserFormValidator.php';
+            $validation = UserFormValidator::validate($_POST);
+            $errors = $validation['errors'] ?? [];
+            $validated = $validation['data'] ?? [];
+
             $newPassword = trim($_POST['newPassword'] ?? '');
             $confirmPassword = trim($_POST['confirmPassword'] ?? '');
-            
-            // Validate passwords if provided
-            if (!empty($newPassword)) {
-                if (mb_strlen($newPassword, 'UTF-8') < 8) {
-                    header('HTTP/1.1 400 Bad Request');
-                    $this->render('user-edit', [
-                        'user' => $user,
-                        'messages' => 'Password must be at least 8 characters'
-                    ]);
-                    return;
-                }
-                if ($newPassword !== $confirmPassword) {
-                    header('HTTP/1.1 400 Bad Request');
-                    $this->render('user-edit', [
-                        'user' => $user,
-                        'messages' => 'Passwords do not match'
-                    ]);
-                    return;
-                }
-            }
-            
-            try {
-                $repo->updateUser($email, [
-                    'firstname' => $firstName,
-                    'lastname' => $lastName,
-                    'birth_date' => $birthDate ?: null
+            $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
+
+            if (!empty($errors)) {
+                header('HTTP/1.1 400 Bad Request');
+                $this->render('user-edit', [
+                    'user' => $user,
+                    'allSports' => $allSports,
+                    'selectedSportIds' => $selectedSportIds,
+                    'messages' => implode('<br>', $errors)
                 ]);
-                
-                if (!empty($newPassword)) {
-                    $hashedPassword = $this->hashPassword($newPassword);
-                    $repo->updateUserPassword($email, $hashedPassword);
+                return;
+            }
+
+            try {
+                $repo->updateUser($user['email'], [
+                    'firstname' => $validated['firstName'],
+                    'lastname' => $validated['lastName'],
+                    'birth_date' => $validated['birthDate'] ?: null
+                ]);
+                if (!empty($validated['newPassword'])) {
+                    $hashedPassword = $this->hashPassword($validated['newPassword']);
+                    $repo->updateUserPassword($user['email'], $hashedPassword);
                 }
-                
+                // Update favourite sports
+                $sportsRepo->setFavouriteSports($editUserId, $favouriteSports);
                 header('Location: /joined', true, 303);
                 exit();
             } catch (Throwable $e) {
@@ -325,21 +314,27 @@ class UserController extends AppController {
                 header('HTTP/1.1 500 Internal Server Error');
                 $this->render('user-edit', [
                     'user' => $user,
+                    'allSports' => $allSports,
+                    'selectedSportIds' => $selectedSportIds,
                     'messages' => 'Failed to update user'
                 ]);
             }
         } else {
-            // GET request - show edit form
             $user = $repo->getUserById($editUserId);
             if (!$user) {
                 header('HTTP/1.1 404 Not Found');
                 $this->render('404');
                 return;
             }
-            
+
+            if (empty($user['location']) && !empty($user['latitude']) && !empty($user['longitude'])) {
+                $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
+            }
             $this->render('user-edit', [
                 'user' => $user,
-                'pageTitle' => 'Edit User'
+                'allSports' => $allSports,
+                'selectedSportIds' => $selectedSportIds,
+                'pageTitle' => 'My Profile'
             ]);
         }
     }

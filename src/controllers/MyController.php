@@ -8,12 +8,11 @@ class MyController extends AppController {
     public function index(): void
     {
         $this->ensureSession();
-        
         // Handle delete action via POST (with CSRF)
         if ($this->isPost() && isset($_POST['deleteId'])) {
             $csrf = $_POST['csrf_token'] ?? '';
             if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-                header('HTTP/1.1 403 Forbidden');
+                http_response_code(403);
                 $this->render('my', [
                     'pageTitle' => 'SportMatch - My Events',
                     'activeNav' => 'my',
@@ -22,7 +21,6 @@ class MyController extends AppController {
                 ]);
                 return;
             }
-
             $deleteId = (int)$_POST['deleteId'];
             if ($deleteId > 0) {
                 $ownerId = $this->getCurrentUserId() ?? 0;

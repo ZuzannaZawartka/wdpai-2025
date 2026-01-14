@@ -45,11 +45,6 @@ class EditController extends AppController {
             // Re-render form with errors
             $row = $repo->getEventById((int)$id);
             $sportsRepo = new SportsRepository();
-            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
-            $allSports = $sportsRepo->getAllSports();
-            
-            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors'], $allSports);
-            return;
         }
         
         $updates = [
@@ -87,8 +82,9 @@ class EditController extends AppController {
         $minPeople = (int)($row['min_needed'] ?? 6);
         $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
         
-        $participantsType = 'range';
-        $specificValue = null;
+                    // Removed redirect logic as Routing.php handles it
+                    // header('Location: /event/' . (int)$id);
+                    // exit;
         $minimumValue = null;
         $rangeMinValue = null;
         $rangeMaxValue = null;

@@ -1,0 +1,35 @@
+.denied-container {
+    max-width: 400px;
+    margin: 80px auto;
+    padding: 32px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08);
+    text-align: center;
+}
+
+.denied-container h1 {
+    color: #ef4444;
+    font-size: 2rem;
+    margin-bottom: 16px;
+}
+
+.denied-container p {
+    color: #333;
+    margin-bottom: 24px;
+}
+
+.denied-container .btn {
+    display: inline-block;
+    padding: 10px 24px;
+    background: #3b82f6;
+    color: #fff;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.denied-container .btn:hover {
+    background: #2563eb;
+}

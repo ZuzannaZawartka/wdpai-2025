@@ -10,17 +10,8 @@ class JoinedController extends AppController {
     {
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
-        
-        // If admin, show accounts instead
-        if ($this->isAdmin()) {
-            $this->adminAccounts();
-            return;
-        }
-        
         $repo = new EventRepository();
         $rows = $userId ? $repo->getUserUpcomingEvents($userId) : [];
-        
-        // Map to view format
         $joinedMatches = array_map(function($r) use ($userId) {
             $current = (int)($r['current_players'] ?? 0);
             $max = (int)($r['max_players'] ?? $current);
@@ -37,7 +28,6 @@ class JoinedController extends AppController {
                 'isOwner' => (int)($r['owner_id'] ?? 0) === (int)$userId,
             ];
         }, $rows);
-
         $this->render('joined', [
             'pageTitle' => 'SportMatch - Joined Events',
             'activeNav' => 'joined',
@@ -45,14 +35,5 @@ class JoinedController extends AppController {
         ]);
     }
     
-    private function adminAccounts(): void {
-        $userRepo = new UserRepository();
-        $users = $userRepo->getUsers();
-        
-        $this->render('accounts', [
-            'pageTitle' => 'SportMatch - Accounts',
-            'activeNav' => 'joined',
-            'accounts' => $users,
-        ]);
-    }
+    // Usunięto adminAccounts
 }
