@@ -23,7 +23,7 @@
                         include __DIR__ . '/components/match-card-content.html';
                     ?>
                     <div class="my-actions" onclick="event.stopPropagation();">
-                        <a href="/edit/<?= (int)($m['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                        <a href="/event/edit/<?= (int)($m['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                         <button type="button" class="button danger text-size-small delete-btn"
                             data-id="<?= (int)($m['id'] ?? 0) ?>"
                             data-title="<?= htmlspecialchars($m['title'] ?? '') ?>">Delete</button>

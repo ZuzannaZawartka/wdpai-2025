@@ -68,7 +68,7 @@ class AppController {
         }
     }
 
-    protected function setAuthContext(int $userId, string $email, string $role = 'basic', ?string $avatar = null): void
+    protected function setAuthContext(int $userId, string $email, string $role = 'user', ?string $avatar = null): void
     {
         $this->ensureSession();
         session_regenerate_id(true);

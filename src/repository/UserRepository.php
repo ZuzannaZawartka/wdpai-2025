@@ -34,7 +34,7 @@ class UserRepository extends Repository{
                 // Add default role if not present
                 foreach ($users as &$user) {
                     if (!isset($user['role'])) {
-                        $user['role'] = 'basic';
+                        $user['role'] = 'user';
                     }
                 }
                 
@@ -86,7 +86,7 @@ class UserRepository extends Repository{
                 if ($col === 'birth_date') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col DATE");
                 } elseif ($col === 'role') {
-                    $conn->exec("ALTER TABLE users ADD COLUMN $col VARCHAR(20) DEFAULT 'basic'");
+                    $conn->exec("ALTER TABLE users ADD COLUMN $col VARCHAR(20) DEFAULT 'user'");
                 } elseif ($col === 'avatar_url') {
                     $conn->exec("ALTER TABLE users ADD COLUMN $col TEXT");
                 } else {
@@ -121,7 +121,7 @@ class UserRepository extends Repository{
         $this->columnCache = true;
     }
 
-    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'basic', ?string $avatarUrl = null): ?int {
+    public function createUser(string $email, string $hashedPassword, string $firstname, string $lastname, ?string $birthDate = null, ?float $latitude = null, ?float $longitude = null, string $role = 'user', ?string $avatarUrl = null): ?int {
         $this->ensureColumns();
         
         $query = $this->database->connect()->prepare('

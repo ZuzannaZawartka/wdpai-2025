@@ -32,7 +32,7 @@
             </div>
         </div>
 
-        <form class="form" method="post" action="/edit/<?= htmlspecialchars($eventId ?? '') ?>"
+        <form class="form" method="post" action="/event/edit/<?= htmlspecialchars($eventId ?? '') ?>"
             enctype="multipart/form-data">
             <?php include __DIR__ . '/components/form-errors.html'; ?>
             <div class="form-grid">

@@ -37,7 +37,8 @@ class UserController extends AppController {
             'longitude' => null,
             'sports' => [],
             'avatar' => DEFAULT_AVATAR,
-            'statistics' => null
+            'statistics' => null,
+            'role' => 'user'
         ];
 
         if (is_array($dbUser)) {
@@ -47,6 +48,7 @@ class UserController extends AppController {
             $profile['birthDate'] = $dbUser['birth_date'] ?? '';
             $profile['latitude'] = $dbUser['latitude'] ?? null;
             $profile['longitude'] = $dbUser['longitude'] ?? null;
+            $profile['role'] = $dbUser['role'] ?? 'user';
             if (!empty($dbUser['avatar_url'])) {
                 $profile['avatar'] = $dbUser['avatar_url'];
             }

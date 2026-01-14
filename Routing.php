@@ -107,7 +107,7 @@ class Routing{
             "action" => 'delete',
             "auth" => true
         ], 
-        'edit' => [
+        'event-edit' => [
             "controller" => 'EventController',
             "action" => 'edit',
             "auth" => true,
@@ -122,74 +122,82 @@ class Routing{
         ]
     ];
 
-    public static function run(string $path){
+    public static function run(string $path) {
         $path = trim($path, '/');
         $segments = explode('/', $path);
-        
         $action = $segments[0] ?? '';
-        
         $parameters = array_slice($segments, 1);
-        
-        switch(true){
-            case ($action === 'accounts' && isset($parameters[0]) && $parameters[0] === 'edit' && isset($parameters[1]) && is_numeric($parameters[1])):
-                $_GET['id'] = $parameters[1];
-                self::dispatch('accounts-edit', [$parameters[1]]);
-                break;
-            case ($action === 'user'):
-                if (empty($parameters)) {
-                    include 'public/views/404.html';
-                    return;
-                }
-                self::dispatch($action, [$parameters[0]]);
-                break;
-            case ($action === 'event'):
-                if (empty($parameters)) {
-                    include 'public/views/404.html';
-                    return;
-                }
-                $eventId = $parameters[0];
-                $eventAction = $parameters[1] ?? null;
-                if ($eventAction === 'join') {
-                    self::dispatch('event-join', [$eventId]);
-                } elseif ($eventAction === 'delete') {
-                    self::dispatch('event-delete', [$eventId]);
-                } elseif ($eventAction === 'leave') {
-                    self::dispatch('event-leave', [$eventId]);
-                } else {
-                    self::dispatch('event', [$eventId]);
-                }
-                break;
-            case ($action === 'edit'):
-                if (empty($parameters)) {
-                    include 'public/views/404.html';
-                    return;
-                }
-                $resourceType = $parameters[0];
-                $resourceId = null;
-                $actionParam = null;
-                $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
-                if (is_numeric($resourceType)) {
-                    $resourceId = $resourceType;
-                    $actionParam = $parameters[1] ?? null;
-                    $resourceType = 'event';
-                } else {
-                    $resourceId = $parameters[1] ?? null;
-                    $actionParam = $parameters[2] ?? null;
-                }
-                if ($resourceType === 'event' && $resourceId) {
-                    if ($isPost || $actionParam === 'save') {
-                        self::dispatch('edit', ['save', $resourceId]);
-                    } else {
-                        self::dispatch('edit', [$resourceId]);
-                    }
-                } else {
-                    include 'public/views/404.html';
-                }
-                break;
-            default:
-                self::dispatch($action);
-                break;
+
+        //  /accounts/edit/{id}
+        if ($action === 'accounts' && isset($parameters[0]) && $parameters[0] === 'edit' && isset($parameters[1]) && is_numeric($parameters[1])) {
+            $_GET['id'] = $parameters[1];
+            self::dispatch('accounts-edit', [$parameters[1]]);
+            return;
         }
+
+        ///user/{id}
+        if ($action === 'user') {
+            if (empty($parameters)) {
+                include 'public/views/404.html';
+                return;
+            }
+            self::dispatch($action, [$parameters[0]]);
+            return;
+        }
+
+        if ($action === 'event') {
+            if (self::handleEventRoute($parameters)) {
+                return;
+            }
+        }
+
+        self::dispatch($action);
+    }
+
+    private static function handleEventRoute(array $parameters): bool {
+        // /event/edit/{id}
+        if (isset($parameters[0]) && $parameters[0] === 'edit' && isset($parameters[1]) && is_numeric($parameters[1])) {
+            $eventId = $parameters[1];
+            $actionParam = $parameters[2] ?? null;
+            $isPost = $_SERVER['REQUEST_METHOD'] === 'POST';
+            if ($eventId) {
+                if ($isPost || $actionParam === 'save') {
+                    self::dispatch('event-edit', ['save', $eventId]);
+                } else {
+                    self::dispatch('event-edit', [$eventId]);
+                }
+                return true;
+            }
+            include 'public/views/404.html';
+            return true;
+        }
+        // /event/{id}/join, /event/{id}/delete, /event/{id}/leave
+        if (isset($parameters[0]) && is_numeric($parameters[0]) && isset($parameters[1])) {
+            $eventId = $parameters[0];
+            $eventAction = $parameters[1];
+            $map = [
+                'join' => 'event-join',
+                'delete' => 'event-delete',
+                'leave' => 'event-leave',
+            ];
+            if (isset($map[$eventAction])) {
+                self::dispatch($map[$eventAction], [$eventId]);
+                return true;
+            }
+            include 'public/views/404.html';
+            return true;
+        }
+        // /event/{id}
+        if (isset($parameters[0]) && is_numeric($parameters[0])) {
+            self::dispatch('event', [$parameters[0]]);
+            return true;
+        }
+        // /event (no id)
+        if (empty($parameters)) {
+            include 'public/views/404.html';
+            return true;
+        }
+	return false;
     }
 
     private static function dispatch(string $action, array $parameters = []): void

@@ -120,7 +120,7 @@ class EventController extends AppController {
         ];
         $renderData = [
             'pageTitle' => 'SportMatch - Edit Event',
-            'activeNav' => 'edit',
+            'activeNav' => 'event-edit',
             'skillLevels' => $skillLevels,
             'allSports' => $allSports,
             'event' => $formEvent,
@@ -131,7 +131,7 @@ class EventController extends AppController {
             $renderData['errors'] = $errors;
             $renderData['formData'] = $_POST;
         }
-        parent::render('edit', $renderData);
+        parent::render('event-edit', $renderData);
     }
 
     public function details($id = null, $action = null) {

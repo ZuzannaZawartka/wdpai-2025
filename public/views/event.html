@@ -156,12 +156,12 @@
                 </div>
                 <div class="join-actions">
                     <?php if ($event['isOwner'] ?? false): ?>
-                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+                    <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php elseif(($_SESSION['user_role'] ?? 'basic') === 'admin'): ?>
-                    <!-- Admin can edit and delete any event -->
-                    <a href="/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
+
+                    <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php else: ?>

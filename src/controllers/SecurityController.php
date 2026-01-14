@@ -82,7 +82,7 @@ class SecurityController extends AppController {
 
         // Do not clear IP-level counters on success; they decay by window
         $avatar = $user['avatar_url'] ?? null;
-        $role = $user['role'] ?? 'basic';
+        $role = $user['role'] ?? 'user';
         $this->setAuthContext((int)$user['id'], $user['email'], $role, $avatar);
         if ($role === 'admin') {
             header("Location: /sports", true, 303);
