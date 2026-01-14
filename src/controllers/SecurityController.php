@@ -49,9 +49,6 @@ class SecurityController extends AppController {
         $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
         $password = trim($_POST['password'] ?? '');
 
-        // IP-only windowed limiter (with session fallback)
-        $this->incrementIpLimiter($ipHash);
-
         // Check IP lock and respond if necessary
         if ($this->isIpLockedAndRespond($ipHash)) {
             return; // response already sent
@@ -64,6 +61,8 @@ class SecurityController extends AppController {
             mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH ||
             !$this->isValidEmail($email)
         ) {
+            // Nieudana próba logowania (złe dane wejściowe)
+            $this->incrementIpLimiter($ipHash);
             header('HTTP/1.1 400 Bad Request');
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
@@ -76,11 +75,13 @@ class SecurityController extends AppController {
         }
 
         if(!$user || !$this->verifyPassword($password, $user['password'])){
+            // Nieudana próba logowania (zły email lub hasło)
+            $this->incrementIpLimiter($ipHash);
             header('HTTP/1.1 401 Unauthorized');
             return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
-        // Do not clear IP-level counters on success; they decay by window
+        // Udane logowanie nie zwiększa licznika prób
         $avatar = $user['avatar_url'] ?? null;
         $role = $user['role'] ?? 'user';
         $this->setAuthContext((int)$user['id'], $user['email'], $role, $avatar);

@@ -150,5 +150,89 @@
         <a href="/profile" class="button danger text-size-small">Cancel</a>
         <button type="submit" class="button primary text-size-small">Save Changes</button>
     </div>
+
+    <div id="mapModal" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Cancel</button>
+                <button type="button" class="button primary apply-map">Use this location</button>
+            </div>
+        </div>
+    </div>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        (function () {
+            const modal = document.getElementById('mapModal');
+            const openBtns = document.querySelectorAll('.pick-map');
+            const closeBtn = modal?.querySelector('.close-map');
+            const applyBtn = modal?.querySelector('.apply-map');
+            const locInput = document.getElementById('location');
+
+            let map, marker, chosenLatLng;
+
+            function ensureMap() {
+                if (map) {
+                    map.invalidateSize();
+                    // Ustaw marker na aktualnej lokalizacji z inputa
+                    const currentLoc = locInput?.value?.trim();
+                    if (currentLoc && currentLoc.includes(',')) {
+                        const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                        if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                            if (!marker) {
+                                marker = L.marker([parts[0], parts[1]]).addTo(map);
+                            } else {
+                                marker.setLatLng([parts[0], parts[1]]);
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // Parse current location from input
+                const currentLoc = locInput?.value?.trim();
+                let lat = 52.2297, lng = 21.0122; // Default Warsaw
+
+                if (currentLoc && currentLoc.includes(',')) {
+                    const parts = currentLoc.split(',').map(p => parseFloat(p.trim()));
+                    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+                        lat = parts[0];
+                        lng = parts[1];
+                        chosenLatLng = { lat, lng };
+                    }
+                }
+
+                map = L.map('map').setView([lat, lng], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+
+                // Add marker if location exists
+                if (chosenLatLng) {
+                    marker = L.marker([lat, lng]).addTo(map);
+                }
+
+                map.on('click', (e) => {
+                    chosenLatLng = e.latlng;
+                    if (!marker) { marker = L.marker(e.latlng).addTo(map); }
+                    else { marker.setLatLng(e.latlng); }
+                });
+            }
+            function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(ensureMap, 0); }
+            function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
+            function applyLocation(e) {
+                e?.preventDefault();
+                if (chosenLatLng && locInput) {
+                    locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+                }
+                locInput.readOnly = false;
+                closeModal();
+            }
+            openBtns?.forEach(btn => btn.addEventListener('click', openModal));
+            closeBtn?.addEventListener('click', closeModal);
+            applyBtn?.addEventListener('click', applyLocation);
+            modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+        })();
+    </script>
     <?php endif; ?>
 </form>

@@ -12,6 +12,8 @@ html {
 }
 
 :root {
+    --tile-shadow: rgba(0, 0, 0, .06);
+    --tile-shadow-hover: rgba(0, 0, 0, .08);
     --primary: #13a4ec;
     --background-light-grey: #f0f0f1;
     --text-dark: #0f172a;
