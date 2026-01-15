@@ -277,4 +277,35 @@ class EventController extends AppController {
         }
         exit();
     }
+
+    public function deleteEventByAdmin() {
+        $this->requireRole('admin');
+        if (!$this->isPost() && !$this->isDelete()) {
+            header('HTTP/1.1 405 Method Not Allowed');
+            echo json_encode(['error' => 'Method not allowed']);
+            return;
+        }
+        $eventId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
+        if (!$eventId) {
+            header('HTTP/1.1 400 Bad Request');
+            echo json_encode(['error' => 'Event ID required']);
+            return;
+        }
+        $repo = new EventRepository();
+        try {
+            $deleted = $repo->deleteEvent($eventId);
+            if ($deleted) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => true]);
+            } else {
+                header('HTTP/1.1 404 Not Found');
+                echo json_encode(['error' => 'Event not found']);
+            }
+        } catch (Throwable $e) {
+            error_log("Admin event delete error: " . $e->getMessage());
+            header('HTTP/1.1 500 Internal Server Error');
+            echo json_encode(['error' => 'Failed to delete event']);
+        }
+        exit();
+    }
 }

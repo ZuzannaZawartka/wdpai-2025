@@ -9,6 +9,7 @@ class UserFormValidator {
         $birthDate = trim($postData['birthDate'] ?? '');
         $newPassword = trim($postData['newPassword'] ?? '');
         $confirmPassword = trim($postData['confirmPassword'] ?? '');
+        $oldPassword = trim($postData['oldPassword'] ?? '');
 
         if (empty($firstName) || mb_strlen($firstName, 'UTF-8') < 2) {
             $errors[] = 'First name is required and must be at least 2 characters.';
@@ -19,17 +20,26 @@ class UserFormValidator {
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $errors[] = 'Valid email is required.';
         }
-        if (!empty($birthDate)) {
+        if ($birthDate !== '') {
             if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthDate)) {
                 $errors[] = 'Birth date must be in YYYY-MM-DD format.';
             } else {
-                $today = date('Y-m-d');
-                if ($birthDate > $today) {
-                    $errors[] = 'Birth date cannot be in the future.';
+                $birthTimestamp = strtotime($birthDate);
+                $todayTimestamp = strtotime(date('Y-m-d'));
+                if ($birthTimestamp === false) {
+                    $errors[] = 'Invalid birth date.';
+                } elseif ($birthTimestamp >= $todayTimestamp) {
+                    $errors[] = 'Birth date must be before today.';
                 }
             }
         }
-        if (!empty($newPassword) || !empty($confirmPassword)) {
+        if (!empty($newPassword) || !empty($confirmPassword) || !empty($oldPassword)) {
+            if (empty($newPassword)) {
+                $errors[] = 'New password is required.';
+            }
+            if (empty($confirmPassword)) {
+                $errors[] = 'Password confirmation is required.';
+            }
             if (strlen($newPassword) < 8) {
                 $errors[] = 'New password must be at least 8 characters.';
             }
