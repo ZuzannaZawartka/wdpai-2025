@@ -3,7 +3,7 @@
 <link rel="stylesheet" href="/public/styles/event.css" />
 
 <?php
-    $isAdmin = (($_SESSION['user_role'] ?? 'basic') === 'admin');
+    $isAdmin = (($_SESSION['user_role'] ?? 'user') === 'admin');
     $canSeeContact = $isAdmin || ($event['isOwner'] ?? false) || ($event['isUserParticipant'] ?? false);
 ?>
 
@@ -159,7 +159,7 @@
                     <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
-                    <?php elseif(($_SESSION['user_role'] ?? 'basic') === 'admin'): ?>
+                    <?php elseif(($_SESSION['user_role'] ?? 'user') === 'admin'): ?>
 
                     <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
@@ -310,7 +310,7 @@
                     .then(response => {
                         if (response.ok) {
                             // Redirect based on user role - admin goes to /sports, others to /my
-                            const isAdmin = <?= json_encode((($_SESSION['user_role'] ?? 'basic') === 'admin')) ?>;
+                            const isAdmin = <?= json_encode((($_SESSION['user_role'] ?? 'user') === 'admin')) ?>;
                             window.location.href = isAdmin ? '/sports' : '/my';
                         } else {
                             alert('Failed to delete event');

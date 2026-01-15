@@ -6,16 +6,10 @@ require_once 'src/controllers/DashboardController.php';
 require_once 'src/controllers/SportsController.php';
 require_once 'src/controllers/JoinedController.php';
 require_once 'src/controllers/MyController.php';
-require_once 'src/controllers/CreateController.php';
 require_once 'src/controllers/EventController.php';
-require_once 'src/controllers/EditController.php';
 require_once 'src/controllers/AdminController.php';
 
 
-//TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
-
-//TODO: w przyszłosci mozemy np /dashboard lub /dashboard/1234 i ten endpoint wyciagnie element o wskazanym id
-//za pomoca regexu
 class Routing{
 
     public static $routes = [
@@ -70,8 +64,8 @@ class Routing{
             "requiresRole" => 'user'
         ],
         'create' => [
-            "controller" => 'CreateController',
-            "action" => 'index',
+            "controller" => 'EventController',
+            "action" => 'showCreateForm',
             "auth" => true,
             "requiresRole" => 'user'
         ],
@@ -109,7 +103,7 @@ class Routing{
         ], 
         'event-edit' => [
             "controller" => 'EventController',
-            "action" => 'edit',
+            "action" => 'showEditForm',
             "auth" => true,
             "requiresOwnership" => 'event',
             "requiresRole" => ['user', 'admin']
@@ -220,7 +214,7 @@ class Routing{
         $method = self::$routes[$action]['action'];
         
         if (!empty($parameters) && $parameters[0] === 'save') {
-            $method = 'save';
+            $method = 'updateEvent';
             array_shift($parameters);
         }
 

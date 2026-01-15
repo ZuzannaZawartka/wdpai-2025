@@ -201,20 +201,13 @@ class UserRepository extends Repository{
         return $query->rowCount() > 0;
     }
 
-    public function updateUserPassword(string $email, string $hashedPassword): bool {
-        error_log("Updating password for email: $email");
-        error_log("New hash starts with: " . substr($hashedPassword, 0, 20));
-        
-        $query = $this->database->connect()->prepare('
-            UPDATE users SET password = ? WHERE email = ?
+    public function updateUserPassword(string $email, string $hashedPassword): void {
+        $stmt = $this->database->connect()->prepare('
+            UPDATE users SET password = :password WHERE email = :email
         ');
-        
-        $result = $query->execute([$hashedPassword, $email]);
-        $rowCount = $query->rowCount();
-        
-        error_log("Password update - executed: " . ($result ? 'true' : 'false') . ", rows affected: $rowCount");
-        
-        return $rowCount > 0;
+        $stmt->bindParam(':password', $hashedPassword, PDO::PARAM_STR);
+        $stmt->bindParam(':email', $email, PDO::PARAM_STR);
+        $stmt->execute();
     }
 
     // UŻYCIE WIDOKU: Pobiera statystyki użytkowników z widoku vw_user_stats

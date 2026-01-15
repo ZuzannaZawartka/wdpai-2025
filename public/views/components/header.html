@@ -57,7 +57,7 @@
                 </div>
                 <nav class="site-nav">
                     <?php $active = $activeNav ?? 'dashboard'; ?>
-                    <?php $isAdmin = ($_SESSION['user_role'] ?? 'basic') === 'admin'; ?>
+                    <?php $isAdmin = ($_SESSION['user_role'] ?? 'user') === 'admin'; ?>
 
                     <?php if ($isAdmin): ?>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>

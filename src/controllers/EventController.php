@@ -5,7 +5,82 @@ require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/EventFormValidator.php';
 
 class EventController extends AppController {
-    public function edit($id): void
+        public function showCreateForm(): void
+        {
+            // Admins cannot create events
+            if ($this->isAdmin()) {
+                header('HTTP/1.1 403 Forbidden');
+                $this->render('404');
+                return;
+            }
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                $this->createEvent();
+            } else {
+                $this->renderCreateForm();
+            }
+        }
+
+        private function renderCreateForm(): void
+        {
+            $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
+            parent::render('create', [
+                'pageTitle' => 'SportMatch - Create Event',
+                'activeNav' => 'create',
+                'skillLevels' => $skillLevels,
+                'allSports' => $allSports,
+            ]);
+        }
+
+        public function createEvent(): void
+        {
+            $this->ensureSession();
+            $validation = EventFormValidator::validate($_POST);
+            if (!empty($validation['errors'])) {
+                $sportsRepo = new SportsRepository();
+                $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+                $allSports = $sportsRepo->getAllSports();
+                parent::render('create', [
+                    'pageTitle' => 'SportMatch - Create Event',
+                    'activeNav' => 'create',
+                    'skillLevels' => $skillLevels,
+                    'allSports' => $allSports,
+                    'errors' => $validation['errors'],
+                    'formData' => $_POST
+                ]);
+                return;
+            }
+            $ownerId = $this->getCurrentUserId();
+            $imageUrl = null;
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $tmpName = $_FILES['image']['tmp_name'];
+                $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+                $fileName = 'event_' . uniqid() . '.' . $ext;
+                $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+                if (move_uploaded_file($tmpName, $targetPath)) {
+                    $imageUrl = '/public/images/events/' . $fileName;
+                }
+            }
+            if (!$imageUrl) {
+                $imageUrl = '/public/images/boisko.png';
+            }
+            $newEvent = array_merge($validation['data'], [
+                'owner_id' => $ownerId,
+                'image_url' => $imageUrl
+            ]);
+            $repo = new EventRepository();
+            $eventId = $repo->createEvent($newEvent);
+            if ($eventId) {
+                header('Location: /event/' . $eventId);
+                exit;
+            } else {
+                http_response_code(500);
+                echo json_encode(['error' => 'Failed to create event']);
+            }
+        }
+
+    public function showEditForm($id): void
     {
         $this->ensureSession();
         $repo = new EventRepository();
@@ -21,7 +96,7 @@ class EventController extends AppController {
         $this->renderEditForm($id, $row, $skillLevels, $isReadOnly, [], $allSports);
     }
 
-    public function save($id): void
+    public function updateEvent($id): void
     {
         $this->ensureSession();
         $repo = new EventRepository();
@@ -78,6 +153,7 @@ class EventController extends AppController {
         $rangeMinValue = null;
         $rangeMaxValue = null;
         $specificValue = null;
+        
         if ($minPeople === $maxPeople && $maxPeople !== null) {
             $participantsType = 'specific';
             $specificValue = $minPeople;
@@ -89,10 +165,12 @@ class EventController extends AppController {
             $rangeMinValue = $minPeople;
             $rangeMaxValue = $maxPeople;
         }
+        
         $coordsString = '';
         if (isset($row['latitude'], $row['longitude'])) {
             $coordsString = $row['latitude'] . ', ' . $row['longitude'];
         }
+        
         $datetimeInput = '';
         if (!empty($row['start_time'])) {
             try {
@@ -102,6 +180,7 @@ class EventController extends AppController {
                 $datetimeInput = '';
             }
         }
+        
         $formEvent = [
             'id' => $row['id'] ?? $id,
             'title' => $row['title'] ?? '',
@@ -118,31 +197,39 @@ class EventController extends AppController {
                 'rangeMax' => $rangeMaxValue
             ]
         ];
+
+        $sportsRepo = new SportsRepository();
+
         $renderData = [
             'pageTitle' => 'SportMatch - Edit Event',
             'activeNav' => 'event-edit',
-            'skillLevels' => $skillLevels,
+            'skillLevels' => $sportsRepo->getAllLevels(),
             'allSports' => $allSports,
             'event' => $formEvent,
             'eventId' => $id,
             'isReadOnly' => $isReadOnly,
         ];
+
         if (!empty($errors)) {
             $renderData['errors'] = $errors;
             $renderData['formData'] = $_POST;
         }
+        
         parent::render('event-edit', $renderData);
     }
 
     public function details($id = null, $action = null) {
         $repo = new EventRepository();
         $row = $repo->getEventById((int)$id);
+        
         if (!$row) {
             http_response_code(404);
             $this->render('404');
             return;
         }
+        
         $userId = $this->getCurrentUserId();
+        
         $event = [
             'id' => (int)$row['id'],
             'title' => (string)$row['title'],
@@ -152,6 +239,7 @@ class EventController extends AppController {
             'coords' => isset($row['latitude'],$row['longitude']) ? ($row['latitude'] . ', ' . $row['longitude']) : null,
             'dateTime' => (new DateTime($row['start_time']))->format('D, M j, g:i A'),
             'skillLevel' => (string)($row['level_name'] ?? 'Intermediate'),
+            'levelColor' => (string)($row['level_color'] ?? '#9E9E9E'), // DODANE: Pobieranie koloru z bazy
             'organizer' => [
                 'name' => (trim($row['firstname'] ?? '') . ' ' . trim($row['lastname'] ?? '')) ?: 'Organizer',
                 'email' => (string)($row['owner_email'] ?? ''),
@@ -223,18 +311,12 @@ class EventController extends AppController {
             echo json_encode(['status' => 'error', 'message' => 'Event not found']);
             exit();
         }
-        $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
-        $isAdmin = $this->isAdmin();
-        $repo = new EventRepository();
-        if ($isOwner) {
-            $result = $repo->deleteEventByOwner((int)$id, (int)$userId);
-        } elseif ($isAdmin) {
-            $result = $repo->deleteEvent((int)$id);
-        } else {
+        if (!$this->canDeleteEvent($event, $userId)) {
             http_response_code(403);
             echo json_encode(['status' => 'error', 'message' => 'Only owner or admin can delete event']);
             exit();
         }
+        $result = $repo->deleteEvent((int)$id);
         if ($result) {
             http_response_code(200);
             echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
@@ -243,6 +325,10 @@ class EventController extends AppController {
             echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
         }
         exit();
+    }
+
+    private function canDeleteEvent($event, $userId): bool {
+        return ($this->isAdmin() || ((int)$event['owner_id'] === (int)$userId));
     }
 
     public function leave($id) {
@@ -261,7 +347,7 @@ class EventController extends AppController {
             echo json_encode(['status' => 'error', 'message' => 'Event not found']);
             exit();
         }
-        // Nie pozwól ownerowi opuścić własnego eventu (może tylko usunąć)
+
         if ((int)$event['owner_id'] === (int)$userId) {
             http_response_code(400);
             echo json_encode(['status' => 'error', 'message' => 'Owner cannot leave their own event']);
@@ -278,34 +364,4 @@ class EventController extends AppController {
         exit();
     }
 
-    public function deleteEventByAdmin() {
-        $this->requireRole('admin');
-        if (!$this->isPost() && !$this->isDelete()) {
-            header('HTTP/1.1 405 Method Not Allowed');
-            echo json_encode(['error' => 'Method not allowed']);
-            return;
-        }
-        $eventId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
-        if (!$eventId) {
-            header('HTTP/1.1 400 Bad Request');
-            echo json_encode(['error' => 'Event ID required']);
-            return;
-        }
-        $repo = new EventRepository();
-        try {
-            $deleted = $repo->deleteEvent($eventId);
-            if ($deleted) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true]);
-            } else {
-                header('HTTP/1.1 404 Not Found');
-                echo json_encode(['error' => 'Event not found']);
-            }
-        } catch (Throwable $e) {
-            error_log("Admin event delete error: " . $e->getMessage());
-            header('HTTP/1.1 500 Internal Server Error');
-            echo json_encode(['error' => 'Failed to delete event']);
-        }
-        exit();
-    }
 }

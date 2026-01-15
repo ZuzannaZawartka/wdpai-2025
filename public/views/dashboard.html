@@ -10,7 +10,7 @@
             </p>
             <div class="actions">
                 <a href="/sports" class="button primary text-size-small">Find Your Next Game</a>
-                <?php if(($_SESSION['user_role'] ?? 'basic') !== 'admin'): ?>
+                <?php if(($_SESSION['user_role'] ?? 'user') !== 'admin'): ?>
                 <a href="/create" class="button accent with-icon text-size-small"><span class="icon">＋</span> Create
                     Event</a>
                 <?php endif; ?>
@@ -75,7 +75,7 @@
                                 <?= htmlspecialchars($s['name']) ?>
                             </h3>
                             <p class="text-small">
-                                <?= htmlspecialchars($s['nearbyText']) ?>
+                                <?= htmlspecialchars($s['name']) ?> Enthusiast
                             </p>
                         </div>
                     </a>

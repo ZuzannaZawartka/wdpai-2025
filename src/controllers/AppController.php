@@ -18,7 +18,7 @@ class AppController {
                 (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
                 ((isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443'))
             );
-            // If headers already sent (e.g., due to a prior warning), avoid changing cookie params
+            // If headers already sent, avoid changing cookie params
             if (!headers_sent()) {
                 session_set_cookie_params([
                     'lifetime' => 0,
@@ -219,6 +219,29 @@ class AppController {
     
     public function isAdmin(): bool {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
+    }
+
+    protected function mapEventData(array $event): array {
+        $startTime = $event['start_time'] ?? null;
+        $formattedDate = 'Unknown date';
+        
+        if ($startTime) {
+            try {
+                $formattedDate = (new DateTime($startTime))->format('D, M j, g:i A');
+            } catch (Exception $e) {
+                $formattedDate = 'Invalid date';
+            }
+        }
+
+        return [
+            'id'         => (int)($event['id'] ?? 0),
+            'title'      => (string)($event['title'] ?? 'Untitled'),
+            'datetime'   => $formattedDate,
+            'players'    => (int)($event['current_players'] ?? 0) . " / " . (int)($event['max_players'] ?? 0),
+            'level'      => $event['level_name'] ?? 'Intermediate',
+            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : '/public/images/boisko.png',
+            'levelColor' => $event['level_color'] ?? '#9E9E9E' 
+        ];
     }
 
 }

@@ -1,10 +1,9 @@
 <?php
 
 require_once 'AppController.php';
+require_once 'UserController.php'; // Musisz zaimportować UserController
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
-require_once __DIR__ . '/../repository/SportsRepository.php';
-require_once __DIR__ . '/../validators/UserFormValidator.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 
 class AdminController extends AppController {
@@ -13,6 +12,7 @@ class AdminController extends AppController {
     private EventRepository $eventRepository;
     
     public function __construct() {
+        parent::__construct();
         $this->userRepository = new UserRepository();
         $this->eventRepository = new EventRepository();
     }
@@ -41,21 +41,19 @@ class AdminController extends AppController {
         ]);
     }
     
-    public function editUser() {
-        // Przekierowanie do UserController
-        (new UserController())->editUserByAdmin();
-        return;
+    public function editUser($id) {
+        $this->requireRole('admin');
+        $userController = new UserController();
+        
+        if ($this->isPost()) {
+            return $userController->updateProfile();
+        }
+        
+        return $userController->profile($id);
     }
-    
-    
     
     public function deleteEvent() {
-        // Przekierowanie do EventController
+        $this->requireRole('admin');
         (new EventController())->deleteEventByAdmin();
-        return;
-    }
-    
-    private function isDelete(): bool {
-        return $_SERVER['REQUEST_METHOD'] === 'DELETE';
     }
 }
