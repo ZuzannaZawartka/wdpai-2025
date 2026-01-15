@@ -27,41 +27,44 @@
                 <?php include __DIR__ . '/components/logo.html'; ?>
                 <h1 class="text-title">
                     <span class="text-primary">
-                        <?= $lang['register_title_create'] ?>
+                        <?= htmlspecialchars($lang['register_title_create'] ?? '', ENT_QUOTES) ?>
                     </span>
-                    <?= $lang['register_title_account'] ?>
+                    <?= htmlspecialchars($lang['register_title_account'] ?? '', ENT_QUOTES) ?>
                 </h1>
                 <p class="text-body">
-                    <?= $lang['register_subtitle'] ?>
+                    <?= htmlspecialchars($lang['register_subtitle'] ?? '', ENT_QUOTES) ?>
                 </p>
             </div>
 
             <?php if(isset($messages)): ?>
             <div class="messages">
-                <?= $messages ?>
+                <?= htmlspecialchars($messages, ENT_QUOTES) ?>
             </div>
             <?php endif; ?>
 
             <div class="input-grid">
                 <div class="input-group">
                     <label class="text-body">
-                        <?= $lang['first_name'] ?>
+                        <?= htmlspecialchars($lang['first_name'] ?? '', ENT_QUOTES) ?>
                     </label>
-                    <input type="text" class="input-common" placeholder="<?= $lang['first_name'] ?>" name="firstname"
+                    <input type="text" class="input-common"
+                        placeholder="<?= htmlspecialchars($lang['first_name'] ?? '', ENT_QUOTES) ?>" name="firstname"
                         required maxlength="100" minlength="2">
                 </div>
                 <div class="input-group">
                     <label class="text-body">
-                        <?= $lang['last_name'] ?>
+                        <?= htmlspecialchars($lang['last_name'] ?? '', ENT_QUOTES) ?>
                     </label>
-                    <input type="text" class="input-common" placeholder="<?= $lang['last_name'] ?>" name="lastname"
+                    <input type="text" class="input-common"
+                        placeholder="<?= htmlspecialchars($lang['last_name'] ?? '', ENT_QUOTES) ?>" name="lastname"
                         required maxlength="100" minlength="2">
                 </div>
                 <div class="input-group full-width">
                     <label class="text-body">
-                        <?= $lang['email'] ?>
+                        <?= htmlspecialchars($lang['email'] ?? '', ENT_QUOTES) ?>
                     </label>
-                    <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email" required
+                    <input type="email" class="input-common"
+                        placeholder="<?= htmlspecialchars($lang['email'] ?? '', ENT_QUOTES) ?>" name="email" required
                         maxlength="150">
                 </div>
                 <div class="input-group">
@@ -100,27 +103,29 @@
                 </div>
                 <div class="input-group">
                     <label class="text-body">
-                        <?= $lang['password'] ?>
+                        <?= htmlspecialchars($lang['password'] ?? '', ENT_QUOTES) ?>
                     </label>
-                    <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>" name="password"
+                    <input type="password" class="input-common"
+                        placeholder="<?= htmlspecialchars($lang['password'] ?? '', ENT_QUOTES) ?>" name="password"
                         required minlength="8" maxlength="128">
                 </div>
                 <div class="input-group">
                     <label class="text-body">
-                        <?= $lang['repeat_password'] ?>
+                        <?= htmlspecialchars($lang['repeat_password'] ?? '', ENT_QUOTES) ?>
                     </label>
-                    <input type="password" class="input-common" placeholder="<?= $lang['repeat_password'] ?>"
+                    <input type="password" class="input-common"
+                        placeholder="<?= htmlspecialchars($lang['repeat_password'] ?? '', ENT_QUOTES) ?>"
                         name="password2" required minlength="8" maxlength="128">
                 </div>
             </div>
 
             <button type="submit" class="btn-submit btn-common">
-                <?= $lang['register_button'] ?>
+                <?= htmlspecialchars($lang['register_button'] ?? '', ENT_QUOTES) ?>
             </button>
 
             <p class="auth-link text-small">
-                <?= $lang['already_have_account'] ?> <a class="a-link" href="login">
-                    <?= $lang['login_here'] ?>
+                <?= htmlspecialchars($lang['already_have_account'] ?? '', ENT_QUOTES) ?> <a class="a-link" href="login">
+                    <?= htmlspecialchars($lang['login_here'] ?? '', ENT_QUOTES) ?>
                 </a>
             </p>
         </form>

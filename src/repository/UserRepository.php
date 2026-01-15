@@ -271,4 +271,15 @@ class UserRepository extends Repository{
         return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    public function emailExists(string $email): bool {
+        $query = $this->database->connect()->prepare('
+            SELECT 1 FROM users WHERE email = :email LIMIT 1
+        ');
+
+        $query->bindParam(':email', $email, PDO::PARAM_STR);
+        $query->execute();
+
+        return $query->fetchColumn() !== false;
+    }
+
 }

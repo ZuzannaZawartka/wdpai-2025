@@ -102,7 +102,7 @@ class SecurityController extends AppController {
 
         if (empty($errors)) {
             try {
-                if ($this->userRepository->getUserByEmail($email)) {
+                if ($this->userRepository->emailExists($email)) {
                     $errors[] = "Konto z tym adresem już istnieje";
                 } else {
                     $newUserId = $this->userRepository->createUser(
