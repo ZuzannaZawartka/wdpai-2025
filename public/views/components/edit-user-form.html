@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/public/styles/components/map-canvas.css">
 <form class="form" method="post" enctype="multipart/form-data" action="<?php
     if (isset($user['role']) && $user['role'] === 'admin' || isset($pageTitle) && strpos($pageTitle, 'Admin') !== false || (isset($activeNav) && $activeNav === 'admin')) {
         $editId = isset($user['id']) ? (int)$user['id'] : 0;
