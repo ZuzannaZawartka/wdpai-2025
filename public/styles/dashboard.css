@@ -40,6 +40,8 @@
     width: 100%;
     max-width: 32.5rem;
     margin: 0 auto;
+    display: flex;
+    justify-content: center;
 }
 
 .actions {
@@ -60,10 +62,6 @@
 .cards {
     display: grid;
     gap: 1rem;
-}
-
-.cards.two-col, 
-.cards.three-col {
     grid-template-columns: 1fr;
 }
 
@@ -74,7 +72,7 @@
     box-shadow: 0 0.0625rem 0.125rem var(--tile-shadow);
     display: flex;
     flex-direction: column;
-    transition: box-shadow .2s ease;
+    transition: box-shadow 0.2s ease;
 }
 
 .card:hover {
@@ -99,7 +97,6 @@
     margin-top: auto;
 }
 
-.section.compact .cards.two-col { gap: 0.75rem; }
 .section.compact .card-media { height: 8rem; }
 .section.compact .card-body { padding: 0.75rem; gap: 0.25rem; }
 
@@ -119,7 +116,7 @@
     box-shadow: 0 0.0625rem 0.125rem var(--tile-shadow);
     text-decoration: none;
     color: inherit;
-    transition: all .2s ease;
+    transition: all 0.2s ease;
     min-height: 5.5rem;
 }
 
@@ -134,7 +131,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: color-mix(in oklab, var(--accent) 15%, white);
+    background: color-mix(in oklab, var(--accent) 15%, var(--white));
     border-radius: 0.625rem;
     font-size: 1.5rem;
     flex-shrink: 0;
@@ -144,29 +141,12 @@
     border: 0.125rem dashed var(--border-color);
     background: #fafafa;
     justify-content: center;
-    text-align: center;
     flex-direction: row;
 }
 
 .tile-add {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
     color: var(--button-muted-fg);
-}
-
-.animated-graphic path {
-    stroke-dasharray: 1000;
-    stroke-dashoffset: 1000;
-    animation: dash 5s linear forwards;
-}
-
-.animated-graphic path:nth-child(1) { animation-delay: 0s; }
-.animated-graphic path:nth-child(2) { animation-delay: .2s; }
-.animated-graphic path:nth-child(3) { animation-delay: .4s; }
-.animated-graphic path:nth-child(4) { animation-delay: .6s; }
-.animated-graphic path:nth-child(5) { animation-delay: .8s; }
-
-@keyframes dash {
-    to { stroke-dashoffset: 0; }
 }
 
 .empty-panel {
@@ -185,18 +165,14 @@
         flex-direction: column;
         align-items: stretch;
     }
-
     .hero .actions .button {
         width: 100%;
         justify-content: center;
-        font-size: 0.8em;
-        padding: 1em 0.5em;
     }
 }
 
 @media (min-width: 768px) {
     .cards.two-col { grid-template-columns: repeat(2, 1fr); }
-    .cards.three-col { grid-template-columns: repeat(2, 1fr); }
     .grid-quick { grid-template-columns: repeat(4, 1fr); }
 }
 
