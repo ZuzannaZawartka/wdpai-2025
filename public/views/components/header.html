@@ -42,7 +42,6 @@
     <link rel="stylesheet" href="/public/styles/profile.css" />
     <?php endif; ?>
 
-    <!-- Ensure modal styles load last to override page-specific rules -->
     <link rel="stylesheet" href="/public/styles/components/modal.css" />
 </head>
 
@@ -50,6 +49,9 @@
     <div class="layout">
         <header class="site-header">
             <div class="header-inner">
+                <button class="mobile-hamburger" aria-label="Menu" aria-expanded="false" type="button">
+                    <span class="material-symbols-outlined">menu</span>
+                </button>
                 <div class="brand">
                     <?php include __DIR__ . '/../components/logo.html'; ?>
                 </div>
@@ -83,3 +85,15 @@
             </div>
         </header>
         <main class="site-main">
+            <script>
+                document.addEventListener('DOMContentLoaded', function () {
+                    const hamburger = document.querySelector('.mobile-hamburger');
+                    const nav = document.querySelector('.site-nav');
+                    if (!hamburger || !nav) return;
+                    hamburger.addEventListener('click', function () {
+                        const expanded = hamburger.getAttribute('aria-expanded') === 'true';
+                        hamburger.setAttribute('aria-expanded', !expanded);
+                        nav.classList.toggle('mobile-open', !expanded);
+                    });
+                });
+            </script>

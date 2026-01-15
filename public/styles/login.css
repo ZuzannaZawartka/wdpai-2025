@@ -189,7 +189,7 @@ body {
     height: 3em;
     border-radius: 50%;
     border: none;
-    background-color: var(--background-light-grey);
+    background-color: var(---background-light-grey);
     cursor: pointer;
     font-weight: bold;
 }

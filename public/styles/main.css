@@ -4,12 +4,7 @@
 @import url('components/input-group.css');
 @import url('components/modal.css');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0');
-
 @import url('components/edit-user-form.css');
-
-html {
-    overflow-y: scroll;
-}
 
 :root {
     --tile-shadow: rgba(0, 0, 0, .06);
@@ -35,17 +30,11 @@ html {
     --nav-link-fg: #475569;
     --nav-link-hover-fg: var(--text-dark);
     --font-size-title: 2rem;
-
     --font-size-subtitle: 1.2rem;
-    /* 30px */
     --font-size-desc: 1rem;
-    /* 20px */
     --font-size-body: 0.8rem;
-    /* 16px */
     --font-size-small: 0.7rem;
-    /* ~14px */
     --font-size-note: 0.6rem;
-    /* 12px */
 }
 
 * {
@@ -54,86 +43,60 @@ html {
     box-sizing: border-box;
 }
 
-.text-primary {
-    color: var(--primary);
-}
-
-.text-body {
-    font-family: var(--main-font);
-    font-weight: 400;
-    font-size: var(--font-size-small);
-    color: var(--text-gray);
-}
-
-.text-small {
-    font-family: var(--main-font);
-    font-weight: 400;
-    font-size: var(--font-size-small);
-    color: var(--text-gray);
-}
-
-.text-desc {
-    font-family: var(--main-font);
-    font-weight: 400;
-    font-size: var(--font-size-desc);
-    color: var(--text-gray);
-}
-
-.text-note {
-    font-family: var(--main-font);
-    font-weight: 400;
-    font-size: var(--font-size-note);
-    color: var(--text-gray);
-}
-
-.text-title-large {
-    font-family: var(--main-font);
-    font-weight: 800;
-    font-size: var(--font-size-title);
-    color: var(--text-dark);
-}
-
-
-/* Card/Page title utility */
-.text-title {
-    font-family: var(--main-font);
-    font-weight: 800;
-    font-size: var(--font-size-subtitle);
-    color: var(--text-dark);
-}
-
-
-/* Card/Page title utility */
-.text-title-smaller {
-    font-family: var(--main-font);
-    font-weight: 800;
-    font-size: var(--font-size-desc);
-    color: var(--text-dark);
-}
-
-
-
-.text-size-body {
-    font-size: var(--font-size-body);
-}
-
-.text-size-small {
-    font-size: var(--font-size-small);
-}
-
-/* Compact strong text used for tile labels and compact buttons */
-.text-compact-strong {
-    font-size: var(--font-size-note);
-    font-weight: 700;
+html {
+    overflow-y: scroll;
 }
 
 body {
     font-family: var(--main-font);
     background-color: var(--white);
     color: var(--text-dark);
+    line-height: 1.5;
 }
 
-/* Shared page container */
+.text-primary { color: var(--primary); }
+
+.text-body, .text-small {
+    font-size: var(--font-size-small);
+    color: var(--text-gray);
+}
+
+.text-desc {
+    font-size: var(--font-size-desc);
+    color: var(--text-gray);
+}
+
+.text-note {
+    font-size: var(--font-size-note);
+    color: var(--text-gray);
+}
+
+.text-title-large {
+    font-weight: 800;
+    font-size: var(--font-size-title);
+    color: var(--text-dark);
+}
+
+.text-title {
+    font-weight: 800;
+    font-size: var(--font-size-subtitle);
+    color: var(--text-dark);
+}
+
+.text-title-smaller {
+    font-weight: 800;
+    font-size: var(--font-size-desc);
+    color: var(--text-dark);
+}
+
+.text-size-body { font-size: var(--font-size-body); }
+.text-size-small { font-size: var(--font-size-small); }
+
+.text-compact-strong {
+    font-size: var(--font-size-note);
+    font-weight: 700;
+}
+
 .site-main {
     width: 100%;
     max-width: 60rem;
@@ -146,36 +109,28 @@ body {
 }
 
 .messages {
-    background-color: #fee2e2;
-    color: #b91c1c;
-    padding: 1em;
-    border-radius: 0.5em;
-    margin-bottom: 1.5em;
-    font-size: 0.9em;
+    background-color: var(--bg-light);
+    color: var(--danger);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
 }
 
-/* Reusable subtle gradient panel */
 .panel {
     background: linear-gradient(135deg, var(--panel-bg-start) 0%, var(--panel-bg-end) 100%);
     border-radius: 0.75rem;
     padding: 1.5rem;
 }
 
-/* Global material icon class */
 .material {
     font-family: 'Material Symbols Outlined';
     font-weight: normal;
-    font-style: normal;
     font-size: 1.2em;
-    line-height: 1;
-    letter-spacing: normal;
-    text-transform: none;
     display: inline-flex;
-    white-space: nowrap;
-    word-wrap: normal;
+    align-items: center;
+    justify-content: center;
     direction: ltr;
-    -webkit-font-feature-settings: 'liga';
-    font-feature-settings: 'liga';
     -webkit-font-smoothing: antialiased;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     color: var(--primary);
