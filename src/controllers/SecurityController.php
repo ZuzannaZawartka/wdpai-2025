@@ -47,6 +47,7 @@ class SecurityController extends AppController {
 
         if (!$this->isValidEmail($email) || mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
             $this->incrementIpLimiter($ipHash);
+            $this->authRepository->logFailedLoginAttempt($email, $ipHash, 'invalid_email_or_password_format');
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
 
@@ -55,6 +56,7 @@ class SecurityController extends AppController {
 
             if (!$user || !password_verify($password, $user['password'])) {
                 $this->incrementIpLimiter($ipHash);
+                $this->authRepository->logFailedLoginAttempt($email, $ipHash, 'user_not_found_or_bad_password');
                 return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
             }
 
@@ -63,7 +65,6 @@ class SecurityController extends AppController {
             }
 
             $this->setAuthContext((int)$user['id'], $user['email'], $user['role'], $user['avatar_url']);
-            
             session_write_close();
             $url = ($user['role'] === 'admin') ? '/sports' : '/dashboard';
             header("Location: $url", true, 303);
@@ -71,6 +72,7 @@ class SecurityController extends AppController {
 
         } catch (Throwable $e) {
             error_log($e->getMessage());
+            $this->authRepository->logFailedLoginAttempt($email, $ipHash, 'exception');
             return $this->render("login", ["messages" => "Wewnętrzny błąd serwera"]);
         }
     }

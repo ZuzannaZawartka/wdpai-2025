@@ -1,3 +1,6 @@
+
+
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     firstname VARCHAR(100) NOT NULL,
@@ -35,6 +38,16 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     lock_until BIGINT NOT NULL DEFAULT 0,
     last_attempt BIGINT NOT NULL DEFAULT 0,
     PRIMARY KEY (email, ip_hash)
+);
+
+CREATE TABLE IF NOT EXISTS auth_audit_log (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,      -- login_failed, login_success
+    email_hash CHAR(64),                  -- hash e-maila (SHA-256)
+    ip_hash CHAR(64) NOT NULL,             -- hash IP
+    user_agent VARCHAR(255),              -- opcjonalnie
+    reason VARCHAR(100),                  -- np. bad_credentials, account_locked
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Catalog tables: sports and levels (must be created BEFORE referencing them)
