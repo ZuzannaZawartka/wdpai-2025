@@ -2,3 +2,14 @@
 config.php
 public/images/
 .env
+
+/vendor/
+
+.phpunit.result.cache
+cookies.txt
+test_results.log
+
+*.log
+
+.DS_Store
+Thumbs.db

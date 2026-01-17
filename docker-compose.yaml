@@ -29,6 +29,7 @@ services:
       dockerfile: docker/php/Dockerfile
     volumes:
       - .:/app
+    working_dir: /app
     networks:
       - pg-network
   
