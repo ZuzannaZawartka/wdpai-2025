@@ -15,26 +15,10 @@ class UserController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->sportsRepository = new SportsRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->sportsRepository = SportsRepository::getInstance();
     }
 
-    public function profile($id = null)
-    {
-        $this->requireAuth();
-
-        $targetId = $this->getTargetUserId($id);
-        $dbUser = $this->userRepository->getUserProfileById($targetId);
-
-        if (!$dbUser) {
-            $this->redirect('/dashboard');
-        }
-
-        $this->render('profile', array_merge(
-            $this->prepareProfileViewData($dbUser),
-            ['isOwnProfile' => $this->isOwnProfile($targetId)]
-        ));
-    }
 
     public function editUser($userId = null)
     {

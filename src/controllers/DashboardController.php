@@ -15,9 +15,9 @@ class DashboardController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->eventRepository = new EventRepository();
-        $this->sportsRepository = new SportsRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->eventRepository = EventRepository::getInstance();
+        $this->sportsRepository = SportsRepository::getInstance();
     }
 
     public function index()
@@ -36,7 +36,7 @@ class DashboardController extends AppController
             }
         }
 
-        $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId);
+        $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId, true);
         $upcomingEvents = array_map(function ($r) {
             $ev = new \Event($r);
             $current = (int)$ev->getCurrentPlayers();

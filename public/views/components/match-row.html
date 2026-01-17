@@ -1,0 +1,32 @@
+<?php
+// Reusable match row component (unifies article.match and article.card patterns).
+// Inputs:
+// - $m: match data array
+// - $showDesc: bool (default true)
+// - $rowActions: optional HTML for custom actions
+// - $imagePosition: 'left' or 'right' (default 'left')
+
+$m = $m ?? [];
+$showDesc = $showDesc ?? true;
+$imgUrl = !empty($m['imageUrl']) ? $m['imageUrl'] : '/public/images/boisko.png';
+$isPast = !empty($m['isPast']);
+$imagePosition = $imagePosition ?? 'left';
+?>
+
+<article class="match <?= $isPast ? 'past-event' : '' ?> img-<?= $imagePosition ?>">
+    <div class="match-body">
+        <?php if ($imagePosition === 'left'): ?>
+        <div class="visual" style="background-image:url('<?= htmlspecialchars($imgUrl) ?>')"></div>
+        <?php endif; ?>
+
+        <?php
+            $card = $m;
+            $actions = $rowActions ?? null;
+            include __DIR__ . '/match-card-content.html';
+        ?>
+
+        <?php if ($imagePosition === 'right'): ?>
+        <div class="visual" style="background-image:url('<?= htmlspecialchars($imgUrl) ?>')"></div>
+        <?php endif; ?>
+    </div>
+</article>

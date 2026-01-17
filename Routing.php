@@ -73,12 +73,7 @@ class Routing
         ],
         'profile' => [
             "controller" => 'UserController',
-            "action" => 'profile',
-            "auth" => true
-        ],
-        'profile-update' => [
-            "controller" => 'UserController',
-            "action" => 'updateProfile',
+            "action" => 'editUser',
             "auth" => true
         ],
         'event' => [
@@ -254,7 +249,7 @@ class Routing
 
         $isOwner = false;
         if ($resourceType === 'event') {
-            $repo = new EventRepository();
+            $repo = EventRepository::getInstance();
             $event = $repo->getEventById($resourceId);
             if ($event && (int)$event['owner_id'] === $userId) {
                 $isOwner = true;

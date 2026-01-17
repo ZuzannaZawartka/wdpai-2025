@@ -4,7 +4,11 @@
 
 <section class="sports-page">
     <div class="section">
-        <div class="text-title-large">Find your next game</div>
+        <?php 
+            $title = 'Find your next game';
+            $description = 'Join local sports enthusiasts and play together.';
+            include __DIR__ . '/components/page-header.html';
+        ?>
     </div>
 
     <div class="section panel filters-bar">
@@ -24,9 +28,17 @@
             <?php $selectedLoc = $selectedLoc ?? ''; ?>
             <input id="filterLocation" name="loc" type="text" class="input-common" placeholder="Enter Location"
                 value="<?= htmlspecialchars($selectedLoc) ?>" />
-            <button type="button" class="icon-btn pick-map" aria-label="Wybierz lokalizację na mapie">
+            <button type="button" class="icon-btn pick-map" data-target="sportsPickerMap"
+                aria-label="Wybierz lokalizację na mapie">
                 <span class="material">my_location</span>
             </button>
+            <?php 
+                $mode = 'picker';
+                $mapId = 'sportsPickerMap';
+                $inputName = 'loc';
+                $location = $selectedLoc;
+                include __DIR__ . '/components/map.html';
+            ?>
         </div>
         <div class="control with-icon radius">
             <span class="material">straighten</span>
@@ -64,66 +76,28 @@
         </button>
     </div>
 
-    <!-- Map modal for picking location -->
-    <div id="mapModal" class="map-modal" hidden>
-        <div class="map-modal-backdrop"></div>
-        <div class="map-modal-content">
-            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
-            <div class="map-actions">
-                <button type="button" class="button muted close-map">Cancel</button>
-                <button type="button" class="button primary apply-map">Use this location</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Leaflet for map picking -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         (function () {
-            const modal = document.getElementById('mapModal');
-            const openBtn = document.querySelector('.pick-map');
-            const closeBtn = modal?.querySelector('.close-map');
-            const applyBtn = modal?.querySelector('.apply-map');
+            const openBtn = document.querySelector('.pick-map[data-target="sportsPickerMap"]');
+            const mapInput = document.getElementById('input-sportsPickerMap');
             const locInput = document.getElementById('filterLocation');
             const radiusEl = document.getElementById('radiusRange');
             const radiusDisplay = document.querySelector('.filters-bar .control.radius .range-display');
-            let map, marker, chosenLatLng;
 
-            function ensureMap() {
-                if (map) { map.invalidateSize(); return; }
-                map = L.map('map').setView([52.2297, 21.0122], 12);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    maxZoom: 19,
-                    attribution: '&copy; OpenStreetMap'
-                }).addTo(map);
-                map.on('click', (e) => {
-                    chosenLatLng = e.latlng;
-                    if (!marker) { marker = L.marker(e.latlng).addTo(map); }
-                    else { marker.setLatLng(e.latlng); }
-                });
-            }
-
-            function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(() => ensureMap(), 0); }
-            function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
-            function applyLocation(e) {
-                e?.preventDefault();
-                if (chosenLatLng && locInput) {
-                    locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
-                    // Make location read-only to indicate it's chosen from map
+            // Synchronize the dummy display input with the hidden map input
+            if (mapInput && locInput) {
+                mapInput.addEventListener('change', () => {
+                    locInput.value = mapInput.value;
                     locInput.readOnly = true;
-                    // Visually indicate the icon button is applied
-                    if (openBtn) {
-                        openBtn.classList.add('applied');
-                    }
-                }
-                closeModal();
-            }
+                    openBtn?.classList.add('applied');
+                });
 
-            openBtn?.addEventListener('click', openModal);
-            closeBtn?.addEventListener('click', closeModal);
-            applyBtn?.addEventListener('click', applyLocation);
-            modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
+                // If initial value is set and it's coords, make readonly
+                if (locInput.value.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
+                    locInput.readOnly = true;
+                    openBtn?.classList.add('applied');
+                }
+            }
 
             // Radius display live update
             function updateRadiusDisplay() {
@@ -133,8 +107,7 @@
                     const max = Number(radiusEl.max || 100);
                     const val = Number(radiusEl.value || min);
                     const pct = ((val - min) / (max - min)) * 100;
-                    // Use numeric value for --range-pct, CSS multiplies by 1%
-                    radiusEl.style.setProperty('--range-pct', `${pct}`);
+                    radiusEl.style.setProperty('--range-pct', pct);
                 }
             }
             radiusEl?.addEventListener('input', updateRadiusDisplay);
@@ -203,24 +176,13 @@
             $pageMatches = array_slice($allMatches, $offset, $itemsPerPage);
         ?>
         <?php foreach($pageMatches as $m): ?>
-        <article class="match <?= !empty($m['isPast']) ? 'past-event' : '' ?>">
-            <div class="match-body">
-                <?php
-                    $card = $m;
-                    $showDesc = true;
-                    include __DIR__ . '/components/match-card-content.html';
-                ?>
-                <div class="card-bottom-row">
-                    <a href="/event/<?= (int)($m['id'] ?? 0) ?>"
-                        class="button primary text-size-small <?= !empty($m['isPast']) ? 'past' : '' ?>">View
-                        Details</a>
-                </div>
-                <?php
-                    $imgUrl = !empty($m['imageUrl']) ? $m['imageUrl'] : '/public/images/boisko.png';
-                ?>
-                <div class="visual" data-bg="<?= htmlspecialchars($imgUrl) ?>"></div>
-            </div>
-        </article>
+        <?php
+            $rowActions = '
+                <a href="/event/'.(int)($m['id'] ?? 0).'"
+                    class="button primary small '.(!empty($m['isPast']) ? 'past' : '').'">View Details</a>';
+            $imagePosition = 'right';
+            include __DIR__ . '/components/match-row.html';
+        ?>
         <?php endforeach; ?>
 
         <?php if ($totalPages > 1): ?>

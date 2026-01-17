@@ -1,0 +1,20 @@
+<?php
+// Reusable section header component.
+// Inputs:
+// - $sectionTitle: title text
+// - $sectionLink: optional action link URL
+// - $sectionLinkText: optional action link text
+
+$sectionTitle = $sectionTitle ?? 'Section';
+?>
+
+<div class="section-head">
+    <h2 class="text-title">
+        <?= htmlspecialchars($sectionTitle) ?>
+    </h2>
+    <?php if (isset($sectionLink) && isset($sectionLinkText)): ?>
+    <a class="a-link text-size-small" href="<?= htmlspecialchars($sectionLink) ?>">
+        <?= htmlspecialchars($sectionLinkText) ?>
+    </a>
+    <?php endif; ?>
+</div>

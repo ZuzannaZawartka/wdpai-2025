@@ -44,7 +44,6 @@ body.register-page {
     align-items: center;
 }
 
-/* Szeroki formularz rejestracji */
 .register-form {
     background: var(--white);
     padding: 2.5em 2em;

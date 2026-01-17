@@ -26,12 +26,12 @@ class EventController extends AppController
 
     private function renderCreateForm(): void
     {
-        $sportsRepo = new SportsRepository();
+        $sportsRepo = SportsRepository::getInstance();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
-        parent::render('create', [
+        parent::render('event-create', [
             'pageTitle' => 'SportMatch - Create Event',
-            'activeNav' => 'create',
+            'activeNav' => 'event-create',
             'skillLevels' => $skillLevels,
             'allSports' => $allSports,
         ]);
@@ -42,12 +42,12 @@ class EventController extends AppController
         $this->ensureSession();
         $validation = EventFormValidator::validate($_POST);
         if (!empty($validation['errors'])) {
-            $sportsRepo = new SportsRepository();
+            $sportsRepo = SportsRepository::getInstance();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
-            parent::render('create', [
+            parent::render('event-create', [
                 'pageTitle' => 'SportMatch - Create Event',
-                'activeNav' => 'create',
+                'activeNav' => 'event-create',
                 'skillLevels' => $skillLevels,
                 'allSports' => $allSports,
                 'errors' => $validation['errors'],
@@ -58,12 +58,29 @@ class EventController extends AppController
         $ownerId = $this->getCurrentUserId();
         $imageUrl = null;
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $tmpName = $_FILES['image']['tmp_name'];
-            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $fileName = 'event_' . uniqid() . '.' . $ext;
-            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
-            if (move_uploaded_file($tmpName, $targetPath)) {
-                $imageUrl = '/public/images/events/' . $fileName;
+            $file = $_FILES['image'];
+            if ($this->validateImage($file)) {
+                $tmpName = $file['tmp_name'];
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $fileName = 'event_' . uniqid() . '.' . $ext;
+                $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+                if (move_uploaded_file($tmpName, $targetPath)) {
+                    $imageUrl = '/public/images/events/' . $fileName;
+                }
+            } else {
+                $validation['errors'][] = 'Invalid image file (only JPG, PNG, WEBP allowed)';
+                $sportsRepo = SportsRepository::getInstance();
+                $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+                $allSports = $sportsRepo->getAllSports();
+                parent::render('event-create', [
+                    'pageTitle' => 'SportMatch - Create Event',
+                    'activeNav' => 'event-create',
+                    'skillLevels' => $skillLevels,
+                    'allSports' => $allSports,
+                    'errors' => $validation['errors'],
+                    'formData' => $_POST
+                ]);
+                return;
             }
         }
         if (!$imageUrl) {
@@ -73,7 +90,7 @@ class EventController extends AppController
             'owner_id' => $ownerId,
             'image_url' => $imageUrl
         ]);
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $eventId = $repo->createEvent($newEvent);
         if ($eventId) {
             $this->redirect('/event/' . $eventId);
@@ -85,13 +102,13 @@ class EventController extends AppController
     public function showEditForm($id): void
     {
         $this->ensureSession();
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $event = $repo->getEventEntityById((int)$id);
         if (!$event) {
             $this->respondNotFound();
         }
-        $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
-        $sportsRepo = new SportsRepository();
+        $isReadOnly = $repo->isEventPast((int)$id);
+        $sportsRepo = SportsRepository::getInstance();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
         $this->renderEditForm($id, $event, $skillLevels, $isReadOnly, [], $allSports);
@@ -100,8 +117,8 @@ class EventController extends AppController
     public function updateEvent($id): void
     {
         $this->ensureSession();
-        $repo = new EventRepository();
-        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
+        $repo = EventRepository::getInstance();
+        if ($repo->isEventPast((int)$id)) {
             $this->respondForbidden('Cannot edit past events');
         }
 
@@ -112,7 +129,7 @@ class EventController extends AppController
         $validation = EventFormValidator::validate($_POST, $currentParticipants);
         if (!empty($validation['errors'])) {
             $eventObj = $currentEntity ?? $repo->getEventEntityById((int)$id);
-            $sportsRepo = new SportsRepository();
+            $sportsRepo = SportsRepository::getInstance();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
             $this->renderEditForm($id, $eventObj, $skillLevels, false, $validation['errors'], $allSports);
@@ -152,12 +169,25 @@ class EventController extends AppController
             $updates = $updateDto->toArray();
         }
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-            $tmpName = $_FILES['image']['tmp_name'];
-            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-            $fileName = 'event_' . uniqid() . '.' . $ext;
-            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
-            if (move_uploaded_file($tmpName, $targetPath)) {
-                $updates['image_url'] = '/public/images/events/' . $fileName;
+            $file = $_FILES['image'];
+            if ($this->validateImage($file)) {
+                $tmpName = $file['tmp_name'];
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $fileName = 'event_' . uniqid() . '.' . $ext;
+                $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+                if (move_uploaded_file($tmpName, $targetPath)) {
+                    $updates['image_url'] = '/public/images/events/' . $fileName;
+                }
+            } else {
+                // For edit flow, we might just ignore the invalid file or return error. 
+                // Returning error is safer.
+                $validation['errors'][] = 'Invalid image file (only JPG, PNG, WEBP allowed)';
+                $eventObj = $currentEntity ?? $repo->getEventEntityById((int)$id);
+                $sportsRepo = SportsRepository::getInstance();
+                $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+                $allSports = $sportsRepo->getAllSports();
+                $this->renderEditForm($id, $eventObj, $skillLevels, false, $validation['errors'], $allSports);
+                return;
             }
         }
         $result = $repo->updateEvent((int)$id, $updates);
@@ -222,7 +252,7 @@ class EventController extends AppController
             ]
         ];
 
-        $sportsRepo = new SportsRepository();
+        $sportsRepo = SportsRepository::getInstance();
 
         $renderData = [
             'pageTitle' => 'SportMatch - Edit Event',
@@ -244,7 +274,7 @@ class EventController extends AppController
 
     public function details($id = null, $action = null)
     {
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
             $this->respondNotFound();
@@ -279,6 +309,7 @@ class EventController extends AppController
             $event['isOwner'] = $isOwner;
             $event['isFull'] = $repo->isEventFull((int)$id);
         }
+        $event['isPast'] = $repo->isEventPast((int)$id);
         $this->render('event', [
             'pageTitle' => 'SportMatch - Match Details',
             'activeNav' => 'sports',
@@ -293,7 +324,7 @@ class EventController extends AppController
             $this->respondUnauthorized('Not authenticated');
         }
 
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         if ($repo->isEventPast((int)$id)) {
             $this->respondBadRequest('Event has already passed');
         }
@@ -316,7 +347,7 @@ class EventController extends AppController
         if (!$userId) {
             $this->respondUnauthorized('Not authenticated');
         }
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
             $this->respondNotFound('Event not found');
@@ -346,7 +377,7 @@ class EventController extends AppController
         if (!$userId) {
             $this->respondUnauthorized('Not authenticated');
         }
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
             $this->respondNotFound('Event not found');
@@ -361,5 +392,17 @@ class EventController extends AppController
         } else {
             $this->respondBadRequest('Failed to leave event');
         }
+    }
+    private function validateImage(array $file): bool
+    {
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+
+        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+
+        return in_array($mimeType, $allowedTypes) && in_array($ext, $allowedExtensions);
     }
 }

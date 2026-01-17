@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="/public/styles/components/map-canvas.css">
-<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Create Event'; $activeNav = $activeNav ?? 'create'; ?>
+<?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Create Event'; $activeNav = $activeNav ?? 'event-create'; ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
 <section class="create-page">
@@ -10,15 +10,11 @@
     </div>
 
     <div class="section panel">
-        <div class="hero-map">
-            <div id="locationEmpty" class="hero-map-empty">
-                <span class="material">location_on</span>
-                <div class="text-small">No location selected</div>
-            </div>
-            <div id="locationPreview" class="location-preview" hidden>
-                <div id="locationMap" class="mini-map-canvas" aria-label="Selected location preview"></div>
-            </div>
-        </div>
+        <?php 
+            $mode = 'preview';
+            $mapId = 'createPreviewMap';
+            include __DIR__ . '/components/map.html';
+        ?>
 
         <form class="form" method="post" action="#" enctype="multipart/form-data">
             <?php include __DIR__ . '/components/form-errors.html'; ?>
@@ -37,13 +33,37 @@
                 </div>
 
                 <div class="field input-group">
-                    <label class="text-small" for="location">Location</label>
-                    <div class="control faux-input">
-                        <button type="button" class="pick-map text-size-small" aria-label="Pick location on map">Choose
-                            on map</button>
+                    <label class="text-small" for="locationDisplay">Location</label>
+                    <div class="control with-icon has-action">
+                        <span class="material">location_on</span>
+                        <input id="locationDisplay" name="locationDisplay" type="text" class="input-common"
+                            placeholder="Pick on map" readonly />
+                        <button type="button" class="icon-btn pick-map" data-target="createPickerMap">
+                            <span class="material">my_location</span>
+                        </button>
                     </div>
-                    <input id="location" name="location" type="hidden" />
+                    <?php 
+                        $mode = 'picker';
+                        $mapId = 'createPickerMap';
+                        $previewId = 'createPreviewMap';
+                        $inputName = 'location';
+                        include __DIR__ . '/components/map.html';
+                    ?>
                 </div>
+
+                <script>
+                    (function () {
+                        const mapInput = document.getElementById('input-createPickerMap');
+                        const locDisplay = document.getElementById('locationDisplay');
+                        const openBtn = document.querySelector('.pick-map[data-target="createPickerMap"]');
+                        if (mapInput && locDisplay) {
+                            mapInput.addEventListener('change', () => {
+                                locDisplay.value = mapInput.value;
+                                openBtn?.classList.add('applied');
+                            });
+                        }
+                    })();
+                </script>
 
                 <div class="field input-group file-field">
                     <label class="text-small" for="image">Event Image</label>
@@ -131,75 +151,15 @@
             </div>
 
             <div class="form-actions">
-                <a href="/my" class="button danger text-size-small">Cancel</a>
-                <button type="submit" class="button primary text-size-small">Save Event</button>
+                <a href="/my" class="button danger small">Cancel</a>
+                <button type="submit" class="button primary small">Save Event</button>
             </div>
         </form>
     </div>
-
-    <!-- Map modal for picking location -->
-    <div id="mapModal" class="map-modal" hidden>
-        <div class="map-modal-backdrop"></div>
-        <div class="map-modal-content">
-            <div id="map" class="map-canvas" aria-label="Pick location on map"></div>
-            <div class="map-actions">
-                <button type="button" class="button muted close-map">Cancel</button>
-                <button type="button" class="button primary apply-map">Use this location</button>
-            </div>
-        </div>
-    </div>
 </section>
 
-<!-- Leaflet for map picking -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
     (function () {
-        const modal = document.getElementById('mapModal');
-        const openBtns = document.querySelectorAll('.pick-map');
-        const closeBtn = modal?.querySelector('.close-map');
-        const applyBtn = modal?.querySelector('.apply-map');
-        const locInput = document.getElementById('location');
-        const imgInput = document.getElementById('image');
-        const locPreviewWrap = document.getElementById('locationPreview');
-        const locPreviewEl = document.getElementById('locationMap');
-        const locEmptyEl = document.getElementById('locationEmpty');
-
-        let map, marker, chosenLatLng;
-        let locMap, locMarker;
-
-        function ensureMap() {
-            if (map) { map.invalidateSize(); return; }
-            map = L.map('map').setView([52.2297, 21.0122], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
-            map.on('click', (e) => {
-                chosenLatLng = e.latlng;
-                if (!marker) { marker = L.marker(e.latlng).addTo(map); }
-                else { marker.setLatLng(e.latlng); }
-            });
-        }
-        function openModal(e) { e?.preventDefault(); modal.removeAttribute('hidden'); setTimeout(ensureMap, 0); }
-        function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
-        function applyLocation(e) {
-            e?.preventDefault();
-            if (chosenLatLng && locInput) {
-                locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
-                locInput.readOnly = true;
-                if (locEmptyEl && locEmptyEl.parentNode) {
-                    locEmptyEl.parentNode.removeChild(locEmptyEl);
-                }
-                if (locPreviewWrap && locPreviewEl) {
-                    locPreviewWrap.removeAttribute('hidden');
-                    ensureLocationPreview(chosenLatLng);
-                }
-            }
-            closeModal();
-        }
-        openBtns?.forEach(btn => btn.addEventListener('click', openModal));
-        closeBtn?.addEventListener('click', closeModal);
-        applyBtn?.addEventListener('click', applyLocation);
-        modal?.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
-
         // Participants mode toggle
         const typeWrap = document.getElementById('participantsType');
         const rows = document.querySelectorAll('.participants-inputs .row');
@@ -213,28 +173,6 @@
         }
         typeWrap?.addEventListener('change', updateParticipants);
         updateParticipants();
-
-        // Image preview removed per request
-
-        // Initialize or update inline location preview map
-        function ensureLocationPreview(latlng) {
-            if (!locMap) {
-                locMap = L.map('locationMap', {
-                    zoomControl: false,
-                    attributionControl: false,
-                    scrollWheelZoom: false,
-                    dragging: false,
-                    doubleClickZoom: false,
-                    boxZoom: false,
-                    keyboard: false
-                });
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(locMap);
-            }
-            locMap.setView([latlng.lat, latlng.lng], 14);
-            if (!locMarker) { locMarker = L.marker([latlng.lat, latlng.lng]).addTo(locMap); }
-            else { locMarker.setLatLng([latlng.lat, latlng.lng]); }
-            setTimeout(() => locMap.invalidateSize(), 0);
-        }
     })();
 </script>
 

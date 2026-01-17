@@ -2,8 +2,11 @@
 <?php include __DIR__ . '/components/header.html'; ?>
 <section class="profile-page sports-page">
     <div class="section">
-        <div class="text-title-large">My Profile</div>
-        <p class="text-desc">Manage your personal information and preferences.</p>
+        <?php 
+            $title = 'My Profile';
+            $description = 'Manage your personal information and preferences.';
+            include __DIR__ . '/components/page-header.html';
+        ?>
     </div>
     <div class="section panel">
         <?php include __DIR__ . '/components/edit-user-form.html'; ?>

@@ -1,0 +1,59 @@
+.control.with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.control.with-icon .material {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 1.25rem;
+    color: var(--primary);
+    z-index: 1;
+}
+
+.control.with-icon .input-common,
+.control.with-icon select,
+.control.with-icon .input-range {
+    padding-left: 2.5rem;
+    width: 100%;
+}
+
+.control.with-icon.has-action .input-common {
+    padding-right: 3rem;
+}
+
+.control.with-icon.has-action .icon-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    color: var(--primary);
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.control.with-icon.has-action .icon-btn:hover {
+    color: var(--accent);
+}
+
+.control.with-icon.has-action .icon-btn.applied {
+    color: var(--primary);
+}
+
+.control.with-icon.has-action .icon-btn .material {
+    position: static;
+    transform: none;
+    font-size: 1.25rem;
+}

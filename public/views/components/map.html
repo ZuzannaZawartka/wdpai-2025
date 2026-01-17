@@ -1,0 +1,158 @@
+<?php
+/**
+ * Global Map Component
+ * @var string $mapId - Unique ID for the map element
+ * @var string $mode - 'view', 'picker', 'preview'
+ * @var string $location - Initial location (lat,lng or address)
+ * @var string $inputName - Name of the hidden input for 'picker' mode
+ * @var string $placeholder - Placeholder for empty state
+ */
+$mode = $mode ?? 'view';
+$mapId = $mapId ?? ('map-' . uniqid());
+$location = $location ?? '';
+$inputName = $inputName ?? 'location';
+$placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
+?>
+
+<link rel="stylesheet" href="/public/styles/components/map-canvas.css">
+
+<div class="map-component-wrapper" id="wrapper-<?= htmlspecialchars($mapId) ?>"
+    data-map-id="<?= htmlspecialchars($mapId) ?>" data-mode="<?= htmlspecialchars($mode) ?>"
+    data-preview-id="<?= htmlspecialchars($previewId ?? '') ?>" data-location="<?= htmlspecialchars($location) ?>"
+    data-placeholder="<?= htmlspecialchars($placeholder) ?>">
+    <?php if ($mode === 'picker'): ?>
+    <div id="mapModal-<?= $mapId ?>" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="<?= $mapId ?>" class="map-canvas"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Anuluj</button>
+                <button type="button" class="button primary apply-map">Użyj tej lokalizacji</button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" name="<?= htmlspecialchars($inputName) ?>" id="input-<?= $mapId ?>"
+        value="<?= htmlspecialchars($location) ?>">
+    <?php elseif ($mode === 'preview'): ?>
+    <div class="hero-map">
+        <div id="empty-<?= $mapId ?>" class="hero-map-empty" <?=!empty($location) ? 'hidden' : '' ?>>
+            <span class="material">location_on</span>
+            <div class="text-small">
+                <?= htmlspecialchars($placeholder) ?>
+            </div>
+        </div>
+        <div id="preview-<?= $mapId ?>" class="location-preview" <?=empty($location) ? 'hidden' : '' ?>>
+            <div id="<?= $mapId ?>" class="mini-map-canvas"></div>
+        </div>
+    </div>
+    <?php else: ?>
+    <div id="<?= $mapId ?>" class="map-canvas" data-location="<?= htmlspecialchars($location) ?>"></div>
+    <?php endif; ?>
+</div>
+
+<!-- Dependencies -->
+<script>
+    (function () {
+        if (typeof L === 'undefined' && !window._leafletLoading) {
+            window._leafletLoading = true;
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => window._leafletLoaded = true;
+            document.head.appendChild(script);
+        }
+        if (typeof MapComponent === 'undefined' && !window._mapCompLoading) {
+            window._mapCompLoading = true;
+            const script = document.createElement('script');
+            script.src = '/public/scripts/map-component.js';
+            script.onload = () => window._mapCompLoaded = true;
+            document.head.appendChild(script);
+        }
+    })();
+</script>
+
+<script>
+    (function () {
+        const wrapper = document.getElementById('wrapper-<?= $mapId ?>');
+        if (!wrapper) return;
+
+        const mapId = wrapper.dataset.mapId;
+        const mode = wrapper.dataset.mode;
+        const previewId = wrapper.dataset.previewId;
+        const locationStr = wrapper.dataset.location;
+
+        const initMap = async () => {
+            while (typeof L === 'undefined' || typeof MapComponent === 'undefined') {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            let initialCoords = MapComponent.parseLocation(locationStr);
+
+            if (!initialCoords && locationStr && mode === 'view') {
+                const geocoded = await MapComponent.geocode(locationStr);
+                if (geocoded) initialCoords = [geocoded.lat, geocoded.lon];
+            }
+
+            const mapComp = new MapComponent(mapId, {
+                mode: mode,
+                initialLocation: initialCoords,
+                onLocationChange: (latlng) => {
+                    const input = document.getElementById('input-' + mapId);
+                    if (input) {
+                        input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
+
+            window['mapComp_' + mapId] = mapComp;
+
+            if (mode === 'picker') {
+                const modal = document.getElementById('mapModal-' + mapId);
+                const openBtns = document.querySelectorAll('.pick-map[data-target="' + mapId + '"]');
+                const closeBtn = modal?.querySelector('.close-map');
+                const applyBtn = modal?.querySelector('.apply-map');
+                const backdrop = modal?.querySelector('.map-modal-backdrop');
+
+                const openModal = () => {
+                    modal.removeAttribute('hidden');
+                    setTimeout(() => mapComp.updateSize(), 0);
+                };
+                const closeModal = () => modal.setAttribute('hidden', '');
+
+                openBtns.forEach(btn => btn.addEventListener('click', openModal));
+                closeBtn?.addEventListener('click', closeModal);
+                backdrop?.addEventListener('click', closeModal);
+                applyBtn?.addEventListener('click', () => {
+                    const input = document.getElementById('input-' + mapId);
+                    if (input.value) {
+                        const targetPrevId = previewId || mapId;
+                        const preview = document.getElementById('preview-' + targetPrevId);
+                        const empty = document.getElementById('empty-' + targetPrevId);
+
+                        if (preview && empty) {
+                            empty.hidden = true;
+                            preview.hidden = false;
+                            if (window['mapComp_' + targetPrevId]) {
+                                window['mapComp_' + targetPrevId].setView(MapComponent.parseLocation(input.value));
+                                setTimeout(() => window['mapComp_' + targetPrevId].updateSize(), 150);
+                            }
+                        }
+                    }
+                    closeModal();
+                });
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMap);
+        } else {
+            initMap();
+        }
+    })();
+</script>

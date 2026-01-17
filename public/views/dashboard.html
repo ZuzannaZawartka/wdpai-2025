@@ -22,10 +22,12 @@
     <div class="container pad">
         <div class="panel">
             <section class="section compact">
-                <div class="section-head">
-                    <h2 class="text-title">Your Upcoming Events</h2>
-                    <a class="a-link text-size-small" href="/sports">View All</a>
-                </div>
+                <?php
+                $sectionTitle = 'Your Upcoming Events';
+                $sectionLink = '/sports';
+                $sectionLinkText = 'View All';
+                include __DIR__ . '/components/section-header.html';
+            ?>
                 <?php $upcoming = $upcomingEvents ?? []; ?>
                 <?php if (!empty($upcoming)): ?>
                 <div class="cards two-col">
@@ -44,30 +46,33 @@
                             <p class="meta text-small">
                                 <?= htmlspecialchars($ev['location']) ?>
                             </p>
-                            <a href="/event/<?= (int)($ev['id'] ?? 0) ?>"
-                                class="button muted block text-size-small">View Details</a>
+                            <a href="/event/<?= (int)($ev['id'] ?? 0) ?>" class="button primary small block">View
+                                Details</a>
                         </div>
                     </article>
                     <?php endforeach; ?>
                 </div>
                 <?php else: ?>
-                <div class="empty-panel empty-dashed">
-                    <span class="material">event_note</span>
-                    <div class="text-title-smaller">No upcoming events yet.</div>
-                    <p class="text-body">Join an event to get started!</p>
-                    <a href="/sports" class="button accent text-size-small">Browse Events</a>
-                </div>
+                <?php
+                $emptyIcon = 'event_note';
+                $emptyTitle = 'No upcoming events yet.';
+                $emptyText = 'Join an event to get started!';
+                $emptyLink = '/sports';
+                $emptyLinkText = 'Browse Events';
+                include __DIR__ . '/components/empty-state.html';
+            ?>
                 <?php endif; ?>
             </section>
 
             <section class="section">
-                <div class="section-head">
-                    <h2 class="text-title">Your favourite sports</h2>
-                </div>
+                <?php
+                $sectionTitle = 'Your favourite sports';
+                include __DIR__ . '/components/section-header.html';
+            ?>
                 <div class="grid-quick">
                     <?php $fav = $favouriteSports ?? []; foreach ($fav as $s): ?>
                     <a href="/sports?sport=<?= urlencode($s['name']) ?>" class="tile">
-                        <div class="tile-icon">
+                        <div class="tile-icon material">
                             <?= htmlspecialchars($s['icon']) ?>
                         </div>
                         <div>
@@ -88,10 +93,12 @@
             </section>
 
             <section class="section">
-                <div class="section-head">
-                    <h2 class="text-title">Personalized Suggestions</h2>
-                    <a class="a-link text-size-small" href="/sports">See More</a>
-                </div>
+                <?php
+                $sectionTitle = 'Personalized Suggestions';
+                $sectionLink = '/sports';
+                $sectionLinkText = 'See More';
+                include __DIR__ . '/components/section-header.html';
+            ?>
                 <?php $recs = $suggestions ?? []; ?>
                 <?php if (!empty($recs)): ?>
                 <div class="cards three-col">
@@ -118,12 +125,14 @@
                     <?php endforeach; ?>
                 </div>
                 <?php else: ?>
-                <div class="empty-panel empty-dashed">
-                    <span class="material">explore</span>
-                    <div class="text-title-smaller">No personalized suggestions yet.</div>
-                    <p class="text-body">Join events or add favourite sports to get tailored picks.</p>
-                    <a href="/sports" class="button accent text-size-small">Browse Events</a>
-                </div>
+                <?php
+                $emptyIcon = 'explore';
+                $emptyTitle = 'No personalized suggestions yet.';
+                $emptyText = 'Join events or add favourite sports to get tailored picks.';
+                $emptyLink = '/sports';
+                $emptyLinkText = 'Browse Events';
+                include __DIR__ . '/components/empty-state.html';
+            ?>
                 <?php endif; ?>
             </section>
         </div>

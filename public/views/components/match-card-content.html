@@ -2,9 +2,11 @@
 // Shared "match card" content for lists like Sports / My Events.
 // Expected input: $card (array) or fallback to $m.
 // Optional: $showDesc (bool, default true)
+// Optional: $actions (HTML string)
 
 $card = $card ?? ($m ?? []);
 $showDesc = (bool)($showDesc ?? true);
+$actions = $actions ?? null;
 
 $title = (string)($card['title'] ?? '');
 $datetime = (string)($card['datetime'] ?? '');
@@ -38,10 +40,15 @@ $levelColor = (string)($card['levelColor'] ?? '#999');
         </span>
         <?php endif; ?>
 
-        <?php if ($level !== ''): ?>
         <span class="level" style="--level-color: <?= htmlspecialchars($levelColor) ?>;">
+            <i class="color-indicator"></i>
             <?= htmlspecialchars($level) ?>
         </span>
-        <?php endif; ?>
     </div>
+
+    <?php if ($actions): ?>
+    <div class="row-actions">
+        <?= $actions ?>
+    </div>
+    <?php endif; ?>
 </div>

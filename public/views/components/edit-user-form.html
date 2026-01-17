@@ -9,97 +9,143 @@
     $isInsideAdminPanel = (strpos($currentUrl, 'accounts') !== false);
 ?>
 
-<form id="editUserForm" class="form" method="post" enctype="multipart/form-data" action="<?= htmlspecialchars($currentUrl) ?>">
-    
+<form id="editUserForm" class="form" method="post" enctype="multipart/form-data"
+    action="<?= htmlspecialchars($currentUrl) ?>">
+
     <input type="hidden" name="id" value="<?= $targetUserId ?>">
     <input type="hidden" name="context" value="<?= $isInsideAdminPanel ? 'admin_panel' : 'user_profile' ?>">
 
     <?php if(isset($messages)): ?>
-        <div class="messages"><?= $messages ?></div>
+    <div class="messages">
+        <?= $messages ?>
+    </div>
     <?php endif; ?>
 
     <?php if($isTargetAdmin): ?>
-        <div class="form-grid">
-            <div class="field input-group">
-                <label class="text-small" for="firstName">First Name</label>
-                <input id="firstName" name="firstName" type="text" class="input-common" value="<?= htmlspecialchars($user['firstName'] ?? '') ?>" />
+    <div class="form-grid">
+        <div class="field input-group">
+            <label class="text-small" for="firstName">First Name</label>
+            <input id="firstName" name="firstName" type="text" class="input-common"
+                value="<?= htmlspecialchars($user['firstName'] ?? '') ?>" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="lastName">Last Name</label>
+            <input id="lastName" name="lastName" type="text" class="input-common"
+                value="<?= htmlspecialchars($user['lastName'] ?? '') ?>" />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="email">Email</label>
+            <input id="email" name="email" type="email" class="input-common"
+                value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="locationDisplayAdmin">Location</label>
+            <div class="control with-icon has-action">
+                <span class="material">location_on</span>
+                <input id="locationDisplayAdmin" type="text" class="input-common"
+                    value="<?= htmlspecialchars($user['location'] ?? '') ?>" />
+                <button type="button" class="icon-btn pick-map" data-target="adminPickerMap">
+                    <span class="material">my_location</span>
+                </button>
             </div>
-            <div class="field input-group">
-                <label class="text-small" for="lastName">Last Name</label>
-                <input id="lastName" name="lastName" type="text" class="input-common" value="<?= htmlspecialchars($user['lastName'] ?? '') ?>" />
-            </div>
-            <div class="field input-group full">
-                <label class="text-small" for="email">Email</label>
-                <input id="email" name="email" type="email" class="input-common" value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly />
+            <?php 
+                $mode = 'picker';
+                $mapId = 'adminPickerMap';
+                $inputName = 'location';
+                $location = $user['location'] ?? '';
+                include __DIR__ . '/map.html';
+            ?>
+        </div>
+    </div>
+    <?php else: ?>
+    <div class="form-grid">
+        <div class="field input-group full">
+            <label class="text-small" for="avatarFile">Avatar</label>
+            <div class="avatar-row">
+                <div class="avatar-container">
+                    <div id="avatarCircle" class="avatar" role="img"
+                        data-initial-avatar="<?= htmlspecialchars($user['avatar'] ?? '/public/img/default-avatar.png') ?>">
+                    </div>
+                    <button type="button" class="avatar-edit-btn"
+                        onclick="document.getElementById('avatarFile').click()"><span
+                            class="material">edit</span></button>
+                </div>
+                <div class="avatar-info">
+                    <div class="text-title-smaller">Photo</div>
+                    <p class="text-note">Visible for other users.</p>
+                </div>
+                <input id="avatarFile" name="avatar" type="file" accept="image/*" hidden
+                    onchange="previewAvatar(this)" />
             </div>
         </div>
-    <?php else: ?>
-        <div class="form-grid">
-            <div class="field input-group full">
-                <label class="text-small" for="avatarFile">Avatar</label>
-                <div class="avatar-row">
-                    <div class="avatar-container">
-                        <div id="avatarCircle" class="avatar" role="img" style="background-image: url('<?= htmlspecialchars($user['avatar'] ?? '/public/img/default-avatar.png') ?>'); background-size: cover; width: 6rem; height: 6rem; border-radius: 9999px;"></div>
-                        <button type="button" class="avatar-edit-btn" onclick="document.getElementById('avatarFile').click()"><span class="material">edit</span></button>
-                    </div>
-                    <div class="avatar-info">
-                        <div class="text-title-smaller">Photo</div>
-                        <p class="text-note">Visible for other users.</p>
-                    </div>
-                    <input id="avatarFile" name="avatar" type="file" accept="image/*" hidden onchange="previewAvatar(this)" />
-                </div>
+        <div class="field input-group">
+            <label class="text-small" for="firstName">First Name</label>
+            <input id="firstName" name="firstName" type="text" class="input-common"
+                value="<?= htmlspecialchars($user['firstName'] ?? '') ?>" />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="lastName">Last Name</label>
+            <input id="lastName" name="lastName" type="text" class="input-common"
+                value="<?= htmlspecialchars($user['lastName'] ?? '') ?>" />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="email">Email</label>
+            <input id="email" name="email" type="email" class="input-common"
+                value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly />
+        </div>
+        <div class="field input-group">
+            <label class="text-small" for="birthDate">Date of Birth</label>
+            <input id="birthDate" name="birthDate" type="date" class="input-common"
+                value="<?= htmlspecialchars($user['birthDate'] ?? '') ?>" />
+        </div>
+        <div class="field input-group full">
+            <label class="text-small" for="locationDisplay">Location</label>
+            <div class="control with-icon has-action">
+                <span class="material">location_on</span>
+                <input id="locationDisplay" type="text" class="input-common"
+                    value="<?= htmlspecialchars($user['location'] ?? '') ?>" />
+                <button type="button" class="icon-btn pick-map" data-target="userPickerMap">
+                    <span class="material">my_location</span>
+                </button>
             </div>
-            <div class="field input-group">
-                <label class="text-small" for="firstName">First Name</label>
-                <input id="firstName" name="firstName" type="text" class="input-common" value="<?= htmlspecialchars($user['firstName'] ?? '') ?>" />
-            </div>
-            <div class="field input-group">
-                <label class="text-small" for="lastName">Last Name</label>
-                <input id="lastName" name="lastName" type="text" class="input-common" value="<?= htmlspecialchars($user['lastName'] ?? '') ?>" />
-            </div>
-            <div class="field input-group full">
-                <label class="text-small" for="email">Email</label>
-                <input id="email" name="email" type="email" class="input-common" value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly />
-            </div>
-            <div class="field input-group">
-                <label class="text-small" for="birthDate">Date of Birth</label>
-                <input id="birthDate" name="birthDate" type="date" class="input-common" value="<?= htmlspecialchars($user['birthDate'] ?? '') ?>" />
-            </div>
-            <div class="field input-group full">
-                <label class="text-small" for="location">Location</label>
-                <div class="control with-icon has-action">
-                    <span class="material">location_on</span>
-                    <input id="location" name="location" type="text" class="input-common" value="<?= htmlspecialchars($user['location'] ?? '') ?>" />
-                    <button type="button" class="icon-btn pick-map" id="mapTrigger"><span class="material">my_location</span></button>
-                </div>
-            </div>
-            <div class="field input-group full">
-                <label class="text-small">Favorite Sports</label>
-                <?php 
+            <?php 
+                    $mode = 'picker';
+                    $mapId = 'userPickerMap';
+                    $inputName = 'location';
+                    $location = $user['location'] ?? '';
+                    include __DIR__ . '/map.html';
+                ?>
+        </div>
+        <div class="field input-group full">
+            <label class="text-small">Favorite Sports</label>
+            <?php 
                     $tilesSports = $allSports ?? [];
                     $tilesSelected = $selectedSportIds ?? [];
                     $tilesType = 'checkbox'; 
                     $tilesName = 'favourite_sports[]'; 
                     include __DIR__ . '/sports-tiles.html'; 
                 ?>
-            </div>
         </div>
+    </div>
     <?php endif; ?>
 
     <div class="form-grid">
         <?php if($isOwnProfile): ?>
-            <div class="field input-group">
-                <label class="text-small" for="oldPassword">Current Password</label>
-                <input id="oldPassword" name="oldPassword" type="password" class="input-common" placeholder="Required for changes" />
-            </div>
+        <div class="field input-group">
+            <label class="text-small" for="oldPassword">Current Password</label>
+            <input id="oldPassword" name="oldPassword" type="password" class="input-common"
+                placeholder="Required for changes" />
+        </div>
         <?php endif; ?>
         <div class="field input-group">
             <label class="text-small" for="newPassword">New Password</label>
-            <input id="newPassword" name="newPassword" type="password" class="input-common" placeholder="Min. 8 characters" />
+            <input id="newPassword" name="newPassword" type="password" class="input-common"
+                placeholder="Min. 8 characters" />
         </div>
         <div class="field input-group">
             <label class="text-small" for="confirmPassword">Confirm Password</label>
-            <input id="confirmPassword" name="confirmPassword" type="password" class="input-common" placeholder="Repeat new password" />
+            <input id="confirmPassword" name="confirmPassword" type="password" class="input-common"
+                placeholder="Repeat new password" />
         </div>
     </div>
 
@@ -108,91 +154,73 @@
         <button type="submit" class="button primary text-size-small">Save Changes</button>
     </div>
 </form>
-<div id="mapModal" class="map-modal" hidden>
-    <div class="map-modal-backdrop"></div>
-    <div class="map-modal-content">
-        <div id="map" class="map-canvas" style="height: 400px; min-height: 400px; width: 100%;"></div>
-        <div class="map-actions">
-            <button type="button" class="button muted close-map">Cancel</button>
-            <button type="button" class="button primary apply-map">Use this location</button>
-        </div>
-    </div>
-</div>
-
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-(function () {
-    const modal = document.getElementById('mapModal');
-    const openBtn = document.getElementById('mapTrigger');
-    const locInput = document.getElementById('location');
-    
-    if (!modal) {
-        console.error("BŁĄD: Nie znaleziono elementu #mapModal w kodzie HTML.");
-        return;
-    }
+    (function () {
+        // Handle User Picker
+        const userSync = () => {
+            const openBtn = document.querySelector('.pick-map[data-target="userPickerMap"]');
+            const mapInput = document.getElementById('input-userPickerMap');
+            const locDisplay = document.getElementById('locationDisplay');
+            if (!mapInput || !locDisplay) return;
 
-    const closeBtn = modal.querySelector('.close-map');
-    const applyBtn = modal.querySelector('.apply-map');
-    let map, marker, chosenLatLng;
+            mapInput.addEventListener('change', () => {
+                locDisplay.value = mapInput.value;
+                locDisplay.readOnly = true;
+                openBtn?.classList.add('applied');
+            });
 
-    function ensureMap() {
-        if (map) { map.invalidateSize(); return; }
-        
-        let initialCoords = [52.2297, 21.0122];
-        if (locInput && locInput.value) {
-            const currentVal = locInput.value.split(',');
-            if (currentVal.length === 2 && !isNaN(currentVal[0])) {
-                initialCoords = [parseFloat(currentVal[0]), parseFloat(currentVal[1])];
+            // Reverse sync
+            locDisplay.addEventListener('input', () => {
+                mapInput.value = locDisplay.value;
+            });
+
+            if (locDisplay.value.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
+                locDisplay.readOnly = true;
+                openBtn?.classList.add('applied');
             }
-        }
+        };
 
-        map = L.map('map').setView(initialCoords, 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+        // Handle Admin Picker
+        const adminSync = () => {
+            const openBtn = document.querySelector('.pick-map[data-target="adminPickerMap"]');
+            const mapInput = document.getElementById('input-adminPickerMap');
+            const locDisplay = document.getElementById('locationDisplayAdmin');
+            if (!mapInput || !locDisplay) return;
 
-        marker = L.marker(initialCoords).addTo(map);
-        chosenLatLng = { lat: initialCoords[0], lng: initialCoords[1] };
+            mapInput.addEventListener('change', () => {
+                locDisplay.value = mapInput.value;
+                locDisplay.readOnly = true;
+                openBtn?.classList.add('applied');
+            });
 
-        map.on('click', (e) => {
-            chosenLatLng = e.latlng;
-            if (!marker) { marker = L.marker(e.latlng).addTo(map); }
-            else { marker.setLatLng(e.latlng); }
+            // Reverse sync
+            locDisplay.addEventListener('input', () => {
+                mapInput.value = locDisplay.value;
+            });
+
+            if (locDisplay.value.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
+                locDisplay.readOnly = true;
+                openBtn?.classList.add('applied');
+            }
+        };
+
+        // Initialize avatars
+        document.querySelectorAll('.avatar[data-initial-avatar]').forEach(div => {
+            div.style.backgroundImage = `url('${div.dataset.initialAvatar}')`;
         });
-    }
 
-    function openModal(e) { 
-        e?.preventDefault(); 
-        modal.removeAttribute('hidden'); 
-        setTimeout(() => ensureMap(), 100); 
-    }
-    
-    function closeModal(e) { e?.preventDefault(); modal.setAttribute('hidden', ''); }
-    
-    function applyLocation(e) {
-        e?.preventDefault();
-        if (chosenLatLng && locInput) {
-            locInput.value = `${chosenLatLng.lat.toFixed(5)}, ${chosenLatLng.lng.toFixed(5)}`;
+        userSync();
+        adminSync();
+    })();
+
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById('avatarCircle').style.backgroundImage = `url('${e.target.result}')`;
+            }
+            reader.readAsDataURL(input.files[0]);
         }
-        closeModal();
     }
-
-    openBtn?.addEventListener('click', openModal);
-    closeBtn?.addEventListener('click', closeModal);
-    applyBtn?.addEventListener('click', applyLocation);
-    modal.querySelector('.map-modal-backdrop')?.addEventListener('click', closeModal);
-})();
-
-function previewAvatar(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById('avatarCircle').style.backgroundImage = `url('${e.target.result}')`;
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
 </script>

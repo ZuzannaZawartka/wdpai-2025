@@ -3,8 +3,11 @@
 
 <section class="accounts-page sports-page">
     <div class="section">
-        <div class="text-title-large">User Management</div>
-        <p class="text-desc">View and edit all users on the platform.</p>
+        <?php 
+            $title = 'User Management';
+            $description = 'View and edit all users on the platform.';
+            include __DIR__ . '/../components/page-header.html';
+        ?>
     </div>
     <div class="section">
         <?php if (!empty($users)): ?>
