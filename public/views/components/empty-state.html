@@ -1,0 +1,30 @@
+<?php
+// Reusable empty state component.
+// Inputs:
+// - $emptyIcon: material icon name (default 'event_busy')
+// - $emptyTitle: title text
+// - $emptyText: description text
+// - $emptyLink: optional link URL
+// - $emptyLinkText: optional link text
+
+$emptyIcon = $emptyIcon ?? 'event_busy';
+$emptyTitle = $emptyTitle ?? 'No items found.';
+$emptyText = $emptyText ?? 'Check back later or try a different filter.';
+?>
+
+<div class="empty-panel empty-dashed">
+    <span class="material">
+        <?= htmlspecialchars($emptyIcon) ?>
+    </span>
+    <div class="text-title-smaller">
+        <?= htmlspecialchars($emptyTitle) ?>
+    </div>
+    <p class="text-body">
+        <?= htmlspecialchars($emptyText) ?>
+    </p>
+    <?php if (isset($emptyLink) && isset($emptyLinkText)): ?>
+    <a href="<?= htmlspecialchars($emptyLink) ?>" class="button accent text-size-small">
+        <?= htmlspecialchars($emptyLinkText) ?>
+    </a>
+    <?php endif; ?>
+</div>

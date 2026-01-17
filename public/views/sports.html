@@ -4,7 +4,11 @@
 
 <section class="sports-page">
     <div class="section">
-        <div class="text-title-large">Find your next game</div>
+        <?php 
+            $title = 'Find your next game';
+            $description = 'Join local sports enthusiasts and play together.';
+            include __DIR__ . '/components/page-header.html';
+        ?>
     </div>
 
     <div class="section panel filters-bar">
@@ -175,24 +179,13 @@
             $pageMatches = array_slice($allMatches, $offset, $itemsPerPage);
         ?>
         <?php foreach($pageMatches as $m): ?>
-        <article class="match <?= !empty($m['isPast']) ? 'past-event' : '' ?>">
-            <div class="match-body">
-                <?php
-                    $card = $m;
-                    $showDesc = true;
-                    include __DIR__ . '/components/match-card-content.html';
-                ?>
-                <div class="card-bottom-row">
-                    <a href="/event/<?= (int)($m['id'] ?? 0) ?>"
-                        class="button primary text-size-small <?= !empty($m['isPast']) ? 'past' : '' ?>">View
-                        Details</a>
-                </div>
-                <?php
-                    $imgUrl = !empty($m['imageUrl']) ? $m['imageUrl'] : '/public/images/boisko.png';
-                ?>
-                <div class="visual" data-bg="<?= htmlspecialchars($imgUrl) ?>"></div>
-            </div>
-        </article>
+        <?php
+            $rowActions = '
+                <a href="/event/'.(int)($m['id'] ?? 0).'"
+                    class="button primary small '.(!empty($m['isPast']) ? 'past' : '').'">View Details</a>';
+            $imagePosition = 'right';
+            include __DIR__ . '/components/match-row.html';
+        ?>
         <?php endforeach; ?>
 
         <?php if ($totalPages > 1): ?>

@@ -5,12 +5,12 @@
     padding: 1em;
     border: none;
     border-radius: 0.5em;
-    font-size: var(--font-size-body);
+    font-size: var(--font-size-small);
     font-weight: 700;
     cursor: pointer;
     margin-top: 2em;
     transition: transform 0.2s, background-color 0.2s;
-    box-shadow: 0 1em 1.5em -0.3em rgba(19, 164, 236, 0.3);
+    box-shadow: 0 1em 1.5em -0.3em rgba(var(--primary-rgb), 0.3);
 }
 
 .btn-common:hover {
@@ -26,13 +26,13 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 2.5rem;
+    height: 2.25rem;
     padding: 0 1rem;
     border-radius: 0.5rem;
-    font-weight: 700;
+    font-weight: 600;
+    font-size: var(--font-size-small);
     text-decoration: none;
     border: none;
-    font-family: var(--main-font);
 }
 
 .button.primary {
@@ -70,7 +70,6 @@
     filter: brightness(0.95);
 }
 
-/* Icon spacing helper when buttons include icons */
 .with-icon .icon {
     margin-right: 0.5rem;
 }

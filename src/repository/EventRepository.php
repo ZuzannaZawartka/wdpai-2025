@@ -3,14 +3,17 @@
 require_once __DIR__ . '/../../Database.php';
 require_once __DIR__ . '/../entity/Event.php';
 
-class EventRepository {
+class EventRepository
+{
     private PDO $db;
 
-    public function __construct() {
+    public function __construct()
+    {
         $this->db = (new Database())->connect();
     }
 
-    private function setAuditUser(int $userId): void {
+    private function setAuditUser(int $userId): void
+    {
         try {
             $stmt = $this->db->prepare("SELECT set_config('app.user_id', :uid, true)");
             $stmt->execute([':uid' => (string)$userId]);
@@ -19,7 +22,8 @@ class EventRepository {
         }
     }
 
-    public function getMyEvents(int $ownerId): array {
+    public function getMyEvents(int $ownerId): array
+    {
         $sql = "
             SELECT
                 e.id, e.title, e.start_time, e.image_url, e.max_players, e.min_needed, e.description,
@@ -51,8 +55,8 @@ class EventRepository {
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
             LEFT JOIN levels l ON l.id = e.level_id
-            WHERE e.owner_id = :owner AND e.start_time >= NOW()
-            ORDER BY e.start_time ASC
+            WHERE e.owner_id = :owner
+            ORDER BY e.start_time DESC
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['owner' => $ownerId]);
@@ -60,19 +64,22 @@ class EventRepository {
         return array_map(fn($r) => new \Event($r), $rows);
     }
 
-    public function deleteEventByOwner(int $eventId, int $ownerId): bool {
+    public function deleteEventByOwner(int $eventId, int $ownerId): bool
+    {
         $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id AND owner_id = :owner');
         $stmt->execute(['id' => $eventId, 'owner' => $ownerId]);
         return $stmt->rowCount() > 0;
     }
-    
-    public function deleteEvent(int $eventId): bool {
+
+    public function deleteEvent(int $eventId): bool
+    {
         $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id');
         $stmt->execute(['id' => $eventId]);
         return $stmt->rowCount() > 0;
     }
 
-    public function getAllForListing(bool $includePast = true): array {
+    public function getAllForListing(bool $includePast = true): array
+    {
         $where = $includePast ? '' : 'WHERE e.start_time >= NOW()';
         $sql = "
             SELECT 
@@ -101,7 +108,8 @@ class EventRepository {
         return array_map(fn($r) => new \Event($r), $rows);
     }
 
-    public function getEventById(int $id): ?array {
+    public function getEventById(int $id): ?array
+    {
         $sql = "
             SELECT 
                 e.*, s.name AS sport_name,
@@ -131,7 +139,8 @@ class EventRepository {
         return new \Event($row);
     }
 
-    public function getUpcomingWithCoords(): array {
+    public function getUpcomingWithCoords(): array
+    {
         $sql = "
             SELECT e.id, e.title, e.location_text, e.latitude, e.longitude,
                    e.start_time, e.sport_id, s.name AS sport_name,
@@ -146,7 +155,8 @@ class EventRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getUserUpcomingEvents(int $userId): array {
+    public function getUserUpcomingEvents(int $userId): array
+    {
         $sql = "
             SELECT e.id, e.title, e.description, e.start_time, e.image_url, e.max_players, e.location_text, e.owner_id,
                    l.name AS level_name,
@@ -154,22 +164,24 @@ class EventRepository {
             FROM event_participants ep
             JOIN events e ON e.id = ep.event_id
             LEFT JOIN levels l ON l.id = e.level_id
-            WHERE ep.user_id = :uid AND e.start_time >= NOW()
-            ORDER BY e.start_time ASC
+            WHERE ep.user_id = :uid
+            ORDER BY e.start_time DESC
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function isEventPast(int $eventId): bool {
+    public function isEventPast(int $eventId): bool
+    {
         $stmt = $this->db->prepare('SELECT start_time < NOW() AS past FROM events WHERE id = ?');
         $stmt->execute([$eventId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return !empty($row['past']);
     }
 
-    public function isEventFull(int $eventId): bool {
+    public function isEventFull(int $eventId): bool
+    {
         $stmt = $this->db->prepare('SELECT max_players FROM events WHERE id = ?');
         $stmt->execute([$eventId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -180,7 +192,8 @@ class EventRepository {
         return $max > 0 && $c >= $max;
     }
 
-    public function joinEvent(int $userId, int $eventId): bool {
+    public function joinEvent(int $userId, int $eventId): bool
+    {
         try {
             $this->setAuditUser($userId);
             $ins = $this->db->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
@@ -190,26 +203,30 @@ class EventRepository {
         }
     }
 
-    public function isUserParticipant(int $userId, int $eventId): bool {
+    public function isUserParticipant(int $userId, int $eventId): bool
+    {
         $stmt = $this->db->prepare('SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ? LIMIT 1');
         $stmt->execute([$eventId, $userId]);
         return $stmt->fetch() !== false;
     }
 
-    public function cancelParticipation(int $userId, int $eventId): bool {
+    public function cancelParticipation(int $userId, int $eventId): bool
+    {
         $this->setAuditUser($userId);
         $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
         $stmt->execute([$eventId, $userId]);
         return $stmt->rowCount() > 0;
     }
 
-    public function participantsCount(int $eventId): int {
+    public function participantsCount(int $eventId): int
+    {
         $stmt = $this->db->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
         $stmt->execute([$eventId]);
         return (int)($stmt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0);
     }
 
-    public function createEvent(array $data): ?int {
+    public function createEvent(array $data): ?int
+    {
         try {
             $this->db->beginTransaction();
 
@@ -234,7 +251,7 @@ class EventRepository {
                 ':max_players' => $data['max_players'] ?? 0,
                 ':min_needed' => $data['min_needed'] ?? 0,
             ]);
-            
+
             if (!$result) {
                 $this->db->rollBack();
                 return null;
@@ -251,10 +268,11 @@ class EventRepository {
         }
     }
 
-    public function updateEvent(int $eventId, array $data): bool {
+    public function updateEvent(int $eventId, array $data): bool
+    {
         $fields = [];
         $params = [':id' => $eventId];
-        
+
         if (isset($data['title'])) {
             $fields[] = 'title = :title';
             $params[':title'] = $data['title'];
@@ -299,18 +317,19 @@ class EventRepository {
             $fields[] = 'min_needed = :min_needed';
             $params[':min_needed'] = $data['min_needed'];
         }
-        
+
         if (empty($fields)) {
             return false;
         }
-        
+
         $sql = "UPDATE events SET " . implode(', ', $fields) . " WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
 
-    public function getEventsFromView(?int $limit = null): array {
+    public function getEventsFromView(?int $limit = null): array
+    {
         $sql = "SELECT * FROM vw_events_full";
         if ($limit) {
             $sql .= " LIMIT :limit";
@@ -323,7 +342,8 @@ class EventRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function joinEventWithTransaction(int $userId, int $eventId): bool {
+    public function joinEventWithTransaction(int $userId, int $eventId): bool
+    {
         try {
             $this->db->beginTransaction();
 
@@ -358,7 +378,8 @@ class EventRepository {
     }
 
 
-    public function cancelParticipationWithTransaction(int $userId, int $eventId): bool {
+    public function cancelParticipationWithTransaction(int $userId, int $eventId): bool
+    {
         try {
             $this->db->beginTransaction();
 
@@ -375,7 +396,8 @@ class EventRepository {
         }
     }
 
-    public function getFilteredEventsListing(array $filters, bool $isAdmin = false): array {
+    public function getFilteredEventsListing(array $filters, bool $isAdmin = false): array
+    {
         $params = [];
         $conditions = [];
 
@@ -431,7 +453,8 @@ class EventRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getNearbyEvents(float $lat, float $lng, int $limit = 3): array {
+    public function getNearbyEvents(float $lat, float $lng, int $limit = 3): array
+    {
         $sql = "
             SELECT 
                 e.id, e.title, e.location_text, e.image_url, s.name as sport_name,
@@ -442,22 +465,22 @@ class EventRepository {
             ORDER BY distance ASC
             LIMIT :limit
         ";
-        
+
         $stmt = $this->db->prepare($sql);
         $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
         $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
-        
+
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        
-        return array_map(function($r) {
+
+        return array_map(function ($r) {
             return [
                 'id' => $r['id'],
                 'title' => $r['title'] ?? 'Event',
                 'sport' => $r['sport_name'] ?? 'Sport',
                 // TO MUSI SIĘ NAZYWAĆ TAK JAK W TWOIM HTML (linia ok. 95)
-                'distanceText' => sprintf('%.1f km away', $r['distance']), 
+                'distanceText' => sprintf('%.1f km away', $r['distance']),
                 'imageUrl' => $r['image_url'] ?? 'public/img/uploads/default.jpg',
                 'cta' => 'See Details'
             ];

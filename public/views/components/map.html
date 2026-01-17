@@ -14,8 +14,12 @@ $inputName = $inputName ?? 'location';
 $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
 ?>
 
-<div class="map-component-wrapper" data-map-id="<?= htmlspecialchars($mapId) ?>"
-    data-mode="<?= htmlspecialchars($mode) ?>">
+<link rel="stylesheet" href="/public/styles/components/map-canvas.css">
+
+<div class="map-component-wrapper" id="wrapper-<?= htmlspecialchars($mapId) ?>"
+    data-map-id="<?= htmlspecialchars($mapId) ?>" data-mode="<?= htmlspecialchars($mode) ?>"
+    data-preview-id="<?= htmlspecialchars($previewId ?? '') ?>" data-location="<?= htmlspecialchars($location) ?>"
+    data-placeholder="<?= htmlspecialchars($placeholder) ?>">
     <?php if ($mode === 'picker'): ?>
     <div id="mapModal-<?= $mapId ?>" class="map-modal" hidden>
         <div class="map-modal-backdrop"></div>
@@ -46,7 +50,7 @@ $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
     <?php endif; ?>
 </div>
 
-<!-- Ensure Leaflet and Component JS are loaded exactly once per page if multiple maps are present -->
+<!-- Dependencies -->
 <script>
     (function () {
         if (typeof L === 'undefined' && !window._leafletLoading) {
@@ -73,21 +77,23 @@ $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
 
 <script>
     (function () {
-        const mapId = '<?= $mapId ?>';
-        const mode = '<?= $mode ?>';
-        const initialLocationStr = '<?= $location ?>';
+        const wrapper = document.getElementById('wrapper-<?= $mapId ?>');
+        if (!wrapper) return;
+
+        const mapId = wrapper.dataset.mapId;
+        const mode = wrapper.dataset.mode;
+        const previewId = wrapper.dataset.previewId;
+        const locationStr = wrapper.dataset.location;
 
         const initMap = async () => {
-            // Wait for dependencies if they are being loaded
             while (typeof L === 'undefined' || typeof MapComponent === 'undefined') {
                 await new Promise(resolve => setTimeout(resolve, 50));
             }
 
-            let initialCoords = MapComponent.parseLocation(initialLocationStr);
+            let initialCoords = MapComponent.parseLocation(locationStr);
 
-            // If no coords but we have a location string in view mode, try geocoding
-            if (!initialCoords && initialLocationStr && mode === 'view') {
-                const geocoded = await MapComponent.geocode(initialLocationStr);
+            if (!initialCoords && locationStr && mode === 'view') {
+                const geocoded = await MapComponent.geocode(locationStr);
                 if (geocoded) initialCoords = [geocoded.lat, geocoded.lon];
             }
 
@@ -104,7 +110,6 @@ $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
                 }
             });
 
-            // Global exposing for modals or external control
             window['mapComp_' + mapId] = mapComp;
 
             if (mode === 'picker') {
@@ -126,16 +131,16 @@ $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
                 applyBtn?.addEventListener('click', () => {
                     const input = document.getElementById('input-' + mapId);
                     if (input.value) {
-                        // Trigger preview update if exists
-                        const preview = document.getElementById('preview-' + mapId);
-                        const empty = document.getElementById('empty-' + mapId);
+                        const targetPrevId = previewId || mapId;
+                        const preview = document.getElementById('preview-' + targetPrevId);
+                        const empty = document.getElementById('empty-' + targetPrevId);
+
                         if (preview && empty) {
-                            empty.setAttribute('hidden', '');
-                            preview.removeAttribute('hidden');
-                            // Update preview map
-                            const previewMapId = preview.querySelector('.mini-map-canvas')?.id;
-                            if (previewMapId && window['mapComp_' + previewMapId]) {
-                                window['mapComp_' + previewMapId].setView(MapComponent.parseLocation(input.value));
+                            empty.hidden = true;
+                            preview.hidden = false;
+                            if (window['mapComp_' + targetPrevId]) {
+                                window['mapComp_' + targetPrevId].setView(MapComponent.parseLocation(input.value));
+                                setTimeout(() => window['mapComp_' + targetPrevId].updateSize(), 150);
                             }
                         }
                     }

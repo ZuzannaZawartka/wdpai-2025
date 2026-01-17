@@ -64,7 +64,7 @@
             <div class="avatar-row">
                 <div class="avatar-container">
                     <div id="avatarCircle" class="avatar" role="img"
-                        style="background-image: url('<?= htmlspecialchars($user['avatar'] ?? '/public/img/default-avatar.png') ?>');">
+                        data-initial-avatar="<?= htmlspecialchars($user['avatar'] ?? '/public/img/default-avatar.png') ?>">
                     </div>
                     <button type="button" class="avatar-edit-btn"
                         onclick="document.getElementById('avatarFile').click()"><span
@@ -204,6 +204,11 @@
                 openBtn?.classList.add('applied');
             }
         };
+
+        // Initialize avatars
+        document.querySelectorAll('.avatar[data-initial-avatar]').forEach(div => {
+            div.style.backgroundImage = `url('${div.dataset.initialAvatar}')`;
+        });
 
         userSync();
         adminSync();

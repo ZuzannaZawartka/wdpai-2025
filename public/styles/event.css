@@ -4,10 +4,16 @@
 
 .event-page .hero-map {
     width: 100%;
-    height: 24rem;
+    min-height: 24rem;
+    height: auto;
     border-radius: 0.75rem;
     margin-bottom: 1rem;
     overflow: hidden;
+    position: relative;
+}
+
+.event-page .hero-map .map-canvas {
+    height: 24rem;
 }
 
 .hero-map-empty {

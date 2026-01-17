@@ -3,8 +3,11 @@
 
 <section class="admin-page">
     <div class="section">
-        <div class="text-title-large">Event Management</div>
-        <p class="text-desc">View and manage all events on the platform.</p>
+        <?php 
+            $title = 'Event Management';
+            $description = 'View and manage all events on the platform.';
+            include __DIR__ . '/../components/page-header.html';
+        ?>
     </div>
 
     <div class="section panel">
@@ -15,7 +18,7 @@
                 <?php foreach($events as $event): ?>
                 <article class="card">
                     <div class="card-media"
-                        style="background-image:url('<?= htmlspecialchars($event['imageUrl'] ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNFMEUwRTAiLz48L3N2Zz4=') ?>')">
+                        data-bg="<?= htmlspecialchars($event['imageUrl'] ?? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgdmlld0JveD0iMCAwIDIwMCAyMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyMDAiIGZpbGw9IiNFMEUwRTAiLz48L3N2Zz4=') ?>">
                     </div>
                     <div class="card-body">
                         <h3 class="text-title-smaller">
@@ -84,6 +87,10 @@
                 })
                 .catch(err => alert('Error: ' + err));
         });
+    });
+    document.querySelectorAll('.card-media[data-bg]').forEach(el => {
+        const url = el.getAttribute('data-bg');
+        if (url) el.style.backgroundImage = `url('${url}')`;
     });
 </script>
 

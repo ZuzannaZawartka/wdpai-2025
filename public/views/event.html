@@ -175,7 +175,7 @@
                     <?php else: ?>
                     <button id="joinBtn" class="button accent <?= $isParticipant ? 'hidden' : '' ?>"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Join Match</button>
-                    <button id="cancelBtn" class="button muted text-size-small <?= $isParticipant ? '' : 'hidden' ?>"
+                    <button id="cancelBtn" class="button danger text-size-small <?= $isParticipant ? '' : 'hidden' ?>"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Cancel Participation</button>
                     <?php endif; ?>
                     <?php endif; ?>
@@ -246,7 +246,7 @@
                     .then(response => {
                         if (response.ok) {
                             // Redirect based on user role - admin goes to /sports, others to /my
-                            const isAdmin = <?= json_encode((($_SESSION['user_role'] ?? 'user') === 'admin')) ?>;
+                            const isAdmin = <?= json_encode(($_SESSION['user_role'] ?? 'user') === 'admin') ?>;
                             window.location.href = isAdmin ? '/sports' : '/my';
                         } else {
                             alert('Failed to delete event');

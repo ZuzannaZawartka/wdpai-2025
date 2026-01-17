@@ -6,17 +6,14 @@ if ($isLoggedIn):
     include __DIR__ . '/components/header.html';
 ?>
 <section class="error-page section">
-    <div class="empty-panel empty-dashed">
-        <span class="material">search_off</span>
-        <h2 class="text-title-large">404</h2>
-        <h3 class="text-title">Strona nie została znaleziona</h3>
-        <p class="text-desc">
-            <?= htmlspecialchars($message ?? ($messages ?? 'Nie znaleźliśmy tego, czego szukasz.'), ENT_QUOTES) ?>
-        </p>
-        <div class="actions" style="justify-content: center; margin-top: 1.5rem;">
-            <a href="/dashboard" class="button primary">Wróć do Panelu</a>
-        </div>
-    </div>
+    <?php 
+        $icon = 'search_off';
+        $title = '404';
+        $text = $message ?? ($messages ?? 'Nie znaleźliśmy tego, czego szukasz.');
+        $actionUrl = '/dashboard';
+        $actionText = 'Wróć do Panelu';
+        include __DIR__ . '/components/empty-state.html';
+    ?>
 </section>
 <?php include __DIR__ . '/components/footer.html'; ?>
 

@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS auth_audit_log (
 CREATE TABLE IF NOT EXISTS sports (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
-    icon VARCHAR(10) DEFAULT '🏅'
+    icon VARCHAR(50) DEFAULT 'sports'
 );
 
 CREATE TABLE IF NOT EXISTS levels (
@@ -64,13 +64,13 @@ CREATE TABLE IF NOT EXISTS levels (
 -- STATIC DATA (REQUIRED)
 -- =========================================
 INSERT INTO sports (name, icon) VALUES
-    ('Soccer', '⚽'),
-    ('Basketball', '🏀'),
-    ('Tennis', '🎾'),
-    ('Running', '🏃'),
-    ('Cycling', '🚴'),
-    ('Volleyball', '🏐')
-ON CONFLICT (name) DO NOTHING;
+    ('Soccer', 'sports_soccer'),
+    ('Basketball', 'sports_basketball'),
+    ('Tennis', 'sports_tennis'),
+    ('Running', 'directions_run'),
+    ('Cycling', 'directions_bike'),
+    ('Volleyball', 'sports_volleyball')
+ON CONFLICT (name) DO UPDATE SET icon = EXCLUDED.icon;
 
 INSERT INTO levels (name, hex_color) VALUES
     ('Beginner', '#4CAF50'), 

@@ -1,7 +1,7 @@
 class MapComponent {
     constructor(elementId, options = {}) {
         this.elementId = elementId;
-        this.mode = options.mode || 'view'; 
+        this.mode = options.mode || 'view';
         this.initialLocation = options.initialLocation || [52.2297, 21.0122]; // Warsaw default
         this.zoom = options.zoom || 12;
         this.marker = null;
@@ -34,7 +34,12 @@ class MapComponent {
             mapOptions.keyboard = false;
         }
 
-        this.map = L.map(this.elementId, mapOptions).setView(this.initialLocation, this.zoom);
+        try {
+            this.map = L.map(this.elementId, mapOptions).setView(this.initialLocation, this.zoom);
+        } catch (e) {
+            console.error('Leaflet initialization failed:', e);
+            return;
+        }
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
@@ -44,6 +49,9 @@ class MapComponent {
         if (this.initialLocation) {
             this.setMarker(this.initialLocation);
         }
+
+        // Handle potential container size shifts
+        setTimeout(() => this.updateSize(), 200);
 
         if (this.mode === 'picker') {
             this.map.on('click', (e) => {
@@ -57,7 +65,7 @@ class MapComponent {
 
     setMarker(latlng) {
         if (!latlng) return;
-        
+
         let coords = latlng;
         if (Array.isArray(latlng)) {
             coords = { lat: latlng[0], lng: latlng[1] };

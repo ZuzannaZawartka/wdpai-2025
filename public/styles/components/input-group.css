@@ -3,7 +3,6 @@
 .input-group {
     display: flex;
     flex-direction: column;
-    font-family: var(--main-font);
     font-size: var(--font-size-small);
     font-weight: 400;
     color: var(--text-dark);

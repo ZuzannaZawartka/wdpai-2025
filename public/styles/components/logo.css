@@ -5,7 +5,6 @@
     display: flex;
     align-items: center;
     margin-bottom: 1em;
-    font-family: var(--main-font);
 }
 
 .logo-dot {

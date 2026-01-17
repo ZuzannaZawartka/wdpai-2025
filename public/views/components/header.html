@@ -7,10 +7,6 @@
     <title>
         <?= isset($pageTitle) ? htmlspecialchars($pageTitle) : 'Dashboard' ?>
     </title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
-        rel="stylesheet">
     <link rel="stylesheet" href="/public/styles/main.css" />
     <link rel="stylesheet" href="/public/styles/components/header.css" />
     <?php $active = $activeNav ?? 'dashboard'; ?>
@@ -65,8 +61,7 @@
                     <?php else: ?>
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
-                    <a class="nav-link search-tile with-icon text-compact-strong button accent <?= $active==='create' ? 'active' : '' ?>"
-                        href="/create">Create
+                    <a class="nav-link button accent <?= $active==='create' ? 'active' : '' ?>" href="/create">Create
                         Event</a>
                     <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
                     <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>
