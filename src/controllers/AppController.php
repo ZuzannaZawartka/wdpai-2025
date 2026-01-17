@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
 require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
 class AppController
 {
@@ -170,7 +171,7 @@ class AppController
             }
         }
 
-        return DEFAULT_AVATAR;
+        return \AppConfig::DEFAULT_USER_AVATAR;
     }
 
 
@@ -379,9 +380,9 @@ class AppController
             'title'      => (string)($event['title'] ?? 'Untitled'),
             'datetime'   => $formattedDate,
             'players'    => (int)($event['current_players'] ?? 0) . " / " . (int)($event['max_players'] ?? 0),
-            'level'      => $event['level_name'] ?? 'Intermediate',
-            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : '/public/images/boisko.png',
-            'levelColor' => $event['level_color'] ?? '#9E9E9E'
+            'level'      => $event['level_name'] ?? \AppConfig::DEFAULT_LEVEL_NAME,
+            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : \AppConfig::DEFAULT_EVENT_IMAGE,
+            'levelColor' => $event['level_color'] ?? \AppConfig::DEFAULT_LEVEL_COLOR
         ];
     }
 

@@ -1,6 +1,3 @@
--- =========================================
--- USERS
--- =========================================
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     firstname VARCHAR(100) NOT NULL,
@@ -16,18 +13,12 @@ CREATE TABLE IF NOT EXISTS users (
     enabled BOOLEAN DEFAULT TRUE
 );
 
--- =========================================
--- USER STATISTICS
--- =========================================
 CREATE TABLE IF NOT EXISTS user_statistics (
     user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     total_events_joined INTEGER NOT NULL DEFAULT 0,
     total_events_created INTEGER NOT NULL DEFAULT 0
 );
 
--- =========================================
--- AUTH / SECURITY
--- =========================================
 CREATE TABLE IF NOT EXISTS login_attempts (
     email VARCHAR(150) NOT NULL,
     ip_hash VARCHAR(64) NOT NULL,
@@ -47,7 +38,6 @@ CREATE TABLE IF NOT EXISTS auth_audit_log (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Catalog tables: sports and levels (must be created BEFORE referencing them)
 CREATE TABLE IF NOT EXISTS sports (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
@@ -60,9 +50,7 @@ CREATE TABLE IF NOT EXISTS levels (
     hex_color VARCHAR(7) NOT NULL DEFAULT '#9E9E9E'
 );
 
--- =========================================
--- STATIC DATA (REQUIRED)
--- =========================================
+
 INSERT INTO sports (name, icon) VALUES
     ('Soccer', 'sports_soccer'),
     ('Basketball', 'sports_basketball'),
@@ -78,18 +66,12 @@ INSERT INTO levels (name, hex_color) VALUES
     ('Advanced', '#F44336')
 ON CONFLICT (name) DO UPDATE SET hex_color = EXCLUDED.hex_color;
 
--- =========================================
--- USER RELATIONS
--- =========================================
 CREATE TABLE IF NOT EXISTS user_favourite_sports (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     sport_id INTEGER NOT NULL REFERENCES sports(id) ON DELETE CASCADE,
     PRIMARY KEY (user_id, sport_id)
 );
 
--- =========================================
--- EVENTS
--- =========================================
 CREATE TABLE IF NOT EXISTS events (
     id SERIAL PRIMARY KEY,
     owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -116,19 +98,12 @@ CREATE TABLE IF NOT EXISTS event_participants (
     PRIMARY KEY (event_id, user_id)
 );
 
--- =========================================
--- INDEXES
--- =========================================
 CREATE INDEX IF NOT EXISTS idx_events_owner ON events(owner_id);
 CREATE INDEX IF NOT EXISTS idx_events_start_time ON events(start_time);
 CREATE INDEX IF NOT EXISTS idx_events_sport ON events(sport_id);
 CREATE INDEX IF NOT EXISTS idx_events_level ON events(level_id);
 CREATE INDEX IF NOT EXISTS idx_event_participants_user ON event_participants(user_id);
 
--- =========================================
--- VIEWS
--- =========================================
--- v1: Wszystkie wydarzenia z informacją o właścicielu i sporcie
 CREATE OR REPLACE VIEW vw_events_full AS
 SELECT 
     e.id,

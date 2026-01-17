@@ -5,6 +5,7 @@ require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/EventFormValidator.php';
 require_once __DIR__ . '/../entity/Event.php';
 require_once __DIR__ . '/../dto/UpdateEventDTO.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 require_once __DIR__ . '/../valueobject/EventMetadata.php';
 require_once __DIR__ . '/../valueobject/Location.php';
 
@@ -84,7 +85,7 @@ class EventController extends AppController
             }
         }
         if (!$imageUrl) {
-            $imageUrl = '/public/images/boisko.png';
+            $imageUrl = AppConfig::DEFAULT_EVENT_IMAGE;
         }
         $newEvent = array_merge($validation['data'], [
             'owner_id' => $ownerId,

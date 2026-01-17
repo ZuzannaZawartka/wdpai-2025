@@ -114,129 +114,188 @@
             updateRadiusDisplay();
         })();
     </script>
-    <script>
-        (function () {
-            const btn = document.getElementById('applySportsFilter');
-            btn?.addEventListener('click', function (e) {
-                e.preventDefault();
-                const checked = Array.from(document.querySelectorAll('.select-row input[name="sport[]"]:checked'));
-                const params = new URLSearchParams();
-                checked.forEach(input => params.append('sport[]', input.value));
-                const level = document.getElementById('levelSelect')?.value;
-                if (level && level !== 'Any') {
-                    params.set('level', level);
-                }
-                const locVal = document.getElementById('filterLocation')?.value?.trim();
-                if (locVal) {
-                    params.set('loc', locVal);
-                    const r = document.getElementById('radiusRange')?.value;
-                    if (r) params.set('radius', r);
-                }
-                const qs = params.toString();
-                const url = qs ? ('/sports?' + qs) : '/sports';
-                window.location.assign(url);
-            });
+    <!-- Obsolete script removed -->
 
-            // Clear location only (preserve sports and level)
-            const clearLoc = document.getElementById('clearLocation');
-            clearLoc?.addEventListener('click', function (e) {
-                e.preventDefault();
-                const checked = Array.from(document.querySelectorAll('.select-row input[name="sport[]"]:checked'));
-                const params = new URLSearchParams();
-                checked.forEach(input => params.append('sport[]', input.value));
-                const level = document.getElementById('levelSelect')?.value;
-                if (level && level !== 'Any') {
-                    params.set('level', level);
-                }
-                // Do not include loc/radius
-                const qs = params.toString();
-                const url = qs ? ('/sports?' + qs) : '/sports';
-                window.location.assign(url);
-            });
-
-            // Clear all filters
-            const clearAll = document.getElementById('clearAllFilters');
-            clearAll?.addEventListener('click', function (e) {
-                e.preventDefault();
-                window.location.assign('/sports');
-            });
-        })();
-    </script>
-
+    <!-- Container for dynamic results -->
     <div class="section panel matches">
-        <?php 
-            $allMatches = $matches ?? [];
-            $itemsPerPage = 10;
-            $currentPage = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
-            $totalItems = count($allMatches);
-            $totalPages = max(1, ceil($totalItems / $itemsPerPage));
-            $currentPage = min($currentPage, $totalPages);
-            
-            $offset = ($currentPage - 1) * $itemsPerPage;
-            $pageMatches = array_slice($allMatches, $offset, $itemsPerPage);
-        ?>
-        <?php foreach($pageMatches as $m): ?>
-        <?php
-            $rowActions = '
-                <a href="/event/'.(int)($m['id'] ?? 0).'"
-                    class="button primary small '.(!empty($m['isPast']) ? 'past' : '').'">View Details</a>';
-            $imagePosition = 'right';
-            include __DIR__ . '/components/match-row.html';
-        ?>
-        <?php endforeach; ?>
-
-        <?php if ($totalPages > 1): ?>
-        <div class="pagination">
-            <?php if ($currentPage > 1): ?>
-            <?php 
-                    $prevParams = $_GET;
-                    $prevParams['page'] = $currentPage - 1;
-                    $prevUrl = '?' . http_build_query($prevParams);
-                ?>
-            <a href="<?= htmlspecialchars($prevUrl) ?>" class="button muted">← Prev</a>
-            <?php endif; ?>
-
-            <div>
-                <?php for ($i = 1; $i <= $totalPages; $i++): ?>
-                <?php if ($i === $currentPage): ?>
-                <span class="button primary text-size-small">
-                    <?= $i ?>
-                </span>
-                <?php else: ?>
-                <?php 
-                            $pageParams = $_GET;
-                            $pageParams['page'] = $i;
-                            $pageUrl = '?' . http_build_query($pageParams);
-                        ?>
-                <a href="<?= htmlspecialchars($pageUrl) ?>" class="button text-size-small">
-                    <?= $i ?>
-                </a>
-                <?php endif; ?>
-                <?php endfor; ?>
+        <div id="matches-container">
+            <div class="visual-state loading-state" style="display:none; padding: 2rem; text-align: center;">
+                <span class="material spin">sync</span> Loading events...
             </div>
-
-            <?php if ($currentPage < $totalPages): ?>
-            <?php 
-                    $nextParams = $_GET;
-                    $nextParams['page'] = $currentPage + 1;
-                    $nextUrl = '?' . http_build_query($nextParams);
-                ?>
-            <a href="<?= htmlspecialchars($nextUrl) ?>" class="button muted">Next →</a>
-            <?php endif; ?>
+            <div class="visual-state empty-state" style="display:none; padding: 2rem; text-align: center;">
+                <p>No events found matching your criteria.</p>
+            </div>
         </div>
-        <?php endif; ?>
     </div>
 </section>
 
+<!-- Template for Match Card -->
+<template id="match-template">
+    <article class="match img-right">
+        <div class="match-body">
+            <div class="copy">
+                <div class="text-title-smaller js-title"></div>
+                <p class="text-small js-datetime"></p>
+                <p class="text-body js-desc"></p>
+
+                <div class="meta-row text-small">
+                    <span>👥 <span class="js-players"></span></span>
+                    <span class="level js-level-wrap">
+                        <i class="color-indicator js-level-dot"></i>
+                        <span class="js-level-name"></span>
+                    </span>
+                    <span class="js-sport-wrap" style="margin-left: 8px; display: flex; align-items: center; gap: 4px;">
+                        <span class="material js-sport-icon" style="font-size: 16px;"></span>
+                        <span class="js-sport-name"></span>
+                    </span>
+                </div>
+
+                <div class="row-actions">
+                    <a href="#" class="button primary small js-details-btn">View Details</a>
+                </div>
+            </div>
+            <div class="visual js-bg"></div>
+        </div>
+    </article>
+</template>
+
 <script>
-    (function () {
-        document.querySelectorAll('.matches .visual[data-bg]').forEach(el => {
-            const url = (el.getAttribute('data-bg') || '').trim();
-            if (!url) return;
-            // Use double-quotes inside url() to avoid quoting issues
-            el.style.backgroundImage = 'url("' + url.replace(/"/g, '\\"') + '")';
+    document.addEventListener('DOMContentLoaded', () => {
+        const container = document.getElementById('matches-container');
+        const loadingState = container.querySelector('.loading-state');
+        const emptyState = container.querySelector('.empty-state');
+        const template = document.getElementById('match-template');
+
+        // Initial Load
+        fetchEvents();
+
+        // Attach listeners
+        document.getElementById('applySportsFilter')?.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetchEvents();
         });
-    })();
+
+        document.getElementById('levelSelect')?.addEventListener('change', fetchEvents);
+        document.getElementById('radiusRange')?.addEventListener('change', fetchEvents); // Drag end
+
+        const locInput = document.getElementById('filterLocation');
+        // Debounce location input? Or just wait for blur/enter? 
+        // For now, let's rely on explicit buttons or 'change' (blur) to avoid too many requests
+        locInput?.addEventListener('change', fetchEvents);
+
+        // Also listen for "Enter" on location
+        locInput?.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') fetchEvents();
+        });
+
+        const clearLoc = document.getElementById('clearLocation');
+        clearLoc?.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (locInput) locInput.value = '';
+            fetchEvents();
+        });
+
+        const clearAll = document.getElementById('clearAllFilters');
+        clearAll?.addEventListener('click', (e) => {
+            e.preventDefault();
+            // Reset UI
+            if (locInput) locInput.value = '';
+            const levelSel = document.getElementById('levelSelect');
+            if (levelSel) levelSel.value = 'Any';
+            document.querySelectorAll('input[name="sport[]"]').forEach(el => el.checked = false);
+            fetchEvents();
+        });
+
+
+        function fetchEvents() {
+            // Gather Data
+            const sports = Array.from(document.querySelectorAll('input[name="sport[]"]:checked')).map(el => el.value);
+            const level = document.getElementById('levelSelect')?.value || 'Any';
+            const loc = document.getElementById('filterLocation')?.value || '';
+            const radius = document.getElementById('radiusRange')?.value || 10;
+
+            const payload = {
+                sports: sports,
+                level: level,
+                loc: loc,
+                radius: radius
+            };
+
+            // UI State
+            loadingState.style.display = 'block';
+            emptyState.style.display = 'none';
+            // Clear current list (keeping states)
+            Array.from(container.children).forEach(child => {
+                if (!child.classList.contains('visual-state')) {
+                    child.remove();
+                }
+            });
+
+            fetch('/api/sports/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+                .then(res => {
+                    if (!res.ok) throw new Error('API Error');
+                    return res.json();
+                })
+                .then(data => {
+                    loadingState.style.display = 'none';
+                    if (!data || data.length === 0) {
+                        emptyState.style.display = 'block';
+                        return;
+                    }
+
+                    data.forEach(ev => renderEvent(ev));
+                })
+                .catch(err => {
+                    console.error(err);
+                    loadingState.style.display = 'none';
+                    // optional: show error message
+                });
+        }
+
+        function renderEvent(ev) {
+            const clone = template.content.cloneNode(true);
+
+            // Text Content
+            clone.querySelector('.js-title').textContent = ev.title;
+            clone.querySelector('.js-datetime').textContent = ev.datetime;
+            clone.querySelector('.js-desc').textContent = ev.desc || '';
+            clone.querySelector('.js-players').textContent = ev.players;
+            clone.querySelector('.js-level-name').textContent = ev.level;
+            clone.querySelector('.js-sport-name').textContent = ev.sportName || '';
+            clone.querySelector('.js-sport-icon').textContent = ev.sportIcon || 'sports_soccer';
+
+            // Styles & Attributes
+            const levelDot = clone.querySelector('.js-level-dot');
+            if (levelDot && ev.levelColor) {
+                // We need to set --level-color variable on the parent .level span usually, 
+                // or just background color here for simplicity?
+                // The template expects --level-color on .level
+                const levelWrap = clone.querySelector('.js-level-wrap');
+                if (levelWrap) levelWrap.style.setProperty('--level-color', ev.levelColor);
+            }
+
+            const visual = clone.querySelector('.js-bg');
+            if (visual && ev.imageUrl) {
+                visual.style.backgroundImage = `url('${ev.imageUrl}')`;
+            }
+
+            const link = clone.querySelector('.js-details-btn');
+            link.href = `/event/${ev.id}`;
+            if (ev.isPast) {
+                link.classList.add('past');
+                clone.querySelector('.match').classList.add('past-event');
+            }
+
+            container.appendChild(clone);
+        }
+
+    });
 </script>
 
 <?php include __DIR__ . '/components/footer.html'; ?>

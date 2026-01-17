@@ -83,7 +83,7 @@ class UserRepository extends Repository
         return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    // New: return User entity or null
+
     public function getUserEntityById(int $id): ?\User
     {
         $row = $this->getUserById($id);
@@ -91,14 +91,14 @@ class UserRepository extends Repository
         return new \User($row);
     }
 
-    // New: return array of User entities
+
     public function getUsersEntities(): array
     {
         $rows = $this->getUsers();
         return array_map(fn($r) => new \User($r), $rows);
     }
 
-    // New: return User entity or null by email
+
     public function getUserEntityByEmail(string $email): ?\User
     {
         $row = $this->getUserByEmail($email);
@@ -196,7 +196,7 @@ class UserRepository extends Repository
         $stmt->execute();
     }
 
-    // UŻYCIE WIDOKU: Pobiera statystyki użytkowników z widoku vw_user_stats
+
     public function getUsersStatistics(): array
     {
         $query = $this->database->connect()->prepare('
@@ -206,7 +206,7 @@ class UserRepository extends Repository
         return $query->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    // UŻYCIE WIDOKU: Pobiera statystyki konkretnego użytkownika
+
     public function getUserStatisticsById(int $userId): ?array
     {
         $query = $this->database->connect()->prepare('
@@ -217,7 +217,7 @@ class UserRepository extends Repository
         return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    // UŻYCIE FUNKCJI: Oblicza wiek użytkownika
+
     public function getUserAge(int $userId): ?int
     {
         $user = $this->getUserProfileById($userId);
@@ -235,7 +235,7 @@ class UserRepository extends Repository
         return $result ? (int)$result['age'] : null;
     }
 
-    // UŻYCIE TABELI: Inicjalizacja statystyk dla nowego użytkownika
+
     public function initializeUserStatistics(int $userId): bool
     {
         try {
@@ -252,7 +252,7 @@ class UserRepository extends Repository
         }
     }
 
-    // UŻYCIE TABELI: Pobiera statystyki użytkownika
+
     public function getUserStatistics(int $userId): ?array
     {
         $query = $this->database->connect()->prepare('

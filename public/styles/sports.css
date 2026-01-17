@@ -121,7 +121,7 @@
 .sports-page .map-modal {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 10000;
 }
 
 .sports-page .map-modal-backdrop {
@@ -132,7 +132,7 @@
 
 .sports-page .map-modal-content {
     position: relative;
-    z-index: 101;
+    z-index: 10001;
     background: var(--white);
     max-width: 720px;
     margin: 5vh auto;

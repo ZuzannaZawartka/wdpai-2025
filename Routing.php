@@ -53,6 +53,11 @@ class Routing
             "action" => 'index',
             "auth" => true
         ],
+        'api/sports/search' => [
+            "controller" => 'SportsController',
+            "action" => 'search',
+            "auth" => true
+        ],
         'joined' => [
             "controller" => 'JoinedController',
             "action" => 'index',
@@ -116,6 +121,13 @@ class Routing
     public static function run(string $path)
     {
         $path = trim($path, '/');
+
+        // Check for exact route match (e.g. "api/sports/search")
+        if (isset(self::$routes[$path])) {
+            self::dispatch($path);
+            return;
+        }
+
         $segments = explode('/', $path);
         $action = $segments[0] ?? '';
         $parameters = array_slice($segments, 1);

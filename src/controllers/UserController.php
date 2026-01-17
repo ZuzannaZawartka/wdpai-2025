@@ -5,6 +5,7 @@ require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/UserFormValidator.php';
 require_once __DIR__ . '/../entity/User.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
 class UserController extends AppController
 {
@@ -101,7 +102,12 @@ class UserController extends AppController
             $updateData['enabled'] = isset($_POST['enabled']) ? 'true' : 'false';
         }
 
-        $this->userRepository->updateUser($existingUser['email'], $updateData);
+        $success = $this->userRepository->updateUser($existingUser['email'], $updateData);
+
+        // Update session if editing own profile
+        if ($success && $this->isOwnProfile((int)$existingUser['id'])) {
+            $_SESSION['user_avatar'] = $avatarPath;
+        }
     }
 
     private function updateUserPasswordIfNeeded(array $existingUser, array $validated): void
@@ -119,7 +125,8 @@ class UserController extends AppController
 
     private function handleAvatarUpload(?string $existingAvatar = null): string
     {
-        $default = $existingAvatar ?: '/public/img/default-avatar.png';
+        require_once __DIR__ . '/../config/AppConfig.php';
+        $default = $existingAvatar ?: AppConfig::DEFAULT_USER_AVATAR;
 
         if (!isset($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
             return $default;
@@ -164,7 +171,7 @@ class UserController extends AppController
                 'email' => $userEntity->getEmail() ?? '',
                 'birthDate' => $userEntity->getBirthDate() ?? '',
                 'location' => ($userEntity->getLatitude() && $userEntity->getLongitude() ? "{$userEntity->getLatitude()}, {$userEntity->getLongitude()}" : ''),
-                'avatar' => $userEntity->getAvatarUrl() ?: '/public/img/default-avatar.png',
+                'avatar' => $userEntity->getAvatarUrl() ?: AppConfig::DEFAULT_USER_AVATAR,
                 'role' => $userEntity->getRole() ?? 'user',
                 // enabled might not be in Entity if not mapped, using raw array fallback or adding to Entity. 
                 // Assuming Entity maps 'enabled' if passed. Checking User.php... constructs from data.

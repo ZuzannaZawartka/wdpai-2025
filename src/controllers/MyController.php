@@ -38,16 +38,14 @@ class MyController extends AppController
             $myEvents = array_map(function (Event $e) {
                 $current = $e->getCurrentPlayers();
                 $max = $e->getMaxPlayers() ?? $current;
-                $level = $e->getLevelName() ?: 'Intermediate';
-
                 return [
                     'id' => $e->getId(),
                     'title' => $e->getTitle(),
                     'datetime' => $e->getStartTime() ? (new DateTime($e->getStartTime()))->format('D, M j, g:i A') : 'TBD',
                     'players' => $current . '/' . $max . ' Players',
-                    'level' => $level,
-                    'levelColor' => $e->getLevelColor() ?? '#eab308',
-                    'imageUrl' => $e->getImageUrl() ?? '',
+                    'level' => $e->getLevelName(),
+                    'levelColor' => $e->getLevelColor(),
+                    'imageUrl' => $e->getImageUrl(),
                     'isPast'   => $e->getStartTime() ? (strtotime($e->getStartTime()) < time()) : false,
                 ];
             }, $entities);

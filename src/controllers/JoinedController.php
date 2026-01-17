@@ -19,16 +19,15 @@ class JoinedController extends AppController
         $joinedMatches = array_map(function (Event $e) use ($userId) {
             $current = $e->getCurrentPlayers();
             $max = $e->getMaxPlayers() ?? $current;
-            $level = $e->getLevelName() ?: 'Intermediate';
             return [
                 'id' => $e->getId(),
                 'title' => $e->getTitle(),
                 'datetime' => (new DateTime($e->getStartTime()))->format('D, M j, g:i A'),
                 'desc' => $e->getDescription() ?? '',
                 'players' => $current . '/' . $max . ' Players',
-                'level' => $level,
-                'levelColor' => $level === 'Beginner' ? '#22c55e' : ($level === 'Advanced' ? '#ef4444' : '#eab308'),
-                'imageUrl' => $e->getImageUrl() ?? '',
+                'level' => $e->getLevelName(),
+                'levelColor' => $e->getLevelColor(),
+                'imageUrl' => $e->getImageUrl(),
                 'isOwner' => $e->getOwnerId() === (int)$userId,
                 'isPast'   => $e->getStartTime() ? (strtotime($e->getStartTime()) < time()) : false,
             ];

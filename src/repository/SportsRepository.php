@@ -2,36 +2,42 @@
 
 require_once __DIR__ . '/Repository.php';
 require_once __DIR__ . '/../entity/Sport.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
-class SportsRepository extends Repository {
+class SportsRepository extends Repository
+{
 
-    public function getAllSports(): array {
+    public function getAllSports(): array
+    {
         $stmt = $this->database->connect()->prepare('SELECT id, name, icon FROM sports ORDER BY id');
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    // New: return array of Sport entities
+
     public function getAllSportsEntities(): array
     {
         $rows = $this->getAllSports();
         return array_map(fn($r) => new \Sport($r), $rows);
     }
 
-    public function getAllLevels(): array {
+    public function getAllLevels(): array
+    {
         $stmt = $this->database->connect()->prepare('SELECT id, name, hex_color FROM levels ORDER BY id');
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getFavouriteSportsIds(int $userId): array {
+    public function getFavouriteSportsIds(int $userId): array
+    {
         $stmt = $this->database->connect()->prepare('SELECT sport_id FROM user_favourite_sports WHERE user_id = ?');
         $stmt->execute([$userId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return array_map(fn($r) => (int)$r['sport_id'], $rows);
     }
 
-    public function getDetailedFavouriteSports(int $userId): array {
+    public function getDetailedFavouriteSports(int $userId): array
+    {
         $stmt = $this->database->connect()->prepare('
             SELECT s.id, s.name, s.icon 
             FROM sports s
@@ -39,10 +45,15 @@ class SportsRepository extends Repository {
             WHERE ufs.user_id = ?
         ');
         $stmt->execute([$userId]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(function ($row) {
+            $row['icon'] = $row['icon'] ?: AppConfig::DEFAULT_SPORT_ICON;
+            return $row;
+        }, $rows);
     }
 
-    public function setFavouriteSports(int $userId, array $sportIds): void {
+    public function setFavouriteSports(int $userId, array $sportIds): void
+    {
         $conn = $this->database->connect();
         $conn->beginTransaction();
         try {
