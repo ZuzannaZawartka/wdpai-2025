@@ -28,7 +28,7 @@
     <?php if (isset($activeNav) && $activeNav === 'my'): ?>
     <link rel="stylesheet" href="/public/styles/my.css" />
     <?php endif; ?>
-    <?php if (isset($activeNav) && ($activeNav === 'create' || $activeNav === 'event-edit')): ?>
+    <?php if (isset($activeNav) && ($activeNav === 'event-create' || $activeNav === 'event-edit')): ?>
     <link rel="stylesheet" href="/public/styles/create.css" />
     <?php endif; ?>
 
@@ -61,7 +61,8 @@
                     <?php else: ?>
                     <a class="nav-link <?= $active==='dashboard' ? 'active' : '' ?>" href="/dashboard">Dashboard</a>
                     <a class="nav-link <?= $active==='sports' ? 'active' : '' ?>" href="/sports">Sports</a>
-                    <a class="nav-link button accent <?= $active==='create' ? 'active' : '' ?>" href="/create">Create
+                    <a class="nav-link button accent <?= $active==='event-create' ? 'active' : '' ?>"
+                        href="/create">Create
                         Event</a>
                     <a class="nav-link <?= $active==='my' ? 'active' : '' ?>" href="/my">My Events</a>
                     <a class="nav-link <?= $active==='joined' ? 'active' : '' ?>" href="/joined">Joined Events</a>

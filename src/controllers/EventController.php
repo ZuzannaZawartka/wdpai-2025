@@ -29,9 +29,9 @@ class EventController extends AppController
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
-        parent::render('create', [
+        parent::render('event-create', [
             'pageTitle' => 'SportMatch - Create Event',
-            'activeNav' => 'create',
+            'activeNav' => 'event-create',
             'skillLevels' => $skillLevels,
             'allSports' => $allSports,
         ]);
@@ -45,9 +45,9 @@ class EventController extends AppController
             $sportsRepo = new SportsRepository();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
-            parent::render('create', [
+            parent::render('event-create', [
                 'pageTitle' => 'SportMatch - Create Event',
-                'activeNav' => 'create',
+                'activeNav' => 'event-create',
                 'skillLevels' => $skillLevels,
                 'allSports' => $allSports,
                 'errors' => $validation['errors'],
