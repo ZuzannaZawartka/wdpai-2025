@@ -16,7 +16,8 @@ class DashboardController extends AppController {
     public function index() {
         $this->ensureSession();
         $currentUserId = $this->getCurrentUserId();
-        $currentUser = $this->userRepository->getUserById($currentUserId);
+        $currentUser = $this->userRepository->getUserProfileById($currentUserId);
+
 
         $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId);
         $upcomingEvents = array_map(function($r) {
