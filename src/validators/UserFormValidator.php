@@ -31,11 +31,15 @@ class UserFormValidator {
             if ($data['newPassword'] !== $confirm) {
                 $errors[] = "Hasła nie są identyczne.";
             }
-          
             if ($isOwnProfile && $currentHash) {
                 if (empty($old) || !password_verify($old, $currentHash)) {
                     $errors[] = "Obecne hasło jest niepoprawne.";
                 }
+            }
+        } else {
+            // Jeśli podano current password lub confirm password, ale nie podano new password
+            if (($isOwnProfile && !empty($old)) || !empty($confirm)) {
+                $errors[] = "Aby zmienić hasło, podaj nowe hasło i powtórz je.";
             }
         }
 
