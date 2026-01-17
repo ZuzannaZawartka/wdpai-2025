@@ -155,8 +155,9 @@ class EventRepository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getUserUpcomingEvents(int $userId): array
+    public function getUserUpcomingEvents(int $userId, bool $upcomingOnly = false): array
     {
+        $whereTime = $upcomingOnly ? " AND e.start_time >= NOW()" : "";
         $sql = "
             SELECT e.id, e.title, e.description, e.start_time, e.image_url, e.max_players, e.location_text, e.owner_id,
                    l.name AS level_name,
@@ -164,7 +165,7 @@ class EventRepository
             FROM event_participants ep
             JOIN events e ON e.id = ep.event_id
             LEFT JOIN levels l ON l.id = e.level_id
-            WHERE ep.user_id = :uid
+            WHERE ep.user_id = :uid $whereTime
             ORDER BY e.start_time DESC
         ";
         $stmt = $this->db->prepare($sql);

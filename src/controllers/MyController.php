@@ -48,6 +48,7 @@ class MyController extends AppController
                     'level' => $level,
                     'levelColor' => $e->getLevelColor() ?? '#eab308',
                     'imageUrl' => $e->getImageUrl() ?? '',
+                    'isPast'   => $e->getStartTime() ? (strtotime($e->getStartTime()) < time()) : false,
                 ];
             }, $entities);
         }

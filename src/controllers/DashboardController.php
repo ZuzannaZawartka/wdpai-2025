@@ -36,7 +36,7 @@ class DashboardController extends AppController
             }
         }
 
-        $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId);
+        $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId, true);
         $upcomingEvents = array_map(function ($r) {
             $ev = new \Event($r);
             $current = (int)$ev->getCurrentPlayers();

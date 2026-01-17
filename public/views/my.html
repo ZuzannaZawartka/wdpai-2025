@@ -17,12 +17,16 @@
         <?php if (!empty($list)): ?>
         <?php foreach($list as $m): ?>
         <?php
-            $rowActions = '
-                <a href="/event/edit/'.(int)($m['id'] ?? 0).'" class="button accent small">Edit</a>
-                <button type="button" class="button danger small delete-btn"
-                    data-id="'.(int)($m['id'] ?? 0).'"
-                    data-title="'.htmlspecialchars($m['title'] ?? '').'">Delete</button>
-            ';
+            $rowActions = '<a href="/event/'.(int)($m['id'] ?? 0).'" class="button primary small">View Details</a>';
+            if (!($m['isPast'] ?? false)) {
+                $rowActions .= '
+                    <a href="/event/edit/'.(int)($m['id'] ?? 0).'" class="button accent small">Edit</a>
+                    <button type="button" class="button danger small delete-btn"
+                        data-id="'.(int)($m['id'] ?? 0).'"
+                        data-title="'.htmlspecialchars($m['title'] ?? '').'">Delete</button>
+                ';
+            }
+            $isPast = $m['isPast'] ?? false;
             $showDesc = false;
             include __DIR__ . '/components/match-row.html';
         ?>

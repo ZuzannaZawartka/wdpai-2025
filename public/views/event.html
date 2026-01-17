@@ -7,7 +7,16 @@
     $canSeeContact = $isAdmin || ($event['isOwner'] ?? false) || ($event['isUserParticipant'] ?? false);
 ?>
 
-<section class="event-page">
+<section class="event-page <?= ($event['isPast'] ?? false) ? 'past-event' : '' ?>">
+    <?php if ($event['isPast'] ?? false): ?>
+    <div class="section">
+        <div class="alert warning compact">
+            <span class="material">history</span>
+            <span>This event has already taken place.</span>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="section">
         <div class="text-title-large">
             <?= htmlspecialchars($event['title'] ?? 'Match Details') ?>
@@ -156,12 +165,18 @@
                     <?php endif; ?>
                 </div>
                 <div class="join-actions">
-                    <?php if ($event['isOwner'] ?? false): ?>
+                    <?php if ($event['isPast'] ?? false): ?>
+                    <div class="button muted text-size-small" disabled
+                        style="cursor: not-allowed; flex: 1; text-align: center;">Event Expired</div>
+                    <?php if(($_SESSION['user_role'] ?? 'user') === 'admin'): ?>
+                    <button id="deleteBtn" class="button danger text-size-small"
+                        data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete (Admin)</button>
+                    <?php endif; ?>
+                    <?php elseif ($event['isOwner'] ?? false): ?>
                     <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>
                     <?php elseif(($_SESSION['user_role'] ?? 'user') === 'admin'): ?>
-
                     <a href="/event/edit/<?= (int)($event['id'] ?? 0) ?>" class="button accent text-size-small">Edit</a>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete</button>

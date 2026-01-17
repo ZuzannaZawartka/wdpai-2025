@@ -19,11 +19,12 @@
         <?php
             $rowActions = '
                 <a href="/event/'.(int)($m['id'] ?? 0).'" class="button primary small">View Details</a>';
-            if (!($m['isOwner'] ?? false)) {
+            if (!($m['isOwner'] ?? false) && !($m['isPast'] ?? false)) {
                 $rowActions .= '
                 <button class="button danger small cancel-participation-joined"
                     data-event-id="'.(int)($m['id'] ?? 0).'">Cancel Participation</button>';
             }
+            $isPast = $m['isPast'] ?? false;
             include __DIR__ . '/components/match-row.html';
         ?>
         <?php endforeach; ?>

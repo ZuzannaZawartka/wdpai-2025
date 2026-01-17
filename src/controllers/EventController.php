@@ -90,7 +90,7 @@ class EventController extends AppController
         if (!$event) {
             $this->respondNotFound();
         }
-        $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
+        $isReadOnly = $repo->isEventPast((int)$id);
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
@@ -101,7 +101,7 @@ class EventController extends AppController
     {
         $this->ensureSession();
         $repo = new EventRepository();
-        if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
+        if ($repo->isEventPast((int)$id)) {
             $this->respondForbidden('Cannot edit past events');
         }
 
@@ -279,6 +279,7 @@ class EventController extends AppController
             $event['isOwner'] = $isOwner;
             $event['isFull'] = $repo->isEventFull((int)$id);
         }
+        $event['isPast'] = $repo->isEventPast((int)$id);
         $this->render('event', [
             'pageTitle' => 'SportMatch - Match Details',
             'activeNav' => 'sports',

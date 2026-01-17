@@ -253,11 +253,21 @@ body {
     background: var(--bg-light);
 }
 
-.match.past-event .button {
+.match.past-event .button:not(.primary) {
     background: #9ca3af !important;
     color: var(--white) !important;
     pointer-events: none;
     cursor: not-allowed;
+}
+
+/* Page version of past events */
+.event-page.past-event {
+    opacity: 0.85;
+    filter: grayscale(0.2);
+}
+
+.event-page.past-event .panel {
+    border-color: #cbd5e1;
 }
 
 @media (max-width: 48rem) {
