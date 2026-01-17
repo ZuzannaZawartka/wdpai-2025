@@ -3,21 +3,25 @@ require_once 'AppController.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/EventFormValidator.php';
+require_once __DIR__ . '/../entity/Event.php';
+require_once __DIR__ . '/../dto/UpdateEventDTO.php';
+require_once __DIR__ . '/../valueobject/EventMetadata.php';
+require_once __DIR__ . '/../valueobject/Location.php';
 
 class EventController extends AppController {
     public function edit($id): void
     {
         $this->ensureSession();
         $repo = new EventRepository();
-        $row = $repo->getEventById((int)$id);
-        if (!$row) {
+        $event = $repo->getEventEntityById((int)$id);
+        if (!$event) {
             $this->respondNotFound();
         }
         $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
         $sportsRepo = new SportsRepository();
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
-        $this->renderEditForm($id, $row, $skillLevels, $isReadOnly, [], $allSports);
+        $this->renderEditForm($id, $event, $skillLevels, $isReadOnly, [], $allSports);
     }
 
     public function save($id): void
@@ -29,30 +33,51 @@ class EventController extends AppController {
         }
 
         // Get current event to check participants count
-        $currentEvent = $repo->getEventById((int)$id);
-        $currentParticipants = $currentEvent ? (int)($currentEvent['current_players'] ?? 0) : null;
+        $currentEntity = $repo->getEventEntityById((int)$id);
+        $currentParticipants = $currentEntity ? (int)$currentEntity->getCurrentPlayers() : null;
         
         $validation = EventFormValidator::validate($_POST, $currentParticipants);
         if (!empty($validation['errors'])) {
-            $row = $currentEvent ?? $repo->getEventById((int)$id);
+            $eventObj = $currentEntity ?? $repo->getEventEntityById((int)$id);
             $sportsRepo = new SportsRepository();
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
-            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors'], $allSports);
+            $this->renderEditForm($id, $eventObj, $skillLevels, false, $validation['errors'], $allSports);
             return;
         }
         
-        $updates = [
-            'title' => $validation['data']['title'],
-            'sport_id' => $validation['data']['sport_id'],
-            'start_time' => $validation['data']['start_time'],
-            'latitude' => $validation['data']['latitude'],
-            'longitude' => $validation['data']['longitude'],
-            'level_id' => $validation['data']['level_id'],
-            'max_players' => $validation['data']['max_players'],
-            'min_needed' => $validation['data']['min_needed'],
-            'description' => $validation['data']['description']
-        ];
+        // Prefer DTO provided by validator when available
+        $dtoFromValidator = $validation['dto'] ?? null;
+        if ($dtoFromValidator instanceof \UpdateEventDTO) {
+            try {
+                $metadata = new EventMetadata($dtoFromValidator->title ?? ($dtoFromValidator->title ?? ''), $dtoFromValidator->description ?? null);
+            } catch (Throwable $e) {
+                $this->respondBadRequest('Invalid event metadata', true);
+            }
+            // Normalize via metadata
+            $updates = $dtoFromValidator->toArray();
+            if (isset($updates['title'])) $updates['title'] = $metadata->title();
+            if (isset($updates['description'])) $updates['description'] = $metadata->description();
+        } else {
+            $dtoData = $validation['data'];
+            try {
+                $metadata = new EventMetadata($dtoData['title'], $dtoData['description']);
+            } catch (Throwable $e) {
+                $this->respondBadRequest('Invalid event metadata', true);
+            }
+            $updateDto = new UpdateEventDTO([
+                'title' => $metadata->title(),
+                'description' => $metadata->description(),
+                'sport_id' => $dtoData['sport_id'],
+                'start_time' => $dtoData['start_time'],
+                'latitude' => $dtoData['latitude'],
+                'longitude' => $dtoData['longitude'],
+                'level_id' => $dtoData['level_id'],
+                'max_players' => $dtoData['max_players'],
+                'min_needed' => $dtoData['min_needed'],
+            ]);
+            $updates = $updateDto->toArray();
+        }
         if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
             $tmpName = $_FILES['image']['tmp_name'];
             $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
@@ -71,10 +96,11 @@ class EventController extends AppController {
         }
     }
 
-    private function renderEditForm($id, $row, $skillLevels, $isReadOnly, $errors = [], $allSports = []): void
+    private function renderEditForm($id, \Event $event, $skillLevels, $isReadOnly, $errors = [], $allSports = []): void
     {
-        $minPeople = (int)($row['min_needed'] ?? 6);
-        $maxPeople = isset($row['max_players']) && $row['max_players'] > 0 ? (int)$row['max_players'] : null;
+        $minPeople = (int)($event->getMinNeeded() ?? 6);
+        $maxPlayers = $event->getMaxPlayers();
+        $maxPeople = isset($maxPlayers) && $maxPlayers > 0 ? (int)$maxPlayers : null;
         $minimumValue = null;
         $rangeMinValue = null;
         $rangeMaxValue = null;
@@ -91,26 +117,26 @@ class EventController extends AppController {
             $rangeMaxValue = $maxPeople;
         }
         $coordsString = '';
-        if (isset($row['latitude'], $row['longitude'])) {
-            $coordsString = $row['latitude'] . ', ' . $row['longitude'];
+        if ($event->getLatitude() !== null && $event->getLongitude() !== null) {
+            $coordsString = $event->getLatitude() . ', ' . $event->getLongitude();
         }
         $datetimeInput = '';
-        if (!empty($row['start_time'])) {
+        if (!empty($event->getStartTime())) {
             try {
-                $dt = new DateTime($row['start_time']);
+                $dt = new DateTime($event->getStartTime());
                 $datetimeInput = $dt->format('Y-m-d\TH:i');
             } catch (Throwable $e) {
                 $datetimeInput = '';
             }
         }
         $formEvent = [
-            'id' => $row['id'] ?? $id,
-            'title' => $row['title'] ?? '',
+            'id' => $event->getId() ?? $id,
+            'title' => $event->getTitle() ?? '',
             'datetime' => $datetimeInput,
-            'skillLevel' => $row['level_name'] ?? 'Intermediate',
-            'sportId' => $row['sport_id'] ?? 0,
+            'skillLevel' => $event->getLevelName() ?? 'Intermediate',
+            'sportId' => $event->getSportId() ?? 0,
             'location' => $coordsString,
-            'desc' => $row['description'] ?? '',
+            'desc' => $event->getDescription() ?? '',
             'participants' => [
                 'type' => $participantsType,
                 'specific' => $specificValue,
@@ -137,33 +163,33 @@ class EventController extends AppController {
 
     public function details($id = null, $action = null) {
         $repo = new EventRepository();
-        $row = $repo->getEventById((int)$id);
-        if (!$row) {
+        $eventEntity = $repo->getEventEntityById((int)$id);
+        if (!$eventEntity) {
             $this->respondNotFound();
         }
         $userId = $this->getCurrentUserId();
         $event = [
-            'id' => (int)$row['id'],
-            'title' => (string)$row['title'],
-            'description' => (string)($row['description'] ?? ''),
-            'sportName' => (string)($row['sport_name'] ?? ''),
-            'location' => (string)($row['location_text'] ?? ''),
-            'coords' => isset($row['latitude'],$row['longitude']) ? ($row['latitude'] . ', ' . $row['longitude']) : null,
-            'dateTime' => (new DateTime($row['start_time']))->format('D, M j, g:i A'),
-            'skillLevel' => (string)($row['level_name'] ?? 'Intermediate'),
+            'id' => $eventEntity->getId(),
+            'title' => $eventEntity->getTitle(),
+            'description' => (string)($eventEntity->getDescription() ?? ''),
+            'sportName' => (string)($eventEntity->getSportName() ?? ''),
+            'location' => (string)($eventEntity->getLocationText() ?? ''),
+            'coords' => ($eventEntity->getLatitude() !== null && $eventEntity->getLongitude() !== null) ? ($eventEntity->getLatitude() . ', ' . $eventEntity->getLongitude()) : null,
+            'dateTime' => $eventEntity->getStartTime() ? (new DateTime($eventEntity->getStartTime()))->format('D, M j, g:i A') : '',
+            'skillLevel' => (string)($eventEntity->getLevelName() ?? 'Intermediate'),
             'organizer' => [
-                'name' => (trim($row['firstname'] ?? '') . ' ' . trim($row['lastname'] ?? '')) ?: 'Organizer',
-                'email' => (string)($row['owner_email'] ?? ''),
-                'avatar' => (string)($row['avatar_url'] ?? '')
+                'name' => trim(($eventEntity->getOwnerFirstName() ?? '') . ' ' . ($eventEntity->getOwnerLastName() ?? '')) ?: 'Organizer',
+                'email' => (string)($eventEntity->getOwnerEmail() ?? ''),
+                'avatar' => (string)($eventEntity->getOwnerAvatarUrl() ?? '')
             ],
             'participants' => [
-                'current' => (int)($row['current_players'] ?? 0),
-                'max' => (int)($row['max_players'] ?? 0),
-                'minNeeded' => (int)($row['min_needed'] ?? 0)
+                'current' => $eventEntity->getCurrentPlayers(),
+                'max' => (int)($eventEntity->getMaxPlayers() ?? 0),
+                'minNeeded' => (int)($eventEntity->getMinNeeded() ?? 0)
             ]
         ];
         if ($userId) {
-            $isOwner = (int)$row['owner_id'] === (int)$userId;
+            $isOwner = (int)$eventEntity->getOwnerId() === (int)$userId;
             $event['isUserParticipant'] = $isOwner || $repo->isUserParticipant($userId, (int)$id);
             $event['isOwner'] = $isOwner;
             $event['isFull'] = $repo->isEventFull((int)$id);
@@ -204,11 +230,11 @@ class EventController extends AppController {
             $this->respondUnauthorized('Not authenticated', true);
         }
         $repo = new EventRepository();
-        $event = $repo->getEventById((int)$id);
+        $event = $repo->getEventEntityById((int)$id);
         if (!$event) {
             $this->respondNotFound('Event not found', true);
         }
-        $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
+        $isOwner = ($event->getOwnerId() !== null) && ((int)$event->getOwnerId() === (int)$userId);
         $isAdmin = $this->isAdmin();
         $repo = new EventRepository();
         if ($isOwner) {

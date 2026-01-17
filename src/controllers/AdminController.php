@@ -6,6 +6,7 @@ require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/UserFormValidator.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../entity/User.php';
 
 class AdminController extends AppController {
     
@@ -20,23 +21,33 @@ class AdminController extends AppController {
     public function accounts() {
         $this->requireRole('admin');
 
-        $allUsers = $this->userRepository->getUsers();
+        $allUserEntities = $this->userRepository->getUsersEntities();
         $stats = $this->userRepository->getUsersStatistics();
         $statsById = [];
         foreach ($stats as $stat) {
             $statsById[(int)$stat['id']] = $stat;
         }
-        foreach ($allUsers as &$user) {
-            $uid = (int)($user['id'] ?? 0);
-            if (isset($statsById[$uid])) {
-                $user['events_joined_count'] = $statsById[$uid]['events_joined_count'] ?? 0;
-                $user['events_created_count'] = $statsById[$uid]['events_created_count'] ?? 0;
-            }
-        }
-        unset($user);
+        $usersOut = array_map(function(\User $u) use ($statsById) {
+            $uid = (int)($u->getId() ?? 0);
+            $joined = $statsById[$uid]['events_joined_count'] ?? 0;
+            $created = $statsById[$uid]['events_created_count'] ?? 0;
+            return [
+                'id' => $u->getId(),
+                'firstname' => $u->getFirstname(),
+                'lastname' => $u->getLastname(),
+                'email' => $u->getEmail(),
+                'role' => $u->getRole(),
+                'birth_date' => $u->getBirthDate(),
+                'latitude' => $u->getLatitude(),
+                'longitude' => $u->getLongitude(),
+                'avatar_url' => $u->getAvatarUrl(),
+                'events_joined_count' => $joined,
+                'events_created_count' => $created,
+            ];
+        }, $allUserEntities);
 
         return $this->render('admin/accounts', [
-            'users' => $allUsers,
+            'users' => $usersOut,
             'pageTitle' => 'Manage Users - Admin'
         ]);
     }
@@ -55,7 +66,7 @@ class AdminController extends AppController {
         return;
     }
     
-    private function isDelete(): bool {
+    protected function isDelete(): bool {
         return $_SERVER['REQUEST_METHOD'] === 'DELETE';
     }
 }

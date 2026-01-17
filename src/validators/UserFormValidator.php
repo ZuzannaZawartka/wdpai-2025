@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../dto/UpdateUserDTO.php';
+
 class UserFormValidator {
     public static function validate(array $postData): array {
         $errors = [];
@@ -47,15 +49,21 @@ class UserFormValidator {
                 $errors[] = 'Passwords do not match.';
             }
         }
+        $data = [
+            'firstName' => $firstName,
+            'lastName' => $lastName,
+            'email' => $email,
+            'birthDate' => $birthDate,
+            'newPassword' => $newPassword,
+        ];
+
+        require_once __DIR__ . '/../dto/UpdateUserDTO.php';
+        $dto = new UpdateUserDTO($data);
+
         return [
             'errors' => $errors,
-            'data' => [
-                'firstName' => $firstName,
-                'lastName' => $lastName,
-                'email' => $email,
-                'birthDate' => $birthDate,
-                'newPassword' => $newPassword,
-            ]
+            'data' => $data,
+            'dto' => $dto
         ];
     }
 }

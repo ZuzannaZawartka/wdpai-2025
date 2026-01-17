@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Repository.php';
+require_once __DIR__ . '/../entity/User.php';
 
 class UserRepository extends Repository{
 
@@ -57,6 +58,21 @@ class UserRepository extends Repository{
         return $query->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
+    // New: return User entity or null
+    public function getUserEntityById(int $id): ?\User
+    {
+        $row = $this->getUserById($id);
+        if (!$row) return null;
+        return new \User($row);
+    }
+
+    // New: return array of User entities
+    public function getUsersEntities(): array
+    {
+        $rows = $this->getUsers();
+        return array_map(fn($r) => new \User($r), $rows);
+    }
+
     public function getUserByEmail(string $email){
         $this->ensureColumns();
         
@@ -70,6 +86,14 @@ class UserRepository extends Repository{
         $user = $query->fetch(PDO::FETCH_ASSOC);
 
         return $user;
+    }
+
+    // New: return User entity or null by email
+    public function getUserEntityByEmail(string $email): ?\User
+    {
+        $row = $this->getUserByEmail($email);
+        if (!$row) return null;
+        return new \User($row);
     }
 
     private function ensureColumns(): void {
@@ -261,6 +285,20 @@ class UserRepository extends Repository{
         $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
         $query->execute();
         return $query->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    // Ensure a statistics row exists for a newly created user
+    private function initializeUserStatistics(int $userId): void {
+        try {
+            $conn = $this->database->connect();
+            $stmt = $conn->prepare(
+                'INSERT INTO user_statistics (user_id, total_events_joined, total_events_created) VALUES (:user_id, 0, 0) ON CONFLICT (user_id) DO NOTHING'
+            );
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+        } catch (Throwable $e) {
+            error_log("initializeUserStatistics error: " . $e->getMessage());
+        }
     }
 
 }

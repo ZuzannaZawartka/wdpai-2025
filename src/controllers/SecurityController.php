@@ -5,6 +5,7 @@ require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/AuthRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../entity/User.php';
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
 class SecurityController extends AppController {
@@ -80,9 +81,10 @@ class SecurityController extends AppController {
         }
 
         // Udane logowanie nie zwiększa licznika prób
-        $avatar = $user['avatar_url'] ?? null;
-        $role = $user['role'] ?? 'user';
-        $this->setAuthContext((int)$user['id'], $user['email'], $role, $avatar);
+        $userEntity = new User($user);
+        $avatar = $userEntity->getAvatarUrl();
+        $role = $userEntity->getRole() ?? 'user';
+        $this->setAuthContext((int)$userEntity->getId(), $userEntity->getEmail(), $role, $avatar);
         if ($role === 'admin') {
             header("Location: /sports", true, 303);
         } else {
@@ -148,12 +150,12 @@ class SecurityController extends AppController {
         }
 
         $emailExists = false;
-        try {
-            if ($this->userRepository->getUserByEmail($email)) {
-                $errors[] = "Nie można utworzyć konta z podanymi danymi";
-                $emailExists = true;
-            }
-        } catch (Throwable $e) {
+            try {
+                if ($this->userRepository->getUserEntityByEmail($email)) {
+                    $errors[] = "Nie można utworzyć konta z podanymi danymi";
+                    $emailExists = true;
+                }
+            } catch (Throwable $e) {
             $this->setStatusCode(500);
             return $this->render("register", ["messages" => "Wewnętrzny błąd serwera", 'allSports' => $allSports]);
         }

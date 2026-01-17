@@ -4,6 +4,10 @@ require_once 'AppController.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/EventFormValidator.php';
+require_once __DIR__ . '/../dto/CreateEventDTO.php';
+require_once __DIR__ . '/../dto/UpdateEventDTO.php';
+require_once __DIR__ . '/../valueobject/EventMetadata.php';
+require_once __DIR__ . '/../valueobject/Location.php';
 
 class CreateController extends AppController {
 
@@ -67,12 +71,16 @@ class CreateController extends AppController {
         if (!$imageUrl) {
             $imageUrl = '/public/images/boisko.png';
         }
-        $newEvent = array_merge($validation['data'], [
+        // Build DTO from validator (UpdateEventDTO is returned by validator)
+        $validatorDto = $validation['dto'] ?? new UpdateEventDTO($validation['data'] ?? []);
+        $createArray = array_merge($validatorDto->toArray(), [
             'owner_id' => $ownerId,
             'image_url' => $imageUrl
         ]);
+        // Use explicit CreateEventDTO for clarity
+        $createDto = new CreateEventDTO($createArray);
         $repo = new EventRepository();
-        $eventId = $repo->createEvent($newEvent);
+        $eventId = $repo->createEvent($createDto->toArray());
         if ($eventId) {
             header('Location: /event/' . $eventId);
             exit;

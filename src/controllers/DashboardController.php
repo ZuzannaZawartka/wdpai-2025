@@ -2,9 +2,10 @@
 
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
-require_once __DIR__ . '/../repository/CardsRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../entity/Event.php';
+require_once __DIR__ . '/../entity/User.php';
 
 class DashboardController extends AppController {
 
@@ -12,7 +13,6 @@ class DashboardController extends AppController {
     private UserRepository $userRepository;
 
     public function __construct() {
-        $this->cardRepository = new CardsRepository();
         $this->userRepository = new UserRepository();
     }
 
@@ -21,12 +21,12 @@ class DashboardController extends AppController {
         // Uprawnienia obsługuje Routing.php
         
         $currentUserId = $this->getCurrentUserId();
-        $currentUser = $currentUserId ? $this->userRepository->getUserById($currentUserId) : null;
+        $currentUser = $currentUserId ? $this->userRepository->getUserEntityById($currentUserId) : null;
 
         $locationOverride = null;
-        if ($currentUser && isset($currentUser['latitude'], $currentUser['longitude'])) {
-            $lat = $currentUser['latitude'];
-            $lng = $currentUser['longitude'];
+        if ($currentUser) {
+            $lat = $currentUser->getLatitude();
+            $lng = $currentUser->getLongitude();
             if (is_numeric($lat) && is_numeric($lng)) {
                 $locationOverride = ['lat' => (float)$lat, 'lng' => (float)$lng];
             }
@@ -35,19 +35,20 @@ class DashboardController extends AppController {
         $eventsRepo = new EventRepository();
         $upcomingRows = $currentUserId ? $eventsRepo->getUserUpcomingEvents($currentUserId) : [];
         $upcomingEvents = array_map(function($r) {
-            $current = (int)($r['current_players'] ?? 0);
-            $max = (int)($r['max_players'] ?? $current);
-            $level = is_string($r['level_name'] ?? null) ? $r['level_name'] : 'Intermediate';
+            $ev = new \Event($r);
+            $current = (int)($ev->getCurrentPlayers() ?? 0);
+            $max = (int)($ev->getMaxPlayers() ?? $current);
+            $level = $ev->getLevelName() ?? 'Intermediate';
             return [
-                'id' => (int)$r['id'],
-                'title' => (string)$r['title'],
-                'datetime' => (new DateTime($r['start_time']))->format('D, M j, g:i A'),
-                'dateText' => (new DateTime($r['start_time']))->format('D, M j, g:i A'),
-                'location' => (string)($r['location_text'] ?? ''),
+                'id' => $ev->getId(),
+                'title' => $ev->getTitle(),
+                'datetime' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : '',
+                'dateText' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : '',
+                'location' => (string)($ev->getLocationText() ?? ''),
                 'players' => $current . '/' . $max . ' Players',
                 'level' => $level,
                 'levelColor' => $level === 'Beginner' ? '#22c55e' : ($level === 'Advanced' ? '#ef4444' : '#eab308'),
-                'imageUrl' => (string)($r['image_url'] ?? ''),
+                'imageUrl' => (string)($ev->getImageUrl() ?? ''),
             ];
         }, $upcomingRows);
 

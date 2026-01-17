@@ -3,6 +3,7 @@
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../entity/Event.php';
 
 class SportsController extends AppController {
 
@@ -75,52 +76,43 @@ class SportsController extends AppController {
         $levelForFilter = $selectedLevel !== 'Any' ? $selectedLevel : null;
         
         $eventsRepo = new EventRepository();
-        $rows = $this->isAdmin() ? $eventsRepo->getAllForListing(true) : $eventsRepo->getAllForListing(false);
+        $entities = $this->isAdmin() ? $eventsRepo->getAllForListingEntities(true) : $eventsRepo->getAllForListingEntities(false);
         $now = time();
         $colors = $this->getLevelColors();
 
-        $filtered = array_filter($rows, function($ev) use ($selectedSportIds, $levelForFilter, $center, $radiusKm, $eventsRepo) {
+        $filteredEntities = array_filter($entities, function(Event $ev) use ($selectedSportIds, $levelForFilter, $center, $radiusKm, $eventsRepo) {
             if (!empty($selectedSportIds)) {
-                $sid = (int)($ev['sport_id'] ?? 0);
+                $sid = (int)$ev->getSportId();
                 if ($sid === 0 || !in_array($sid, $selectedSportIds, true)) { return false; }
             }
             if ($levelForFilter !== null) {
-                $lname = (string)($ev['level_name'] ?? '');
+                $lname = (string)$ev->getLevelName();
                 if ($lname !== $levelForFilter) { return false; }
             }
             if ($center && $radiusKm !== null) {
-                $lat2 = isset($ev['latitude']) ? (float)$ev['latitude'] : null;
-                $lng2 = isset($ev['longitude']) ? (float)$ev['longitude'] : null;
+                $lat2 = $ev->getLatitude();
+                $lng2 = $ev->getLongitude();
                 if ($lat2 === null || $lng2 === null) { return false; }
-                $dist = $this->distanceKm((float)$center[0], (float)$center[1], $lat2, $lng2);
+                $dist = $this->distanceKm((float)$center[0], (float)$center[1], (float)$lat2, (float)$lng2);
                 if (!is_finite($dist) || $dist > $radiusKm) { return false; }
             }
             if (!$this->isAdmin()) {
                 // For non-admin: filter out full events too
-                $eid = (int)$ev['id'];
+                $eid = (int)$ev->getId();
                 if ($eventsRepo->isEventFull($eid)) { return false; }
             }
             return true;
         });
 
-        // Map to view model
-        $matches = array_map(function($ev) use ($levelMap, $colors, $now) {
-            $current = (int)($ev['current_players'] ?? 0);
-
-            $maxRaw = $ev['max_players'] ?? null;
-            $max = is_numeric($maxRaw) ? (int)$maxRaw : null;
-            if ($max !== null && $max <= 0) {
-                $max = null; // 0 / NULL means "no limit"
-            }
-
-            $minRaw = $ev['min_needed'] ?? null;
-            $min = is_numeric($minRaw) ? (int)$minRaw : null;
-            if ($min !== null && $min <= 0) {
-                $min = null;
-            }
+        // Map to view model from entities
+        $matches = array_map(function(Event $ev) use ($levelMap, $colors, $now) {
+            $current = (int)$ev->getCurrentPlayers();
+            $max = $ev->getMaxPlayers();
+            if ($max !== null && $max <= 0) { $max = null; }
+            $min = $ev->getMinNeeded();
+            if ($min !== null && $min <= 0) { $min = null; }
 
             $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
-
             $note = '';
             if ($min !== null && $max !== null) {
                 $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
@@ -129,29 +121,27 @@ class SportsController extends AppController {
             } elseif ($max !== null) {
                 $note = 'Players ' . $max;
             }
-            if ($note !== '') {
-                $playersText .= ' · ' . $note;
-            }
-            $levelName = (string)($ev['level_name'] ?? 'Intermediate');
-            // try id mapping color by reverse lookup
+            if ($note !== '') { $playersText .= ' · ' . $note; }
+
+            $levelName = (string)($ev->getLevelName() ?: 'Intermediate');
             $levelColor = '#eab308';
             foreach ($levelMap as $lid => $lname) {
                 if ($lname === $levelName) { $levelColor = $colors[$lid] ?? '#eab308'; break; }
             }
-            $ts = strtotime((string)$ev['start_time']);
+            $ts = strtotime((string)$ev->getStartTime());
             $isPast = $ts ? ($ts < $now) : false;
             return [
-                'id' => (int)$ev['id'],
-                'title' => (string)$ev['title'],
+                'id' => $ev->getId(),
+                'title' => $ev->getTitle(),
                 'datetime' => $ts ? date('D, M j, g:i A', $ts) : 'TBD',
-                'desc' => (string)($ev['description'] ?? ''),
+                'desc' => $ev->getDescription() ?? '',
                 'players' => $playersText,
                 'level' => $levelName,
                 'levelColor' => $levelColor,
-                'imageUrl' => (string)($ev['image_url'] ?? ''),
+                'imageUrl' => $ev->getImageUrl() ?? '',
                 'isPast' => $this->isAdmin() ? $isPast : false
             ];
-        }, array_values($filtered));
+        }, array_values($filteredEntities));
 
         $this->render('sports', [
             'pageTitle' => 'SportMatch - Sports',

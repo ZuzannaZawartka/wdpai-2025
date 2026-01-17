@@ -124,10 +124,14 @@ class AppController {
         return $_SERVER["REQUEST_METHOD"] === 'POST';
     }
 
-    protected function render(string $template = null, array $variables = [])
+    protected function isDelete(): bool
+    {
+        return $_SERVER["REQUEST_METHOD"] === 'DELETE';
+    }
+
+    protected function render(?string $template = null, array $variables = []): void
     {
         $this->ensureSession();
-
 
         $avatar = $variables['currentAvatar'] ?? null;
         if (empty($avatar)) {
@@ -244,7 +248,7 @@ class AppController {
         exit();
     }
     
-    protected function respondNotFound(?string $message = null, bool $json = false): void {
+    public function respondNotFound(?string $message = null, bool $json = false): void {
         $this->setStatusCode(404);
         if ($json) {
             header('Content-Type: application/json');

@@ -4,6 +4,7 @@ require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/UserFormValidator.php';
+require_once __DIR__ . '/../entity/User.php';
 
 class UserController extends AppController {
 
@@ -27,6 +28,7 @@ class UserController extends AppController {
             }
         }
 
+        // Default profile shape (kept for views compatibility)
         $profile = [
             'firstName' => '',
             'lastName' => '',
@@ -42,16 +44,18 @@ class UserController extends AppController {
             'role' => 'user'
         ];
 
+        // Use entity for display when available
         if (is_array($dbUser)) {
-            $profile['firstName'] = $dbUser['firstname'] ?? '';
-            $profile['lastName'] = $dbUser['lastname'] ?? '';
-            $profile['email'] = $dbUser['email'] ?? $email;
-            $profile['birthDate'] = $dbUser['birth_date'] ?? '';
-            $profile['latitude'] = $dbUser['latitude'] ?? null;
-            $profile['longitude'] = $dbUser['longitude'] ?? null;
-            $profile['role'] = $dbUser['role'] ?? 'user';
-            if (!empty($dbUser['avatar_url'])) {
-                $profile['avatar'] = $dbUser['avatar_url'];
+            $userEntity = new \User($dbUser);
+            $profile['firstName'] = $userEntity->getFirstname() ?? '';
+            $profile['lastName'] = $userEntity->getLastname() ?? '';
+            $profile['email'] = $userEntity->getEmail() ?? $email;
+            $profile['birthDate'] = $userEntity->getBirthDate() ?? '';
+            $profile['latitude'] = $userEntity->getLatitude();
+            $profile['longitude'] = $userEntity->getLongitude();
+            $profile['role'] = $userEntity->getRole() ?? 'user';
+            if (!empty($userEntity->getAvatarUrl())) {
+                $profile['avatar'] = $userEntity->getAvatarUrl();
             }
         }
         
@@ -119,7 +123,13 @@ class UserController extends AppController {
         $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
         $validation = UserFormValidator::validate($_POST);
         $errors = $validation['errors'] ?? [];
-        $validated = $validation['data'] ?? [];
+        // Prefer DTO if available for stronger typing
+        $validated = [];
+        if (!empty($validation['dto']) && $validation['dto'] instanceof \UpdateUserDTO) {
+            $validated = $validation['dto']->toArray();
+        } else {
+            $validated = $validation['data'] ?? [];
+        }
         $oldPassword = trim($_POST['oldPassword'] ?? '');
         $newPassword = $validated['newPassword'] ?? '';
         $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
@@ -135,6 +145,7 @@ class UserController extends AppController {
             }
         }
 
+        // Keep raw DB array for operations that need password or direct fields
         $existingUser = $repo->getUserByEmail($email);
         $existingAvatar = $existingUser['avatar_url'] ?? null;
 
@@ -213,11 +224,9 @@ class UserController extends AppController {
         if (isset($_FILES['avatar']) && isset($_FILES['avatar']['tmp_name']) && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
             $file = $_FILES['avatar'];
             if ($file['error'] === UPLOAD_ERR_OK) {
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
-                if ($finfo) {
-                    finfo_close($finfo);
-                }
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
+                $mime = $finfo ? $finfo->file($file['tmp_name']) : '';
+                unset($finfo);
                 $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                 if (in_array($mime, $allowed, true)) {
                     $ext = pathinfo($file['name'] ?? '', PATHINFO_EXTENSION);
@@ -280,10 +289,21 @@ class UserController extends AppController {
         }
         $repo = new UserRepository();
         $sportsRepo = new SportsRepository();
-        $user = $repo->getUserById($editUserId);
-        if (!$user) {
+        $userRow = $repo->getUserById($editUserId);
+        if (!$userRow) {
             $this->respondNotFound();
         }
+        $userEntity = new \User($userRow);
+        $user = [
+            'email' => $userEntity->getEmail(),
+            'firstName' => $userEntity->getFirstname() ?? '',
+            'lastName' => $userEntity->getLastname() ?? '',
+            'birthDate' => $userEntity->getBirthDate() ?? '',
+            'latitude' => $userEntity->getLatitude(),
+            'longitude' => $userEntity->getLongitude(),
+            'avatar' => $userEntity->getAvatarUrl() ?? DEFAULT_AVATAR,
+            'role' => $userEntity->getRole() ?? 'user'
+        ];
         if (empty($user['location']) && !empty($user['latitude']) && !empty($user['longitude'])) {
             $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
         }
@@ -344,9 +364,9 @@ class UserController extends AppController {
             if (isset($_FILES['avatar']) && isset($_FILES['avatar']['tmp_name']) && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
                 $file = $_FILES['avatar'];
                 if ($file['error'] === UPLOAD_ERR_OK) {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
-                    if ($finfo) finfo_close($finfo);
+                    $finfo = new finfo(FILEINFO_MIME_TYPE);
+                    $mime = $finfo ? $finfo->file($file['tmp_name']) : '';
+                    unset($finfo);
                     $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
                     if (in_array($mime, $allowed, true)) {
                         $ext = pathinfo($file['name'] ?? '', PATHINFO_EXTENSION);
@@ -387,14 +407,21 @@ class UserController extends AppController {
     private function handleUserEdit($userId, $isAdminEdit = false) {
         $repo = new UserRepository();
         $sportsRepo = new SportsRepository();
-        $user = $repo->getUserById($userId);
-        if (!$user) {
+        $userRow = $repo->getUserById($userId);
+        if (!$userRow) {
             $this->respondNotFound();
             return false;
         }
+        // keep $user array shape for existing logic
+        $user = $userRow;
         $validation = UserFormValidator::validate($_POST);
         $errors = $validation['errors'] ?? [];
-        $validated = $validation['data'] ?? [];
+        // Prefer DTO if available
+        if (!empty($validation['dto']) && $validation['dto'] instanceof \UpdateUserDTO) {
+            $validated = $validation['dto']->toArray();
+        } else {
+            $validated = $validation['data'] ?? [];
+        }
         $location = trim($_POST['location'] ?? '');
         $latitude = null;
         $longitude = null;

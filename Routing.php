@@ -11,6 +11,7 @@ require_once 'src/controllers/CreateController.php';
 require_once 'src/controllers/EventController.php';
 require_once 'src/controllers/EditController.php';
 require_once 'src/controllers/AdminController.php';
+require_once __DIR__ . '/src/repository/EventRepository.php';
 
 
 //TODO: musimy zapewnić że utworzony obiekt ma tylko jedną instancję (singleton)
@@ -262,7 +263,6 @@ class Routing{
     
     private static function checkOwnership($controller, int $resourceId, string $resourceType): void
     {
-        require_once __DIR__ . '/src/repository/EventRepository.php';
         
         if ($controller->isAdmin()) {
             return;

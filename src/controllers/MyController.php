@@ -2,6 +2,7 @@
 
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../entity/Event.php';
 
 class MyController extends AppController {
 
@@ -42,7 +43,21 @@ class MyController extends AppController {
         
         if ($currentUserId) {
             $repo = new EventRepository();
-            $myEvents = $repo->getMyEvents($currentUserId);
+            $entities = $repo->getMyEventsEntities($currentUserId);
+            $myEvents = array_map(function(Event $e) {
+                $current = (int)$e->getCurrentPlayers();
+                $max = $e->getMaxPlayers() ?? $current;
+                $level = $e->getLevelName() ?: 'Intermediate';
+                return [
+                    'id' => $e->getId(),
+                    'title' => $e->getTitle(),
+                    'datetime' => (new DateTime($e->getStartTime()))->format('D, M j, g:i A'),
+                    'players' => $current . '/' . $max . ' Players',
+                    'level' => $level,
+                    'levelColor' => $this->isAdmin() ? '#eab308' : ($level === 'Beginner' ? '#22c55e' : ($level === 'Advanced' ? '#ef4444' : '#eab308')),
+                    'imageUrl' => $e->getImageUrl() ?? '',
+                ];
+            }, $entities);
         }
 
         $this->render('my', [
