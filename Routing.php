@@ -73,12 +73,7 @@ class Routing
         ],
         'profile' => [
             "controller" => 'UserController',
-            "action" => 'profile',
-            "auth" => true
-        ],
-        'profile-update' => [
-            "controller" => 'UserController',
-            "action" => 'updateProfile',
+            "action" => 'editUser',
             "auth" => true
         ],
         'event' => [

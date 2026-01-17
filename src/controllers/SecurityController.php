@@ -163,14 +163,26 @@ class SecurityController extends AppController
 
     private function createNewUser(): ?int
     {
+        $location = $this->post('location');
+        $lat = (float)$this->post('latitude', 0);
+        $lng = (float)$this->post('longitude', 0);
+
+        if ($location && strpos($location, ',') !== false) {
+            $parts = explode(',', $location);
+            if (count($parts) === 2) {
+                $lat = (float)trim($parts[0]);
+                $lng = (float)trim($parts[1]);
+            }
+        }
+
         return $this->userRepository->createUser(
             mb_strtolower(trim($this->post('email')), 'UTF-8'),
             password_hash($this->post('password'), PASSWORD_BCRYPT),
             $this->post('firstname'),
             $this->post('lastname'),
             $this->post('birth_date'),
-            (float)$this->post('latitude', 0),
-            (float)$this->post('longitude', 0),
+            $lat,
+            $lng,
             self::ROLE_USER
         );
     }

@@ -19,22 +19,6 @@ class UserController extends AppController
         $this->sportsRepository = new SportsRepository();
     }
 
-    public function profile($id = null)
-    {
-        $this->requireAuth();
-
-        $targetId = $this->getTargetUserId($id);
-        $dbUser = $this->userRepository->getUserProfileById($targetId);
-
-        if (!$dbUser) {
-            $this->redirect('/dashboard');
-        }
-
-        $this->render('profile', array_merge(
-            $this->prepareProfileViewData($dbUser),
-            ['isOwnProfile' => $this->isOwnProfile($targetId)]
-        ));
-    }
 
     public function editUser($userId = null)
     {

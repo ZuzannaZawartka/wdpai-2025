@@ -38,10 +38,9 @@ $levelColor = (string)($card['levelColor'] ?? '#999');
         </span>
         <?php endif; ?>
 
-        <?php if ($level !== ''): ?>
         <span class="level" style="--level-color: <?= htmlspecialchars($levelColor) ?>;">
+            <i class="color-indicator"></i>
             <?= htmlspecialchars($level) ?>
         </span>
-        <?php endif; ?>
     </div>
 </div>

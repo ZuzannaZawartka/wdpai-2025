@@ -1,0 +1,153 @@
+<?php
+/**
+ * Global Map Component
+ * @var string $mapId - Unique ID for the map element
+ * @var string $mode - 'view', 'picker', 'preview'
+ * @var string $location - Initial location (lat,lng or address)
+ * @var string $inputName - Name of the hidden input for 'picker' mode
+ * @var string $placeholder - Placeholder for empty state
+ */
+$mode = $mode ?? 'view';
+$mapId = $mapId ?? ('map-' . uniqid());
+$location = $location ?? '';
+$inputName = $inputName ?? 'location';
+$placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
+?>
+
+<div class="map-component-wrapper" data-map-id="<?= htmlspecialchars($mapId) ?>"
+    data-mode="<?= htmlspecialchars($mode) ?>">
+    <?php if ($mode === 'picker'): ?>
+    <div id="mapModal-<?= $mapId ?>" class="map-modal" hidden>
+        <div class="map-modal-backdrop"></div>
+        <div class="map-modal-content">
+            <div id="<?= $mapId ?>" class="map-canvas"></div>
+            <div class="map-actions">
+                <button type="button" class="button muted close-map">Anuluj</button>
+                <button type="button" class="button primary apply-map">Użyj tej lokalizacji</button>
+            </div>
+        </div>
+    </div>
+    <input type="hidden" name="<?= htmlspecialchars($inputName) ?>" id="input-<?= $mapId ?>"
+        value="<?= htmlspecialchars($location) ?>">
+    <?php elseif ($mode === 'preview'): ?>
+    <div class="hero-map">
+        <div id="empty-<?= $mapId ?>" class="hero-map-empty" <?=!empty($location) ? 'hidden' : '' ?>>
+            <span class="material">location_on</span>
+            <div class="text-small">
+                <?= htmlspecialchars($placeholder) ?>
+            </div>
+        </div>
+        <div id="preview-<?= $mapId ?>" class="location-preview" <?=empty($location) ? 'hidden' : '' ?>>
+            <div id="<?= $mapId ?>" class="mini-map-canvas"></div>
+        </div>
+    </div>
+    <?php else: ?>
+    <div id="<?= $mapId ?>" class="map-canvas" data-location="<?= htmlspecialchars($location) ?>"></div>
+    <?php endif; ?>
+</div>
+
+<!-- Ensure Leaflet and Component JS are loaded exactly once per page if multiple maps are present -->
+<script>
+    (function () {
+        if (typeof L === 'undefined' && !window._leafletLoading) {
+            window._leafletLoading = true;
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            document.head.appendChild(link);
+
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+            script.onload = () => window._leafletLoaded = true;
+            document.head.appendChild(script);
+        }
+        if (typeof MapComponent === 'undefined' && !window._mapCompLoading) {
+            window._mapCompLoading = true;
+            const script = document.createElement('script');
+            script.src = '/public/scripts/map-component.js';
+            script.onload = () => window._mapCompLoaded = true;
+            document.head.appendChild(script);
+        }
+    })();
+</script>
+
+<script>
+    (function () {
+        const mapId = '<?= $mapId ?>';
+        const mode = '<?= $mode ?>';
+        const initialLocationStr = '<?= $location ?>';
+
+        const initMap = async () => {
+            // Wait for dependencies if they are being loaded
+            while (typeof L === 'undefined' || typeof MapComponent === 'undefined') {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+
+            let initialCoords = MapComponent.parseLocation(initialLocationStr);
+
+            // If no coords but we have a location string in view mode, try geocoding
+            if (!initialCoords && initialLocationStr && mode === 'view') {
+                const geocoded = await MapComponent.geocode(initialLocationStr);
+                if (geocoded) initialCoords = [geocoded.lat, geocoded.lon];
+            }
+
+            const mapComp = new MapComponent(mapId, {
+                mode: mode,
+                initialLocation: initialCoords,
+                onLocationChange: (latlng) => {
+                    const input = document.getElementById('input-' + mapId);
+                    if (input) {
+                        input.value = latlng.lat.toFixed(5) + ', ' + latlng.lng.toFixed(5);
+                        input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }
+            });
+
+            // Global exposing for modals or external control
+            window['mapComp_' + mapId] = mapComp;
+
+            if (mode === 'picker') {
+                const modal = document.getElementById('mapModal-' + mapId);
+                const openBtns = document.querySelectorAll('.pick-map[data-target="' + mapId + '"]');
+                const closeBtn = modal?.querySelector('.close-map');
+                const applyBtn = modal?.querySelector('.apply-map');
+                const backdrop = modal?.querySelector('.map-modal-backdrop');
+
+                const openModal = () => {
+                    modal.removeAttribute('hidden');
+                    setTimeout(() => mapComp.updateSize(), 0);
+                };
+                const closeModal = () => modal.setAttribute('hidden', '');
+
+                openBtns.forEach(btn => btn.addEventListener('click', openModal));
+                closeBtn?.addEventListener('click', closeModal);
+                backdrop?.addEventListener('click', closeModal);
+                applyBtn?.addEventListener('click', () => {
+                    const input = document.getElementById('input-' + mapId);
+                    if (input.value) {
+                        // Trigger preview update if exists
+                        const preview = document.getElementById('preview-' + mapId);
+                        const empty = document.getElementById('empty-' + mapId);
+                        if (preview && empty) {
+                            empty.setAttribute('hidden', '');
+                            preview.removeAttribute('hidden');
+                            // Update preview map
+                            const previewMapId = preview.querySelector('.mini-map-canvas')?.id;
+                            if (previewMapId && window['mapComp_' + previewMapId]) {
+                                window['mapComp_' + previewMapId].setView(MapComponent.parseLocation(input.value));
+                            }
+                        }
+                    }
+                    closeModal();
+                });
+            }
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initMap);
+        } else {
+            initMap();
+        }
+    })();
+</script>
