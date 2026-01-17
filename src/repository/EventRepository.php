@@ -3,19 +3,19 @@
 require_once __DIR__ . '/../../Database.php';
 require_once __DIR__ . '/../entity/Event.php';
 
-class EventRepository
-{
-    private PDO $db;
+require_once __DIR__ . '/Repository.php';
 
+class EventRepository extends Repository
+{
     public function __construct()
     {
-        $this->db = (new Database())->connect();
+        parent::__construct();
     }
 
     private function setAuditUser(int $userId): void
     {
         try {
-            $stmt = $this->db->prepare("SELECT set_config('app.user_id', :uid, true)");
+            $stmt = $this->database->connect()->prepare("SELECT set_config('app.user_id', :uid, true)");
             $stmt->execute([':uid' => (string)$userId]);
         } catch (Throwable $e) {
             // Audit context is optional; ignore failures.
@@ -36,7 +36,7 @@ class EventRepository
             WHERE e.owner_id = :owner AND e.start_time >= NOW()
             ORDER BY e.start_time ASC
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute(['owner' => $ownerId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -58,7 +58,7 @@ class EventRepository
             WHERE e.owner_id = :owner
             ORDER BY e.start_time DESC
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute(['owner' => $ownerId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return array_map(fn($r) => new \Event($r), $rows);
@@ -66,14 +66,14 @@ class EventRepository
 
     public function deleteEventByOwner(int $eventId, int $ownerId): bool
     {
-        $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id AND owner_id = :owner');
+        $stmt = $this->database->connect()->prepare('DELETE FROM events WHERE id = :id AND owner_id = :owner');
         $stmt->execute(['id' => $eventId, 'owner' => $ownerId]);
         return $stmt->rowCount() > 0;
     }
 
     public function deleteEvent(int $eventId): bool
     {
-        $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id');
+        $stmt = $this->database->connect()->prepare('DELETE FROM events WHERE id = :id');
         $stmt->execute(['id' => $eventId]);
         return $stmt->rowCount() > 0;
     }
@@ -94,7 +94,7 @@ class EventRepository
             $where
             ORDER BY e.start_time DESC
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         // Provide both associative-array API and entity API via a separate method; this keeps backward compatibility.
@@ -123,7 +123,7 @@ class EventRepository
             LEFT JOIN users u ON u.id = e.owner_id
             WHERE e.id = :id
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
@@ -150,7 +150,7 @@ class EventRepository
             LEFT JOIN sports s ON s.id = e.sport_id
             WHERE e.start_time >= NOW() AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -168,14 +168,14 @@ class EventRepository
             WHERE ep.user_id = :uid $whereTime
             ORDER BY e.start_time DESC
         ";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute([':uid' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function isEventPast(int $eventId): bool
     {
-        $stmt = $this->db->prepare('SELECT start_time < NOW() AS past FROM events WHERE id = ?');
+        $stmt = $this->database->connect()->prepare('SELECT start_time < NOW() AS past FROM events WHERE id = ?');
         $stmt->execute([$eventId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return !empty($row['past']);
@@ -183,11 +183,11 @@ class EventRepository
 
     public function isEventFull(int $eventId): bool
     {
-        $stmt = $this->db->prepare('SELECT max_players FROM events WHERE id = ?');
+        $stmt = $this->database->connect()->prepare('SELECT max_players FROM events WHERE id = ?');
         $stmt->execute([$eventId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $max = (int)($row['max_players'] ?? 0);
-        $stmt2 = $this->db->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
+        $stmt2 = $this->database->connect()->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
         $stmt2->execute([$eventId]);
         $c = (int)($stmt2->fetch(PDO::FETCH_ASSOC)['c'] ?? 0);
         return $max > 0 && $c >= $max;
@@ -197,7 +197,7 @@ class EventRepository
     {
         try {
             $this->setAuditUser($userId);
-            $ins = $this->db->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
+            $ins = $this->database->connect()->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
             return $ins->execute([$eventId, $userId]);
         } catch (Throwable $e) {
             return false;
@@ -206,7 +206,7 @@ class EventRepository
 
     public function isUserParticipant(int $userId, int $eventId): bool
     {
-        $stmt = $this->db->prepare('SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ? LIMIT 1');
+        $stmt = $this->database->connect()->prepare('SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ? LIMIT 1');
         $stmt->execute([$eventId, $userId]);
         return $stmt->fetch() !== false;
     }
@@ -214,14 +214,14 @@ class EventRepository
     public function cancelParticipation(int $userId, int $eventId): bool
     {
         $this->setAuditUser($userId);
-        $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
+        $stmt = $this->database->connect()->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
         $stmt->execute([$eventId, $userId]);
         return $stmt->rowCount() > 0;
     }
 
     public function participantsCount(int $eventId): int
     {
-        $stmt = $this->db->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
+        $stmt = $this->database->connect()->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
         $stmt->execute([$eventId]);
         return (int)($stmt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0);
     }
@@ -229,7 +229,7 @@ class EventRepository
     public function createEvent(array $data): ?int
     {
         try {
-            $this->db->beginTransaction();
+            $this->database->connect()->beginTransaction();
 
             $sql = "
                 INSERT INTO events (owner_id, title, description, sport_id, location_text, latitude, longitude,
@@ -237,7 +237,7 @@ class EventRepository
                 VALUES (:owner_id, :title, :description, :sport_id, :location_text, :latitude, :longitude,
                         :start_time, :level_id, :image_url, :max_players, :min_needed)
             ";
-            $stmt = $this->db->prepare($sql);
+            $stmt = $this->database->connect()->prepare($sql);
             $result = $stmt->execute([
                 ':owner_id' => $data['owner_id'] ?? null,
                 ':title' => $data['title'] ?? '',
@@ -254,16 +254,16 @@ class EventRepository
             ]);
 
             if (!$result) {
-                $this->db->rollBack();
+                $this->database->connect()->rollBack();
                 return null;
             }
 
-            $eventId = (int)$this->db->lastInsertId();
+            $eventId = (int)$this->database->connect()->lastInsertId();
 
-            $this->db->commit();
+            $this->database->connect()->commit();
             return $eventId;
         } catch (Throwable $e) {
-            $this->db->rollBack();
+            $this->database->connect()->rollBack();
             error_log("Create event transaction error: " . $e->getMessage());
             return null;
         }
@@ -324,7 +324,7 @@ class EventRepository
         }
 
         $sql = "UPDATE events SET " . implode(', ', $fields) . " WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute($params);
         return $stmt->rowCount() > 0;
     }
@@ -335,7 +335,7 @@ class EventRepository
         if ($limit) {
             $sql .= " LIMIT :limit";
         }
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         if ($limit) {
             $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
         }
@@ -346,33 +346,30 @@ class EventRepository
     public function joinEventWithTransaction(int $userId, int $eventId): bool
     {
         try {
-            $this->db->beginTransaction();
+            $this->database->connect()->beginTransaction();
 
             $this->setAuditUser($userId);
 
             // Check if event exists and is not full
             if ($this->isEventFull($eventId)) {
-                $this->db->rollBack();
+                $this->database->connect()->rollBack();
                 return false;
             }
 
             // Check if event is in the past
             if ($this->isEventPast($eventId)) {
-                $this->db->rollBack();
+                $this->database->connect()->rollBack();
                 return false;
             }
 
             // Add user to event
-            $ins = $this->db->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
+            $ins = $this->database->connect()->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
             $ins->execute([$eventId, $userId]);
 
-            // Update user statistics
-
-
-            $this->db->commit();
+            $this->database->connect()->commit();
             return true;
         } catch (Throwable $e) {
-            $this->db->rollBack();
+            $this->database->connect()->rollBack();
             error_log("Transaction error: " . $e->getMessage());
             return false;
         }
@@ -382,16 +379,16 @@ class EventRepository
     public function cancelParticipationWithTransaction(int $userId, int $eventId): bool
     {
         try {
-            $this->db->beginTransaction();
+            $this->database->connect()->beginTransaction();
 
             $this->setAuditUser($userId);
 
-            $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
+            $stmt = $this->database->connect()->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
             $stmt->execute([$eventId, $userId]);
-            $this->db->commit();
+            $this->database->connect()->commit();
             return $stmt->rowCount() > 0;
         } catch (Throwable $e) {
-            $this->db->rollBack();
+            $this->database->connect()->rollBack();
             error_log("Transaction error: " . $e->getMessage());
             return false;
         }
@@ -449,7 +446,7 @@ class EventRepository
             ORDER BY e.start_time ASC
         ";
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
@@ -467,7 +464,7 @@ class EventRepository
             LIMIT :limit
         ";
 
-        $stmt = $this->db->prepare($sql);
+        $stmt = $this->database->connect()->prepare($sql);
         $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
         $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);

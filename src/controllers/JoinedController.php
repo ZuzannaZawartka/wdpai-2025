@@ -12,7 +12,7 @@ class JoinedController extends AppController
     {
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
-        $repo = new EventRepository();
+        $repo = EventRepository::getInstance();
         $rows = $userId ? $repo->getUserUpcomingEvents($userId) : [];
         // Map rows to Event entities for clearer code
         $events = array_map(fn($r) => new Event($r), $rows);

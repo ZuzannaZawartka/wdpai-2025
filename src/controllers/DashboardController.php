@@ -15,9 +15,9 @@ class DashboardController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->eventRepository = new EventRepository();
-        $this->sportsRepository = new SportsRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->eventRepository = EventRepository::getInstance();
+        $this->sportsRepository = SportsRepository::getInstance();
     }
 
     public function index()

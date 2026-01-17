@@ -17,8 +17,8 @@ class AdminController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->eventRepository = new EventRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->eventRepository = EventRepository::getInstance();
     }
 
     public function accounts()
@@ -59,7 +59,7 @@ class AdminController extends AppController
     public function editUser($id)
     {
         $this->requireRole('admin');
-        $userController = new UserController();
+        $userController = new UserController(); // UserController might likely remain new as it's a controller, not a singleton service usually, but let's check if it needs to be single too. For now leaving as is or better? Wait, controllers are usually instantiated by router.
         return $userController->editUser($id);
     }
 }

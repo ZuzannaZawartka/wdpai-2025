@@ -21,7 +21,7 @@ class MyController extends AppController
             $deleteId = (int)$_POST['deleteId'];
             if ($deleteId > 0 && $currentUserId) {
                 try {
-                    $repo = new EventRepository();
+                    $repo = EventRepository::getInstance();
                     $repo->deleteEventByOwner($deleteId, $currentUserId);
                 } catch (Throwable $e) {
                     error_log("Failed to delete event: " . $e->getMessage());
@@ -32,7 +32,7 @@ class MyController extends AppController
 
         $myEvents = [];
         if ($currentUserId) {
-            $repo = new EventRepository();
+            $repo = EventRepository::getInstance();
             $entities = $repo->getMyEventsEntities($currentUserId);
 
             $myEvents = array_map(function (Event $e) {

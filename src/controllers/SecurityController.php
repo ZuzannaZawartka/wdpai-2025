@@ -28,9 +28,9 @@ class SecurityController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->authRepository = new AuthRepository();
-        $this->sportsRepository = new SportsRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->authRepository = AuthRepository::getInstance();
+        $this->sportsRepository = SportsRepository::getInstance();
     }
 
     public function login()
@@ -129,18 +129,33 @@ class SecurityController extends AppController
 
         if (empty($errors)) {
             try {
+                // User enumeration protection:
+                // We check if email exists. If so, we DO NOT tell the user explicitly.
+                // Instead, we just show success or a generic message.
+                // Standard secure practice: "If the account doesn't exist, we registered it. Check email" (but we auto login or redirect).
+                // Here, to be user-friendly but secure: we can redirect to login saying "Registration successful" even if it failed due to duplicate email.
+                // OR, simpler: just return "Registration successful" without creating duplicates.
+
                 if ($this->userRepository->emailExists($email)) {
-                    $errors[] = 'Konto z tym adresem już istnieje';
+                    // Silently fail (or maybe log it)
+                    // Behave AS IF registration worked to prevent enumeration
+                    // Redirect to login with 'registered=1'
+                    error_log("Registration attempt with existing email: $email");
+                    $this->redirect('/login?registered=1');
                 } else {
                     $newUserId = $this->createNewUser();
                     if ($newUserId) {
                         $this->assignFavouriteSports($newUserId, $this->post('favourite_sports', []));
                         $this->redirect('/login?registered=1');
+                    } else {
+                        // Real DB error
+                        $errors[] = 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie później.';
                     }
                 }
             } catch (Throwable $e) {
                 error_log($e->getMessage());
-                $errors[] = 'Błąd bazy danych';
+                // Generic error for user
+                $errors[] = 'Wystąpił błąd serwera.';
             }
         }
 

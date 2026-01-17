@@ -40,7 +40,7 @@
     background: var(--white);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     border-top: 1px solid var(--border-color);
-    z-index: 100;
+    z-index: 2001;
 }
 
 .site-nav.mobile-open {

@@ -15,8 +15,8 @@ class UserController extends AppController
     public function __construct()
     {
         parent::__construct();
-        $this->userRepository = new UserRepository();
-        $this->sportsRepository = new SportsRepository();
+        $this->userRepository = UserRepository::getInstance();
+        $this->sportsRepository = SportsRepository::getInstance();
     }
 
 

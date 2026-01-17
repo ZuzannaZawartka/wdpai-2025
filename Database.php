@@ -4,11 +4,15 @@ require_once "config.php";
 // .env - skorzystać z .env
 //Databse powinien byc singletonem - mozna potem go przeniesc do src -> services
 
-class Database {
+class Database
+{
     private $username;
     private $password;
     private $host;
     private $database;
+
+    private static $instance = null;
+    private $pdo;
 
     public function __construct()
     {
@@ -18,8 +22,20 @@ class Database {
         $this->database = database;
     }
 
+    public static function getInstance(): Database
+    {
+        if (self::$instance === null) {
+            self::$instance = new Database();
+        }
+        return self::$instance;
+    }
+
     public function connect()
     {
+        if ($this->pdo) {
+            return $this->pdo;
+        }
+
         try {
             $conn = new PDO(
                 "pgsql:host=$this->host;port=5432;dbname=$this->database",
@@ -33,9 +49,10 @@ class Database {
             // enforce real prepared statements and sane defaults
             $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+
+            $this->pdo = $conn;
             return $conn;
-        }
-        catch(PDOException $e) {
+        } catch (PDOException $e) {
             die("Connection failed: " . $e->getMessage());
         }
     }
@@ -45,5 +62,3 @@ class Database {
         $conn = null;
     }
 }
-
-?>

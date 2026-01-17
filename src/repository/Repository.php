@@ -1,28 +1,23 @@
 <?php
 require_once __DIR__ . '/../../Database.php';
 
-class Repository{
+class Repository
+{
     protected $database;
 
-    public function __construct(){
-        $this->database = new Database();
-    }
+    protected static $instances = [];
 
-    public function addUser($user)
+    protected function __construct()
     {
-        $stmt = $this->database->connect()->prepare('
-            INSERT INTO users (email, password, firstname, lastname)
-            VALUES (?, ?, ?,?)
-        ');
-
-        $stmt->execute([
-            $user['email'],
-            $user['password'],
-            $user['firstname'],
-            $user['lastname']
-        ]);
-
+        $this->database = new \Database();
     }
 
+    public static function getInstance(): static
+    {
+        $cls = static::class;
+        if (!isset(self::$instances[$cls])) {
+            self::$instances[$cls] = new static();
+        }
+        return self::$instances[$cls];
+    }
 }
-
