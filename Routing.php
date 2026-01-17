@@ -240,6 +240,10 @@ class Routing{
         }
         
         if (isset(self::$routes[$action]['requiresRole'])) {
+            // Ensure session is started before accessing $_SESSION
+            if (session_status() !== PHP_SESSION_ACTIVE) {
+                session_start();
+            }
             $requiredRole = self::$routes[$action]['requiresRole'];
             $userRole = $_SESSION['user_role'] ?? null;
             $roleMatch = false;

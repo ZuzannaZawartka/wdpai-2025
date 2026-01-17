@@ -243,6 +243,7 @@ class EventRepository {
 
             $eventId = (int)$this->db->lastInsertId();
 
+<<<<<<< Updated upstream
             // Update user statistics, increment events created
             if (isset($data['owner_id'])) {
                 $statStmt = $this->db->prepare('
@@ -253,6 +254,8 @@ class EventRepository {
                 $statStmt->execute([$data['owner_id']]);
             }
 
+=======
+>>>>>>> Stashed changes
             $this->db->commit();
             return $eventId;
         } catch (Throwable $e) {
@@ -378,12 +381,7 @@ class EventRepository {
             $ins->execute([$eventId, $userId]);
 
             // Update user statistics
-            $statStmt = $this->db->prepare('
-                UPDATE user_statistics 
-                SET total_events_joined = total_events_joined + 1 
-                WHERE user_id = ?
-            ');
-            $statStmt->execute([$userId]);
+
 
             $this->db->commit();
             return true;
@@ -421,4 +419,96 @@ class EventRepository {
             return false;
         }
     }
+<<<<<<< Updated upstream
+=======
+
+    public function getFilteredEventsListing(array $filters, bool $isAdmin = false): array {
+        $params = [];
+        $conditions = [];
+
+        if (!$isAdmin) {
+            $conditions[] = "e.start_time >= NOW()";
+        }
+
+        if (!empty($filters['sports'])) {
+            $placeholders = [];
+            foreach ($filters['sports'] as $i => $name) {
+                $key = ":sport" . $i;
+                $placeholders[] = $key;
+                $params[$key] = $name;
+            }
+            $conditions[] = "s.name IN (" . implode(',', $placeholders) . ")";
+        }
+
+        if (!empty($filters['level']) && $filters['level'] !== 'Any') {
+            $conditions[] = "l.name = :level";
+            $params[':level'] = $filters['level'];
+        }
+
+        $distanceField = "";
+        $having = "";
+        if (!empty($filters['center'])) {
+            $lat = $filters['center']['lat'];
+            $lng = $filters['center']['lng'];
+            $haversine = "(6371 * acos(cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude))))";
+            $distanceField = ", $haversine AS distance";
+            $having = "HAVING $haversine <= :radius";
+            $params[':lat'] = $lat;
+            $params[':lng'] = $lng;
+            $params[':radius'] = $filters['radius'];
+        }
+
+        $whereSql = $conditions ? "WHERE " . implode(" AND ", $conditions) : "";
+
+        $sql = "
+            SELECT e.*, s.name AS sport_name, l.name AS level_name, l.hex_color AS level_color, -- DODANE
+                (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+                $distanceField
+            FROM events e
+            LEFT JOIN sports s ON s.id = e.sport_id
+            LEFT JOIN levels l ON l.id = e.level_id
+            $whereSql
+            GROUP BY e.id, s.name, l.name, l.hex_color -- POPRAWIONE: Grupowanie o hex_color
+            $having
+            ORDER BY e.start_time ASC
+        ";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function getNearbyEvents(float $lat, float $lng, int $limit = 3): array {
+        $sql = "
+            SELECT 
+                e.id, e.title, e.location_text, e.image_url, s.name as sport_name,
+                (6371 * acos(GREATEST(-1, LEAST(1, cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude)))))) AS distance
+            FROM events e
+            LEFT JOIN sports s ON s.id = e.sport_id
+            WHERE e.start_time >= NOW() AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+            ORDER BY distance ASC
+            LIMIT :limit
+        ";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
+        $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
+        $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        
+        return array_map(function($r) {
+            return [
+                'id' => $r['id'],
+                'title' => $r['title'] ?? 'Event',
+                'sport' => $r['sport_name'] ?? 'Sport',
+                // TO MUSI SIĘ NAZYWAĆ TAK JAK W TWOIM HTML (linia ok. 95)
+                'distanceText' => sprintf('%.1f km away', $r['distance']), 
+                'imageUrl' => $r['image_url'] ?? 'public/img/uploads/default.jpg',
+                'cta' => 'See Details'
+            ];
+        }, $results);
+    }
+>>>>>>> Stashed changes
 }

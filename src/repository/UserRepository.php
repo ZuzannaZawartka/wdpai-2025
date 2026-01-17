@@ -252,21 +252,6 @@ class UserRepository extends Repository{
         return $result ? (int)$result['age'] : null;
     }
 
-    // UŻYCIE TABELI: Inicjalizacja statystyk dla nowego użytkownika
-    public function initializeUserStatistics(int $userId): bool {
-        try {
-            $query = $this->database->connect()->prepare('
-                INSERT INTO user_statistics (user_id, total_events_joined, total_events_created)
-                VALUES (:user_id, 0, 0)
-                ON CONFLICT (user_id) DO NOTHING
-            ');
-            $query->bindParam(':user_id', $userId, PDO::PARAM_INT);
-            return $query->execute();
-        } catch (Throwable $e) {
-            error_log("Initialize statistics error: " . $e->getMessage());
-            return false;
-        }
-    }
 
     // UŻYCIE TABELI: Pobiera statystyki użytkownika
     public function getUserStatistics(int $userId): ?array {
