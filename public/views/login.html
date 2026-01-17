@@ -22,18 +22,18 @@
                 <div class="form-header">
                     <h1 class="text-title">
                         <span class="text-primary">
-                            <?= $lang['login_title_welcome_part_one'] ?>
+                            <?= htmlspecialchars($lang['login_title_welcome_part_one'] ?? '', ENT_QUOTES) ?>
                         </span>
-                        <?= $lang['login_title_welcome_part_two'] ?>
-                        <?= $lang['login_title_back'] ?>
+                        <?= htmlspecialchars($lang['login_title_welcome_part_two'] ?? '', ENT_QUOTES) ?>
+                        <?= htmlspecialchars($lang['login_title_back'] ?? '', ENT_QUOTES) ?>
                     </h1>
                     <p class="text-body">
-                        <?= $lang['login_subtitle'] ?>
+                        <?= htmlspecialchars($lang['login_subtitle'] ?? '', ENT_QUOTES) ?>
                     </p>
                 </div>
                 <?php if(isset($messages)): ?>
                 <div class="messages">
-                    <?= $messages ?>
+                    <?= htmlspecialchars($messages, ENT_QUOTES) ?>
                 </div>
                 <?php endif; ?>
 
@@ -43,30 +43,32 @@
                     <div class="input-grid">
                         <div class="input-group">
                             <label class="text-body">
-                                <?= $lang['email'] ?>
+                                <?= htmlspecialchars($lang['email'] ?? '', ENT_QUOTES) ?>
                             </label>
-                            <input type="email" class="input-common" placeholder="<?= $lang['email'] ?>" name="email"
+                            <input type="email" class="input-common"
+                                placeholder="<?= htmlspecialchars($lang['email'] ?? '', ENT_QUOTES) ?>" name="email"
                                 required maxlength="150">
 
                         </div>
                         <div class="input-group">
                             <label class="text-body">
-                                <?= $lang['password'] ?>
+                                <?= htmlspecialchars($lang['password'] ?? '', ENT_QUOTES) ?>
                             </label>
-                            <input type="password" class="input-common" placeholder="<?= $lang['password'] ?>"
+                            <input type="password" class="input-common"
+                                placeholder="<?= htmlspecialchars($lang['password'] ?? '', ENT_QUOTES) ?>"
                                 name="password" required minlength="8" maxlength="128">
                         </div>
                     </div>
                     <a class="forgot a-link text-small" href="#">
-                        <?= $lang['forgot_password'] ?>
+                        <?= htmlspecialchars($lang['forgot_password'] ?? '', ENT_QUOTES) ?>
                     </a>
                     <button type="submit" class="btn-submit btn-common">
-                        <?= $lang['login_button'] ?>
+                        <?= htmlspecialchars($lang['login_button'] ?? '', ENT_QUOTES) ?>
                     </button>
                     <div class="divider">
                         <span></span>
                         <p class="text-small">
-                            <?= $lang['or_continue_with'] ?>
+                            <?= htmlspecialchars($lang['or_continue_with'] ?? '', ENT_QUOTES) ?>
                         </p>
                         <span></span>
                     </div>
@@ -76,9 +78,9 @@
                         <button>A</button>
                     </div>
                     <p class="auth-link text-small">
-                        <?= $lang['dont_have_account'] ?>
+                        <?= htmlspecialchars($lang['dont_have_account'] ?? '', ENT_QUOTES) ?>
                         <a class="a-link" href="/register">
-                            <?= $lang['register_here'] ?>
+                            <?= htmlspecialchars($lang['register_here'] ?? '', ENT_QUOTES) ?>
                         </a>
                     </p>
                 </form>

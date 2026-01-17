@@ -3,6 +3,7 @@
 require_once __DIR__ . '/Repository.php';
 
 class SportsRepository extends Repository {
+
     public function getAllSports(): array {
         $stmt = $this->database->connect()->prepare('SELECT id, name, icon FROM sports ORDER BY id');
         $stmt->execute();
@@ -10,17 +11,27 @@ class SportsRepository extends Repository {
     }
 
     public function getAllLevels(): array {
-        $stmt = $this->database->connect()->prepare('SELECT id, name FROM levels ORDER BY id');
+        $stmt = $this->database->connect()->prepare('SELECT id, name, hex_color FROM levels ORDER BY id');
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    // Merged from UserFavouritesRepository
     public function getFavouriteSportsIds(int $userId): array {
         $stmt = $this->database->connect()->prepare('SELECT sport_id FROM user_favourite_sports WHERE user_id = ?');
         $stmt->execute([$userId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         return array_map(fn($r) => (int)$r['sport_id'], $rows);
+    }
+
+    public function getDetailedFavouriteSports(int $userId): array {
+        $stmt = $this->database->connect()->prepare('
+            SELECT s.id, s.name, s.icon 
+            FROM sports s
+            JOIN user_favourite_sports ufs ON s.id = ufs.sport_id
+            WHERE ufs.user_id = ?
+        ');
+        $stmt->execute([$userId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     public function setFavouriteSports(int $userId, array $sportIds): void {

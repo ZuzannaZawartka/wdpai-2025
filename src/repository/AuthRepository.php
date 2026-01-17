@@ -3,6 +3,33 @@
 require_once __DIR__ . '/Repository.php';
 
 class AuthRepository extends Repository {
+    
+    public function logFailedLoginAttempt(
+        ?string $email,
+        string $ipHash,
+        ?string $reason = null
+    ): void {
+        $conn = $this->database->connect();
+
+        $stmt = $conn->prepare('
+            INSERT INTO auth_audit_log
+                (event_type, email_hash, ip_hash, user_agent, reason)
+            VALUES
+                (:event_type, :email_hash, :ip_hash, :user_agent, :reason)
+        ');
+
+        $emailHash = $email ? hash('sha256', mb_strtolower($email)) : null;
+        $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 255);
+
+        $stmt->execute([
+            ':event_type' => 'login_failed',
+            ':email_hash' => $emailHash,
+            ':ip_hash'    => $ipHash,
+            ':user_agent' => $userAgent,
+            ':reason'     => $reason,
+        ]);
+    }
+
 
     // IP-only limiter: track attempts per IP regardless of email
     public function getIpAttempts(string $ipHash): ?array {

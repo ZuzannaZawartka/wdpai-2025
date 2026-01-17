@@ -1,4 +1,7 @@
 <?php
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
+
 require_once 'Routing.php';
 
 $path = trim($_SERVER['REQUEST_URI'], '/');

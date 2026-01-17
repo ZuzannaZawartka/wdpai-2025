@@ -1,3 +1,6 @@
+
+
+
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     firstname VARCHAR(100) NOT NULL,
@@ -9,7 +12,7 @@ CREATE TABLE users (
     latitude DECIMAL(9,6),
     longitude DECIMAL(9,6),
     bio TEXT,
-    role VARCHAR(20) DEFAULT 'basic',
+    role VARCHAR(20) DEFAULT 'user',
     enabled BOOLEAN DEFAULT TRUE
 );
 
@@ -37,6 +40,16 @@ CREATE TABLE IF NOT EXISTS login_attempts (
     PRIMARY KEY (email, ip_hash)
 );
 
+CREATE TABLE IF NOT EXISTS auth_audit_log (
+    id SERIAL PRIMARY KEY,
+    event_type VARCHAR(50) NOT NULL,      -- login_failed, login_success
+    email_hash CHAR(64),                  -- hash e-maila (SHA-256)
+    ip_hash CHAR(64) NOT NULL,             -- hash IP
+    user_agent VARCHAR(255),              -- opcjonalnie
+    reason VARCHAR(100),                  -- np. bad_credentials, account_locked
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Catalog tables: sports and levels (must be created BEFORE referencing them)
 CREATE TABLE IF NOT EXISTS sports (
     id SERIAL PRIMARY KEY,
@@ -46,7 +59,8 @@ CREATE TABLE IF NOT EXISTS sports (
 
 CREATE TABLE IF NOT EXISTS levels (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL
+    name VARCHAR(50) UNIQUE NOT NULL,
+    hex_color VARCHAR(7) NOT NULL DEFAULT '#9E9E9E'
 );
 
 INSERT INTO sports (name, icon) VALUES
@@ -57,9 +71,11 @@ INSERT INTO sports (name, icon) VALUES
     ('Cycling', '🚴')
 ON CONFLICT (name) DO NOTHING;
 
-INSERT INTO levels (name) VALUES
-    ('Beginner'), ('Intermediate'), ('Advanced')
-ON CONFLICT DO NOTHING;
+INSERT INTO levels (name, hex_color) VALUES
+    ('Beginner', '#4CAF50'), 
+    ('Intermediate', '#FF9800'), 
+    ('Advanced', '#F44336')
+ON CONFLICT (name) DO UPDATE SET hex_color = EXCLUDED.hex_color;
 
 -- User favourite sports (NOW sports and levels exist)
 CREATE TABLE IF NOT EXISTS user_favourite_sports (
@@ -122,12 +138,14 @@ SELECT
     e.longitude,
     e.max_players,
     e.min_needed,
+    e.image_url, 
     u.id as owner_id,
     u.firstname || ' ' || u.lastname as owner_name,
     u.avatar_url as owner_avatar,
     s.name as sport_name,
     s.icon as sport_icon,
     l.name as level_name,
+    l.hex_color as level_color, 
     (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = e.id) as current_players,
     e.created_at,
     e.updated_at

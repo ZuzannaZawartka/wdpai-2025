@@ -15,8 +15,8 @@
                     <h3 class="card-title">
                         <?= htmlspecialchars($user['firstname'] ?? '') . ' ' . htmlspecialchars($user['lastname'] ?? '') ?>
                     </h3>
-                    <span class="role-badge <?= ($user['role'] ?? 'basic') === 'admin' ? 'admin' : 'basic' ?>">
-                        <?= htmlspecialchars($user['role'] ?? 'basic') ?>
+                    <span class="role-badge <?= ($user['role'] ?? 'user') === 'admin' ? 'admin' : 'user' ?>">
+                        <?= htmlspecialchars($user['role'] ?? 'user') ?>
                     </span>
                 </div>
                 <div class="card-content">

@@ -12,35 +12,27 @@ class AppController {
     protected function ensureSession(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
-            // Detect HTTPS natively or behind reverse proxy
-            $secure = (
-                (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ||
-                (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') ||
-                ((isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443'))
-            );
-            // If headers already sent (e.g., due to a prior warning), avoid changing cookie params
-            if (!headers_sent()) {
-                session_set_cookie_params([
-                    'lifetime' => 0,
-                    'path' => '/',
-                    'domain' => '',
-                    'secure' => $secure,
-                    'httponly' => true,
-                    //sameSite to 'Lax' to allow some cross-site requests 
-                    'samesite' => 'Lax'
-                ]);
-            }
-            if (!headers_sent()) {
-                session_start();
-            } else {
-                // Attempt to start session even if headers were sent; may fail silently but avoids warnings
-                @session_start();
-            }
+            $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+                    || (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443');
+
+            session_set_cookie_params([
+                'lifetime' => 0,
+                'path' => '/',
+                'domain' => '',
+                'secure' => $secure,
+                'httponly' => true,
+                'samesite' => 'Lax'
+            ]);
+
+            session_start();
+
             if (empty($_SESSION['csrf_token'])) {
                 $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
             }
         }
     }
+
 
     protected function isAuthenticated(): bool
     {
@@ -125,55 +117,57 @@ class AppController {
         return $_SERVER["REQUEST_METHOD"] === 'POST';
     }
 
-    protected function render(string $template = null, array $variables = [])
+    protected function render(string $template = null, array $variables = []): void
     {
         $this->ensureSession();
 
+        // Dodaj avatar
+        $variables['currentAvatar'] = $variables['currentAvatar'] ?? $this->getAvatarForCurrentUser();
 
-        $avatar = $variables['currentAvatar'] ?? null;
-        if (empty($avatar)) {
-            $avatar = $_SESSION['user_avatar'] ?? null;
+        // Dodaj język jeśli nie ustawiony
+        if (!isset($variables['lang']) && !empty($template)) {
+            $variables['lang'] = get_lang($template);
         }
-        if (empty($avatar)) {
-            $uid = $this->getCurrentUserId();
-            if ($uid) {
-                try {
-                    $repo = new UserRepository();
-                    $dbUser = $repo->getUserById($uid);
-                    if ($dbUser && !empty($dbUser['avatar_url'])) {
-                        $avatar = $dbUser['avatar_url'];
-                        $_SESSION['user_avatar'] = $avatar;
-                    }
-                } catch (Throwable $e) {
-                    // ignore and fallback
-                }
-            }
-        }
-        if (empty($avatar)) {
-            $avatar = DEFAULT_AVATAR;
-        }
-        $variables['currentAvatar'] = $avatar;
 
-        $templatePath = 'public/views/'. $template.'.html';
+        $templatePath = 'public/views/' . $template . '.html';
         $templatePath404 = 'public/views/404.html';
-        $output = "";
-                 
-        if(file_exists($templatePath)){
-            if (!isset($variables['lang']) && is_string($template) && $template !== '') {
-                $variables['lang'] = get_lang($template);
-            }
-            extract($variables);
-            
-            ob_start();
-            include $templatePath;
-            $output = ob_get_clean();
-        } else {
-            ob_start();
-            include $templatePath404;
-            $output = ob_get_clean();
-        }
+        $output = '';
+
+        // Wczytaj template lub 404
+        $pathToInclude = file_exists($templatePath) ? $templatePath : $templatePath404;
+
+        extract($variables);
+
+        ob_start();
+        include $pathToInclude;
+        $output = ob_get_clean();
+
         echo $output;
     }
+
+    protected function getAvatarForCurrentUser(): string
+    {
+        if (!empty($_SESSION['user_avatar'])) {
+            return $_SESSION['user_avatar'];
+        }
+
+        $uid = $this->getCurrentUserId();
+        if ($uid) {
+            try {
+                $repo = new UserRepository();
+                $dbUser = $repo->getUserProfileById($uid);
+                if (!empty($dbUser['avatar_url'])) {
+                    $_SESSION['user_avatar'] = $dbUser['avatar_url'];
+                    return $dbUser['avatar_url'];
+                }
+            } catch (Throwable $e) {
+                // ignore i fallback
+            }
+        }
+
+        return DEFAULT_AVATAR;
+    }
+
     
     protected function hasRole(string $role): bool {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === $role;
@@ -219,6 +213,29 @@ class AppController {
     
     public function isAdmin(): bool {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
+    }
+
+    protected function mapEventData(array $event): array {
+        $startTime = $event['start_time'] ?? null;
+        $formattedDate = 'Unknown date';
+        
+        if ($startTime) {
+            try {
+                $formattedDate = (new DateTime($startTime))->format('D, M j, g:i A');
+            } catch (Exception $e) {
+                $formattedDate = 'Invalid date';
+            }
+        }
+
+        return [
+            'id'         => (int)($event['id'] ?? 0),
+            'title'      => (string)($event['title'] ?? 'Untitled'),
+            'datetime'   => $formattedDate,
+            'players'    => (int)($event['current_players'] ?? 0) . " / " . (int)($event['max_players'] ?? 0),
+            'level'      => $event['level_name'] ?? 'Intermediate',
+            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : '/public/images/boisko.png',
+            'levelColor' => $event['level_color'] ?? '#9E9E9E' 
+        ];
     }
 
 }

@@ -34,6 +34,5 @@ class JoinedController extends AppController {
             'joinedMatches' => $joinedMatches,
         ]);
     }
-    
-    // Usunięto adminAccounts
+
 }

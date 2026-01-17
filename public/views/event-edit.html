@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/public/styles/components/map-canvas.css">
 <?php $pageTitle = isset($pageTitle) ? $pageTitle : 'SportMatch - Edit Event'; $activeNav = $activeNav ?? 'edit'; $isReadOnly = $isReadOnly ?? false; ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
@@ -92,80 +93,90 @@
                 </div>
 
                 <div class="field input-group full">
-                    <label class="text-small">Skill Level</label>
-                    <div class="radio-tiles">
-                        <?php $levelsFromCtrl = $skillLevels ?? ['Advanced','Intermediate','Beginner','For Fun','Just Started']; foreach($levelsFromCtrl as $lvl): ?>
-                        <label class="tile">
-                            <input type="radio" name="skill" value="<?= htmlspecialchars($lvl) ?>"
-                                <?=($event['skillLevel'] ?? '' )===$lvl ? 'checked' : '' ?> />
-                            <span>
-                                <?= htmlspecialchars($lvl) ?>
-                            </span>
-                        </label>
-                        <?php endforeach; ?>
+                    <div class="field input-group full">
+                        <label class="text-small">Skill Level</label>
+                        <div class="radio-tiles">
+                            <?php 
+                            $levelsFromCtrl = $skillLevels ?? []; 
+                            foreach($levelsFromCtrl as $lvl): 
+                                $lvlName = is_array($lvl) ? $lvl['name'] : $lvl;
+                                $lvlColor = is_array($lvl) ? ($lvl['hex_color'] ?? '#9E9E9E') : '#9E9E9E';
+                                $isSelected = ($event['skillLevel'] ?? '') === $lvlName;
+                            ?>
+                            <label class="tile">
+                                <input type="radio" name="skill" value="<?= htmlspecialchars($lvlName) ?>"
+                                    <?=$isSelected ? 'checked' : '' ?> />
+                                <span class="skill-label">
+                                    <i class="color-indicator"
+                                        style="background-color: <?= htmlspecialchars($lvlColor) ?>; 
+                                        display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px;"></i>
+                                    <?= htmlspecialchars($lvlName) ?>
+                                </span>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
                     </div>
-                </div>
 
-                <div class="field input-group full">
-                    <label class="text-small">Participants</label>
-                    <div class="radio-tiles compact" id="participantsType">
-                        <label class="tile">
-                            <input type="radio" name="participantsType" value="specific"
-                                <?=(($event['participants']['type'] ?? '' )==='specific' ) ? 'checked' : '' ?> />
-                            <span>Specific Number</span>
-                        </label>
-                        <label class="tile">
-                            <input type="radio" name="participantsType" value="minimum"
-                                <?=(($event['participants']['type'] ?? '' )==='minimum' ) ? 'checked' : '' ?> />
-                            <span>Minimum</span>
-                        </label>
-                        <label class="tile">
-                            <input type="radio" name="participantsType" value="range"
-                                <?=(($event['participants']['type'] ?? 'range' )==='range' ) ? 'checked' : '' ?> />
-                            <span>Range</span>
-                        </label>
-                    </div>
-                    <div class="participants-inputs">
-                        <div class="row" data-mode="specific">
-                            <label class="text-small" for="playersSpecific">Players</label>
-                            <input id="playersSpecific" name="playersSpecific" type="number" min="0" step="1"
-                                class="input-common" placeholder="e.g., 10"
-                                value="<?= htmlspecialchars((string)($event['participants']['specific'] ?? '')) ?>" />
+                    <div class="field input-group full">
+                        <label class="text-small">Participants</label>
+                        <div class="radio-tiles compact" id="participantsType">
+                            <label class="tile">
+                                <input type="radio" name="participantsType" value="specific"
+                                    <?=(($event['participants']['type'] ?? '' )==='specific' ) ? 'checked' : '' ?> />
+                                <span>Specific Number</span>
+                            </label>
+                            <label class="tile">
+                                <input type="radio" name="participantsType" value="minimum"
+                                    <?=(($event['participants']['type'] ?? '' )==='minimum' ) ? 'checked' : '' ?> />
+                                <span>Minimum</span>
+                            </label>
+                            <label class="tile">
+                                <input type="radio" name="participantsType" value="range"
+                                    <?=(($event['participants']['type'] ?? 'range' )==='range' ) ? 'checked' : '' ?> />
+                                <span>Range</span>
+                            </label>
                         </div>
-                        <div class="row hidden" data-mode="minimum">
-                            <label class="text-small" for="playersMin">Minimum Players</label>
-                            <input id="playersMin" name="playersMin" type="number" min="0" step="1" class="input-common"
-                                placeholder="e.g., 6"
-                                value="<?= htmlspecialchars((string)($event['participants']['minimum'] ?? '')) ?>" />
-                        </div>
-                        <div class="row hidden" data-mode="range">
-                            <div class="half">
-                                <label class="text-small" for="playersRangeMin">Min Players</label>
-                                <input id="playersRangeMin" name="playersRangeMin" type="number" min="0" step="1"
+                        <div class="participants-inputs">
+                            <div class="row" data-mode="specific">
+                                <label class="text-small" for="playersSpecific">Players</label>
+                                <input id="playersSpecific" name="playersSpecific" type="number" min="0" step="1"
+                                    class="input-common" placeholder="e.g., 10"
+                                    value="<?= htmlspecialchars((string)($event['participants']['specific'] ?? '')) ?>" />
+                            </div>
+                            <div class="row hidden" data-mode="minimum">
+                                <label class="text-small" for="playersMin">Minimum Players</label>
+                                <input id="playersMin" name="playersMin" type="number" min="0" step="1"
                                     class="input-common" placeholder="e.g., 6"
-                                    value="<?= htmlspecialchars((string)($event['participants']['rangeMin'] ?? '')) ?>" />
+                                    value="<?= htmlspecialchars((string)($event['participants']['minimum'] ?? '')) ?>" />
                             </div>
-                            <div class="half">
-                                <label class="text-small" for="playersRangeMax">Max Players</label>
-                                <input id="playersRangeMax" name="playersRangeMax" type="number" min="0" step="1"
-                                    class="input-common" placeholder="e.g., 12"
-                                    value="<?= htmlspecialchars((string)($event['participants']['rangeMax'] ?? '')) ?>" />
+                            <div class="row hidden" data-mode="range">
+                                <div class="half">
+                                    <label class="text-small" for="playersRangeMin">Min Players</label>
+                                    <input id="playersRangeMin" name="playersRangeMin" type="number" min="0" step="1"
+                                        class="input-common" placeholder="e.g., 6"
+                                        value="<?= htmlspecialchars((string)($event['participants']['rangeMin'] ?? '')) ?>" />
+                                </div>
+                                <div class="half">
+                                    <label class="text-small" for="playersRangeMax">Max Players</label>
+                                    <input id="playersRangeMax" name="playersRangeMax" type="number" min="0" step="1"
+                                        class="input-common" placeholder="e.g., 12"
+                                        value="<?= htmlspecialchars((string)($event['participants']['rangeMax'] ?? '')) ?>" />
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <div class="field input-group full">
+                        <label class="text-small" for="desc">Description</label>
+                        <textarea id="desc" name="desc" class="input-common" rows="5"
+                            placeholder="Add details participants should know..."><?= htmlspecialchars($event['desc'] ?? '') ?></textarea>
+                    </div>
                 </div>
 
-                <div class="field input-group full">
-                    <label class="text-small" for="desc">Description</label>
-                    <textarea id="desc" name="desc" class="input-common" rows="5"
-                        placeholder="Add details participants should know..."><?= htmlspecialchars($event['desc'] ?? '') ?></textarea>
+                <div class="form-actions">
+                    <a href="/sports" class="button danger text-size-small">Cancel</a>
+                    <button type="submit" class="button primary text-size-small">Save</button>
                 </div>
-            </div>
-
-            <div class="form-actions">
-                <a href="/sports" class="button danger text-size-small">Cancel</a>
-                <button type="submit" class="button primary text-size-small">Save</button>
-            </div>
         </form>
     </div>
 

@@ -1,3 +1,110 @@
+@media (max-width: 700px) {
+
+    html,
+    body {
+        overflow-x: hidden;
+    }
+
+    .login-grid {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100%;
+        min-height: 100vh;
+        height: auto;
+        overflow-x: hidden;
+    }
+
+    .login-grid>.login-image {
+        order: 0;
+        z-index: 1;
+    }
+
+    .login-grid>.login-form {
+        order: 1;
+        z-index: 2;
+    }
+
+    .login-grid>* {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
+
+    .login-image {
+        width: 100%;
+        height: 180px;
+        min-height: 120px;
+        max-height: 220px;
+        border-radius: 0 !important;
+        object-fit: cover;
+        display: block;
+        margin: 0 auto;
+        background-position: center;
+    }
+
+    .login-form {
+        order: 1;
+        width: 100%;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: start !important;
+        padding: 0.5em 0.5em 2em 0.5em;
+        box-sizing: border-box;
+        background: transparent;
+    }
+
+    .form-container {
+        width: 100%;
+        max-width: 100%;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-header {
+        margin-bottom: 2em;
+        text-align: left;
+    }
+
+    .form-container .form,
+    .form-container form {
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5em;
+    }
+
+    .input-grid {
+        gap: 1em;
+    }
+
+    .divider {
+        margin: 2em 0 1em 0;
+        gap: 0.5em;
+    }
+
+    .socials {
+        gap: 1em;
+        margin-bottom: 1em;
+        justify-content: center;
+    }
+
+    .auth-link {
+        text-align: center;
+        margin-top: 1.5em;
+    }
+}
+
 @import url('components/button.css');
 @import url('components/input-group.css');
 @import url('components/link.css');
@@ -5,6 +112,7 @@
 html,
 body {
     height: 100%;
+    overflow-x: hidden;
 }
 
 .login-grid {
@@ -81,7 +189,7 @@ body {
     height: 3em;
     border-radius: 50%;
     border: none;
-    background-color: #e5e7eb;
+    background-color: var(---background-light-grey);
     cursor: pointer;
     font-weight: bold;
 }

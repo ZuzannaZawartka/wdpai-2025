@@ -7,450 +7,176 @@ require_once __DIR__ . '/../validators/UserFormValidator.php';
 
 class UserController extends AppController {
 
-    public function details($id) {
-        $this->render("user",['id'=>$id]);
+    private UserRepository $userRepository;
+    private SportsRepository $sportsRepository;
+
+    public function __construct() {
+        parent::__construct();
+        $this->userRepository = new UserRepository();
+        $this->sportsRepository = new SportsRepository();
     }
 
-    public function profile() {
-        $this->ensureSession();
+    public function profile($id = null) {
+        $this->requireAuth();
 
-        $userId = $this->getCurrentUserId();
-        $email = $this->getCurrentUserEmail();
-
-        $repo = new UserRepository();
-        $dbUser = null;
-        if ($email) {
-            try {
-                $dbUser = $repo->getUserByEmail($email);
-            } catch (Throwable $e) {
-                $dbUser = null;
-            }
+        if ($this->isPost()) {
+            return $this->updateProfile();
         }
 
-        $profile = [
-            'firstName' => '',
-            'lastName' => '',
-            'email' => $email,
-            'birthDate' => '',
-            'age' => null,
-            'location' => '',
-            'latitude' => null,
-            'longitude' => null,
-            'sports' => [],
-            'avatar' => DEFAULT_AVATAR,
-            'statistics' => null,
-            'role' => 'user'
-        ];
+        $targetId = $this->getTargetUserId($id);
+        $dbUser = $this->userRepository->getUserProfileById($targetId);
 
-        if (is_array($dbUser)) {
-            $profile['firstName'] = $dbUser['firstname'] ?? '';
-            $profile['lastName'] = $dbUser['lastname'] ?? '';
-            $profile['email'] = $dbUser['email'] ?? $email;
-            $profile['birthDate'] = $dbUser['birth_date'] ?? '';
-            $profile['latitude'] = $dbUser['latitude'] ?? null;
-            $profile['longitude'] = $dbUser['longitude'] ?? null;
-            $profile['role'] = $dbUser['role'] ?? 'user';
-            if (!empty($dbUser['avatar_url'])) {
-                $profile['avatar'] = $dbUser['avatar_url'];
-            }
-        }
-        
-        if ($profile['latitude'] && $profile['longitude']) {
-            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
-        }
-        
-        if ($userId) {
-            $profile['age'] = $repo->getUserAge($userId);
-        }
-        
-        if ($userId) {
-            $profile['statistics'] = $repo->getUserStatisticsById($userId);
-        }
-        
-        if ($profile['latitude'] && $profile['longitude']) {
-            $profile['location'] = $profile['latitude'] . ', ' . $profile['longitude'];
-        }
-    
-        $_SESSION['user_avatar'] = $profile['avatar'] ?: ($_SESSION['user_avatar'] ?? DEFAULT_AVATAR);
-        
-        $sportsRepo = new SportsRepository();
-        $allSports = $sportsRepo->getAllSports();
-        $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];
-        
-        $sportIdToIcon = [];
-        foreach ($allSports as $sport) {
-            $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
+        if (!$dbUser) {
+            return $this->redirect('/dashboard');
         }
 
-        $this->render("profile", [
-            'pageTitle' => 'SportMatch - Profile',
-            'activeNav' => 'profile',
-            'user' => $profile,
-            'allSports' => $allSports,
-            'selectedSportIds' => $selectedSportIds,
-            'sportIdToIcon' => $sportIdToIcon
-        ]);
-    }
-
-    public function updateFavourites(): void {
-        http_response_code(405);
-        header('Content-Type: application/json');
-        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        $this->render('profile', array_merge(
+            $this->prepareProfileViewData($dbUser),
+            ['isOwnProfile' => $this->isOwnProfile($targetId)]
+        ));
     }
 
     public function updateProfile(): void {
         $this->requireAuth();
-        $this->ensureSession();
 
-        if (!$this->isPost()) {
-            header('HTTP/1.1 405 Method Not Allowed');
-            http_response_code(405);
-            return;
-        }
+        $targetId = $this->getTargetUserId();
+        $user = $this->userRepository->getUserProfileById($targetId);
 
-        $repo = new UserRepository();
-        $sportsRepo = new SportsRepository();
-
-        $userId = $this->getCurrentUserId();
-        $email = $this->getCurrentUserEmail();
-        if (!$userId || !$email) {
-            header('Location: /login', true, 303);
-            exit();
-        }
-
-        $location = trim($_POST['location'] ?? '');
-        $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
-        $validation = UserFormValidator::validate($_POST);
-        $errors = $validation['errors'] ?? [];
-        $validated = $validation['data'] ?? [];
-        $oldPassword = trim($_POST['oldPassword'] ?? '');
-        $newPassword = $validated['newPassword'] ?? '';
-        $isAdmin = ($_SESSION['user_role'] ?? null) === 'admin';
-
-
-        $latitude = null;
-        $longitude = null;
-        if (!empty($location) && str_contains($location, ',')) {
-            $parts = array_map('trim', explode(',', $location));
-            if (count($parts) === 2 && is_numeric($parts[0]) && is_numeric($parts[1])) {
-                $latitude = (float)$parts[0];
-                $longitude = (float)$parts[1];
-            }
-        }
-
-        $existingUser = $repo->getUserByEmail($email);
-        $existingAvatar = $existingUser['avatar_url'] ?? null;
-
-        if (!empty($newPassword) && !$isAdmin && empty($oldPassword)) {
-            $errors[] = 'Current password is required to change password';
-        }
-        if (!empty($errors)) {
-            $profile = [
-                'firstName' => $validated['firstName'] ?? ($existingUser['firstname'] ?? ''),
-                'lastName' => $validated['lastName'] ?? ($existingUser['lastname'] ?? ''),
-                'email' => $email,
-                'birthDate' => $validated['birthDate'] ?? ($existingUser['birth_date'] ?? ''),
-                'location' => $location,
-                'latitude' => $existingUser['latitude'] ?? null,
-                'longitude' => $existingUser['longitude'] ?? null,
-                'sports' => [],
-                'avatar' => $existingUser['avatar_url'] ?? DEFAULT_AVATAR,
-                'statistics' => $existingUser['statistics'] ?? null,
-                'role' => $existingUser['role'] ?? 'user'
-            ];
-            $allSports = $sportsRepo->getAllSports();
-            $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];
-            $sportIdToIcon = [];
-            foreach ($allSports as $sport) {
-                $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
-            }
-            header('HTTP/1.1 400 Bad Request');
-            $this->render('profile', [
-                'pageTitle' => 'SportMatch - Profile',
-                'activeNav' => 'profile',
-                'user' => $profile,
-                'allSports' => $allSports,
-                'selectedSportIds' => $selectedSportIds,
-                'sportIdToIcon' => $sportIdToIcon,
-                'messages' => implode('<br>', $errors)
-            ]);
-            return;
-        }
-
-        if (!empty($newPassword) && !$isAdmin) {
-            if (!$existingUser || !$this->verifyPassword($oldPassword, $existingUser['password'])) {
-                $profile = [
-                    'firstName' => $validated['firstName'] ?? ($existingUser['firstname'] ?? ''),
-                    'lastName' => $validated['lastName'] ?? ($existingUser['lastname'] ?? ''),
-                    'email' => $email,
-                    'birthDate' => $validated['birthDate'] ?? ($existingUser['birth_date'] ?? ''),
-                    'location' => $location,
-                    'latitude' => $existingUser['latitude'] ?? null,
-                    'longitude' => $existingUser['longitude'] ?? null,
-                    'sports' => [],
-                    'avatar' => $existingUser['avatar_url'] ?? DEFAULT_AVATAR,
-                    'statistics' => $existingUser['statistics'] ?? null,
-                    'role' => $existingUser['role'] ?? 'user'
-                ];
-                $allSports = $sportsRepo->getAllSports();
-                $selectedSportIds = $userId ? $sportsRepo->getFavouriteSportsIds($userId) : [];
-                $sportIdToIcon = [];
-                foreach ($allSports as $sport) {
-                    $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
-                }
-                header('HTTP/1.1 401 Unauthorized');
-                $this->render('profile', [
-                    'pageTitle' => 'SportMatch - Profile',
-                    'activeNav' => 'profile',
-                    'user' => $profile,
-                    'allSports' => $allSports,
-                    'selectedSportIds' => $selectedSportIds,
-                    'sportIdToIcon' => $sportIdToIcon,
-                    'messages' => 'Current password is incorrect'
-                ]);
-                return;
-            }
-        }
-
-        $avatarPath = $existingAvatar;
-        if (isset($_FILES['avatar']) && isset($_FILES['avatar']['tmp_name']) && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
-            $file = $_FILES['avatar'];
-            if ($file['error'] === UPLOAD_ERR_OK) {
-                $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
-                if ($finfo) {
-                    finfo_close($finfo);
-                }
-                $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                if (in_array($mime, $allowed, true)) {
-                    $ext = pathinfo($file['name'] ?? '', PATHINFO_EXTENSION);
-                    $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext) ?: 'jpg';
-                    $targetDir = __DIR__ . '/../../public/images/avatars';
-                    if (!is_dir($targetDir)) {
-                        @mkdir($targetDir, 0775, true);
-                    }
-                    $unique = bin2hex(random_bytes(8));
-                    $fileName = 'avatar_' . $unique . '.' . $safeExt;
-                    $targetPath = $targetDir . '/' . $fileName;
-                    if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                        $avatarPath = '/public/images/avatars/' . $fileName;
-                    }
-                }
-            }
-        }
-
-
-        try {
-            $repo->updateUser($email, [
-                'firstname' => $validated['firstName'] ?? null,
-                'lastname' => $validated['lastName'] ?? null,
-                'birth_date' => $validated['birthDate'] ?? null,
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'avatar_url' => $avatarPath
-            ]);
-            if (!empty($newPassword)) {
-                $hashedPassword = $this->hashPassword($newPassword);
-                $repo->updateUserPassword($email, $hashedPassword);
-            }
-            $sportsRepo->setFavouriteSports($userId, $favouriteSports);
-            if (!empty($avatarPath)) {
-                $_SESSION['user_avatar'] = $avatarPath;
-            }
-        } catch (Throwable $e) {
-            error_log("Profile update error: " . $e->getMessage());
-            header('HTTP/1.1 500 Internal Server Error');
-            $this->render('profile', ['messages' => 'Failed to update profile']);
-            return;
-        }
-
-        header('Location: /profile', true, 303);
-    }
-    
-    public function editUser($userId = null) {
-        $this->ensureSession();
-        $editUserId = (int)($_GET['id'] ?? $userId ?? 0);
-        if (!$editUserId) {
-            http_response_code(400);
-            $this->render('404');
-            return;
-        }
-        if ($this->isPost()) {
-            $ok = $this->handleUserEdit($editUserId, false);
-            if ($ok) {
-                header('Location: /joined', true, 303);
-                exit();
-            }
-            return;
-        }
-        $repo = new UserRepository();
-        $sportsRepo = new SportsRepository();
-        $user = $repo->getUserById($editUserId);
         if (!$user) {
-            http_response_code(404);
-            $this->render('404');
+            $this->redirect('/dashboard');
             return;
         }
-        if (empty($user['location']) && !empty($user['latitude']) && !empty($user['longitude'])) {
-            $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
+
+        $passwordHash = null;
+        if ($this->isOwnProfile($targetId)) {
+            $authUser = $this->userRepository->getUserForAuthByEmail($user['email']);
+            $passwordHash = $authUser['password'] ?? null;
         }
-        $allSports = $sportsRepo->getAllSports();
-        $selectedSportIds = $sportsRepo->getFavouriteSportsIds($editUserId);
-        $this->render('user-edit', [
-            'user' => $user,
-            'allSports' => $allSports,
-            'selectedSportIds' => $selectedSportIds,
-            'pageTitle' => 'My Profile'
-        ]);
+
+        $validation = UserFormValidator::validate($_POST, $passwordHash, $this->isOwnProfile($targetId));
+
+        if (!empty($validation['errors'])) {
+            $this->renderProfileWithErrors($user, $validation['errors']);
+            return;
+        }
+
+        $location = $this->parseLocation($_POST['location'] ?? '');
+        $avatarPath = $this->handleAvatarUpload($user['avatar_url']);
+
+        $this->updateUserInfo($user, $validation['data'], $location, $avatarPath);
+        $this->updateUserPasswordIfNeeded($user, $validation['data']);
+        $this->updateFavouriteSports($targetId, $_POST['favourite_sports'] ?? []);
+
+        $this->finalizeUpdate($_POST['context'] ?? 'user_profile');
     }
 
-
-    public function editUserByAdmin($userId = null) {
-        $this->requireRole('admin');
-        $userId = (int)($_GET['id'] ?? $userId ?? 0);
-        if (!$userId) {
-            http_response_code(400);
-            $this->render('404');
-            return;
+    private function getTargetUserId(?int $id = null): int {
+        if ($this->isAdmin() && $id !== null) {
+            return (int)$id;
         }
-        if ($this->isPost()) {
-            $ok = $this->handleUserEdit($userId, true);
-            if ($ok) {
-                if ($userId === $this->getCurrentUserId()) {
-                    header('Location: /profile', true, 303);
-                } else {
-                    header('Location: /accounts/edit/' . $userId, true, 303);
-                }
-                exit();
-            }
-            return;
+        if ($this->isAdmin() && isset($_POST['id'])) {
+            return (int)$_POST['id'];
         }
-        $repo = new UserRepository();
-        $sportsRepo = new SportsRepository();
-        $user = $repo->getUserById($userId);
-        if (!$user) {
-            http_response_code(404);
-            $this->render('404');
-            return;
-        }
-        $user['firstName'] = $user['firstname'] ?? '';
-        $user['lastName'] = $user['lastname'] ?? '';
-        $user['birthDate'] = $user['birth_date'] ?? '';
-        if (!empty($user['latitude']) && !empty($user['longitude'])) {
-            $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
-        } else {
-            $user['location'] = '';
-        }
-        $allSports = $sportsRepo->getAllSports();
-        $selectedSportIds = $sportsRepo->getFavouriteSportsIds($userId);
-        $this->render('admin/edit-user', [
-            'user' => $user,
-            'allSports' => $allSports,
-            'selectedSportIds' => $selectedSportIds,
-            'pageTitle' => 'Edit User - Admin'
-        ]);
+        return $this->getCurrentUserId();
     }
 
-     private function handleAvatarUpload(): ?string {
-            if (isset($_FILES['avatar']) && isset($_FILES['avatar']['tmp_name']) && is_uploaded_file($_FILES['avatar']['tmp_name'])) {
-                $file = $_FILES['avatar'];
-                if ($file['error'] === UPLOAD_ERR_OK) {
-                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
-                    $mime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
-                    if ($finfo) finfo_close($finfo);
-                    $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-                    if (in_array($mime, $allowed, true)) {
-                        $ext = pathinfo($file['name'] ?? '', PATHINFO_EXTENSION);
-                        $safeExt = preg_replace('/[^a-zA-Z0-9]/', '', $ext) ?: 'jpg';
-                        $targetDir = __DIR__ . '/../../public/images/avatars';
-                        if (!is_dir($targetDir)) {
-                            @mkdir($targetDir, 0775, true);
-                        }
-                        $unique = bin2hex(random_bytes(8));
-                        $fileName = 'avatar_' . $unique . '.' . $safeExt;
-                        $targetPath = $targetDir . '/' . $fileName;
-                        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-                            return '/public/images/avatars/' . $fileName;
-                        }
-                    }
-                }
-            }
-            return null;
+    private function isOwnProfile(int $targetId): bool {
+        return $targetId === $this->getCurrentUserId();
+    }
+
+    private function updateUserInfo(array $existingUser, array $validated, array $location, string $avatarPath): void {
+        $updateData = [
+            'firstname'  => $validated['firstName'],
+            'lastname'   => $validated['lastName'],
+            'birth_date' => $validated['birthDate'] ?: null,
+            'latitude'   => $location['lat'] ?? null,
+            'longitude'  => $location['lng'] ?? null,
+            'avatar_url' => $avatarPath,
+            'role'       => $existingUser['role'],
+            'enabled'    => $existingUser['enabled'] ? 'true' : 'false'
+        ];
+
+        if ($this->isAdmin()) {
+            if (isset($_POST['role'])) $updateData['role'] = $_POST['role'];
+            $updateData['enabled'] = isset($_POST['enabled']) ? 'true' : 'false';
         }
 
-        // Mapowanie danych z formularza na tablicę do updateUser
-        private function mapUserUpdateData(array $validated, $latitude, $longitude, $avatarUrl = null): array {
-            $data = [
-                'firstname' => $validated['firstName'],
-                'lastname' => $validated['lastName'],
-                'birth_date' => $validated['birthDate'] ?: null
-            ];
-            if ($latitude !== null && $longitude !== null) {
-                $data['latitude'] = $latitude;
-                $data['longitude'] = $longitude;
-            }
-            if ($avatarUrl) {
-                $data['avatar_url'] = $avatarUrl;
-            }
-            return $data;
-        }
-    // Wspólna logika edycji użytkownika (dla admina i ownera)
-    private function handleUserEdit($userId, $isAdminEdit = false) {
-        $repo = new UserRepository();
-        $sportsRepo = new SportsRepository();
-        $user = $repo->getUserById($userId);
-        if (!$user) {
-            http_response_code(404);
-            $this->render('404');
-            return false;
-        }
-        $validation = UserFormValidator::validate($_POST);
-        $errors = $validation['errors'] ?? [];
-        $validated = $validation['data'] ?? [];
-        $location = trim($_POST['location'] ?? '');
-        $latitude = null;
-        $longitude = null;
-        if ($location && strpos($location, ',') !== false) {
-            $parts = explode(',', $location);
-            if (count($parts) === 2) {
-                $lat = floatval(trim($parts[0]));
-                $lng = floatval(trim($parts[1]));
-                if ($lat !== 0.0 && $lng !== 0.0) {
-                    $latitude = $lat;
-                    $longitude = $lng;
-                }
-            }
-        }
-        $avatarUrl = $this->handleAvatarUpload();
-        $updateData = $this->mapUserUpdateData($validated, $latitude, $longitude, $avatarUrl);
-        if (!empty($errors)) {
-            $user['firstName'] = $validated['firstName'] ?? ($user['firstname'] ?? '');
-            $user['lastName'] = $validated['lastName'] ?? ($user['lastname'] ?? '');
-            $user['birthDate'] = $validated['birthDate'] ?? ($user['birth_date'] ?? '');
-            if (!empty($user['latitude']) && !empty($user['longitude'])) {
-                $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
-            } else {
-                $user['location'] = '';
-            }
-            $allSports = $sportsRepo->getAllSports();
-            $selectedSportIds = $sportsRepo->getFavouriteSportsIds($userId);
-            $view = $isAdminEdit ? 'admin/edit-user' : 'user-edit';
-            $this->render($view, [
-                'user' => $user,
-                'allSports' => $allSports,
-                'selectedSportIds' => $selectedSportIds,
-                'pageTitle' => $isAdminEdit ? 'Edit User - Admin' : 'My Profile',
-                'messages' => implode('<br>', $errors)
-            ]);
-            return false;
-        }
-        $repo->updateUser($user['email'], $updateData);
-        $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
-        $sportsRepo->setFavouriteSports($userId, $favouriteSports);
+        $this->userRepository->updateUser($existingUser['email'], $updateData);
+    }
+
+    private function updateUserPasswordIfNeeded(array $existingUser, array $validated): void {
         if (!empty($validated['newPassword'])) {
-            $hashedPassword = $this->hashPassword($validated['newPassword']);
-            $repo->updateUserPassword($user['email'], $hashedPassword);
+            $hashed = password_hash($validated['newPassword'], PASSWORD_BCRYPT);
+            $this->userRepository->updateUserPassword($existingUser['email'], $hashed);
         }
-        return true;
+    }
+
+    private function updateFavouriteSports(int $userId, array $sportIds): void {
+        $this->sportsRepository->setFavouriteSports($userId, array_map('intval', $sportIds));
+    }
+
+    private function handleAvatarUpload(?string $existingAvatar = null): string {
+        $default = $existingAvatar ?: '/public/img/default-avatar.png';
+
+        if (!isset($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
+            return $default;
+        }
+
+        $targetDir = __DIR__ . '/../../public/images/avatars';
+        if (!is_dir($targetDir)) mkdir($targetDir, 0777, true);
+
+        $ext = pathinfo($_FILES['avatar']['name'], PATHINFO_EXTENSION);
+        $fileName = 'avatar_' . bin2hex(random_bytes(8)) . '.' . $ext;
+
+        if (move_uploaded_file($_FILES['avatar']['tmp_name'], "$targetDir/$fileName")) {
+            return '/public/images/avatars/' . $fileName;
+        }
+
+        return $default;
+    }
+
+    private function parseLocation(string $location): array {
+        if (str_contains($location, ',')) {
+            [$lat, $lng] = array_map('trim', explode(',', $location));
+            if (is_numeric($lat) && is_numeric($lng)) {
+                return ['lat' => (float)$lat, 'lng' => (float)$lng];
+            }
+        }
+        return ['lat' => null, 'lng' => null];
+    }
+
+    private function prepareProfileViewData(array $dbUser): array {
+        $userId = (int)$dbUser['id'];
+
+        return [
+            'pageTitle' => 'Edycja Profilu',
+            'user' => [
+                'id' => $userId,
+                'firstName' => $dbUser['firstname'] ?? '',
+                'lastName' => $dbUser['lastname'] ?? '',
+                'email' => $dbUser['email'] ?? '',
+                'birthDate' => $dbUser['birth_date'] ?? '',
+                'location' => ($dbUser['latitude'] && $dbUser['longitude'] ? "{$dbUser['latitude']}, {$dbUser['longitude']}" : ''),
+                'avatar' => $dbUser['avatar_url'] ?: '/public/img/default-avatar.png',
+                'role' => $dbUser['role'] ?? 'user',
+                'enabled' => $dbUser['enabled'] ?? true,
+                'statistics' => $this->userRepository->getUserStatisticsById($userId),
+            ],
+            'allSports' => $this->sportsRepository->getAllSports(),
+            'selectedSportIds' => $this->sportsRepository->getFavouriteSportsIds($userId)
+        ];
+    }
+
+    private function renderProfileWithErrors(array $user, array $errors): void {
+        $this->render('profile', array_merge(
+            $this->prepareProfileViewData($user),
+            ['messages' => implode('<br>', $errors), 'isOwnProfile' => $this->isOwnProfile((int)$user['id'])]
+        ));
+    }
+
+    private function finalizeUpdate(string $context): void {
+        $path = ($context === 'admin_panel') ? '/accounts?success=1' : '/profile?success=1';
+        header("Location: $path");
+        exit();
     }
 }
