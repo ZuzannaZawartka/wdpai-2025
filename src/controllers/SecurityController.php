@@ -1,203 +1,221 @@
 <?php
 
 require_once 'AppController.php';
-
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/AuthRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../entity/User.php';
-require_once __DIR__ . '/../../config/lang/lang_helper.php';
 
-class SecurityController extends AppController {
-
+class SecurityController extends AppController
+{
     private const MAX_EMAIL_LENGTH = 150;
     private const MIN_PASSWORD_LENGTH = 8;
     private const MAX_PASSWORD_LENGTH = 128;
     private const MAX_NAME_LENGTH = 100;
     private const MIN_NAME_LENGTH = 2;
-    // Login rate limiting
     private const MAX_LOGIN_ATTEMPTS = 5;
-    private const LOGIN_LOCK_SECONDS = 15 * 60; // 15 minutes
-    private const LOGIN_WINDOW_SECONDS = 60; // count attempts within 60s window
+    private const LOGIN_LOCK_SECONDS = 900;
+    private const LOGIN_WINDOW_SECONDS = 60;
+
+    private const ROLE_USER = 'user';
+    private const ROLE_ADMIN = 'admin';
+    private const CSRF_KEY = 'csrf_token';
 
     private UserRepository $userRepository;
     private AuthRepository $authRepository;
+    private SportsRepository $sportsRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
+        parent::__construct();
         $this->userRepository = new UserRepository();
         $this->authRepository = new AuthRepository();
+        $this->sportsRepository = new SportsRepository();
     }
 
-    public function login() {
+    public function login()
+    {
         $this->ensureSession();
-        if (!$this->isGet() && !$this->isPost()) {
-            $this->setStatusCode(405);
-            header('Allow: GET, POST');
-            return $this->render("login");
-        }
-        if(!$this->isPost()){
-            return $this->render("login");
+        if (!$this->isPost()) {
+            return $this->render('login');
         }
 
-        $csrf = $_POST['csrf_token'] ?? '';
-        if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-            $this->setStatusCode(403);
-            return $this->render("login", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
+        if (!$this->checkCsrf()) {
+            header('HTTP/1.1 403 Forbidden');
+            return $this->render('login', ['messages' => 'Sesja wygasła, odśwież stronę']);
         }
 
         $ipHash = $this->getClientIpHash();
+        if ($this->isIpLockedAndRespond($ipHash)) return;
 
-        $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
-        $password = trim($_POST['password'] ?? '');
+        $email = mb_strtolower(trim($this->post('email')), 'UTF-8');
+        $password = $this->post('password');
 
-        // Check IP lock and respond if necessary
-        if ($this->isIpLockedAndRespond($ipHash)) {
-            return; // response already sent
-        }
-
-        // Basic input validation
-        if (
-            mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH ||
-            mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH ||
-            mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH ||
-            !$this->isValidEmail($email)
-        ) {
-            $this->incrementIpLimiter($ipHash);
-            $this->setStatusCode(400);
-            return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
+        if (!$this->validateLoginInputs($email, $password)) {
+            $this->handleFailedLogin($email, $ipHash, 'invalid_email_or_password_format');
+            return $this->render('login', ['messages' => 'Email lub hasło niepoprawne']);
         }
 
         try {
             $user = $this->userRepository->getUserByEmail($email);
+            if (!$user || !password_verify($password, $user['password'])) {
+                $this->handleFailedLogin($email, $ipHash, 'user_not_found_or_bad_password');
+                return $this->render('login', ['messages' => 'Email lub hasło niepoprawne']);
+            }
+
+            if (!($user['enabled'] ?? true)) {
+                return $this->render('login', ['messages' => 'Konto jest zablokowane']);
+            }
+
+            // Entity Usage for Session Context
+            require_once __DIR__ . '/../entity/User.php';
+            $userEntity = new \User($user);
+
+            $this->setAuthContext(
+                (int)$userEntity->getId(),
+                $userEntity->getEmail(),
+                $userEntity->getRole() ?? self::ROLE_USER,
+                $userEntity->getAvatarUrl()
+            );
+            session_write_close();
+            $this->redirect($userEntity->getRole() === self::ROLE_ADMIN ? '/sports' : '/dashboard');
         } catch (Throwable $e) {
-            $this->setStatusCode(500);
-            return $this->render("login", ["messages" => "Wewnętrzny błąd serwera"]);
+            error_log($e->getMessage());
+            $this->handleFailedLogin($email, $ipHash, 'exception');
+            return $this->render('login', ['messages' => 'Wewnętrzny błąd serwera']);
         }
-
-        if(!$user || !$this->verifyPassword($password, $user['password'])){
-            $this->incrementIpLimiter($ipHash);
-            $this->setStatusCode(401);
-            return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
-        }
-
-        // Udane logowanie nie zwiększa licznika prób
-        $userEntity = new User($user);
-        $avatar = $userEntity->getAvatarUrl();
-        $role = $userEntity->getRole() ?? 'user';
-        $this->setAuthContext((int)$userEntity->getId(), $userEntity->getEmail(), $role, $avatar);
-        if ($role === 'admin') {
-            header("Location: /sports", true, 303);
-        } else {
-            header("Location: /dashboard", true, 303);
-        }
-        exit();
     }
 
+    private function validateLoginInputs(string $email, string $password): bool
+    {
+        return $this->isValidEmail($email) && mb_strlen($password) >= self::MIN_PASSWORD_LENGTH;
+    }
 
-    public function register(){
+    private function handleFailedLogin(?string $email, string $ipHash, string $reason): void
+    {
+        $this->incrementIpLimiter($ipHash);
+        $this->authRepository->logFailedLoginAttempt($email, $ipHash, $reason);
+    }
+
+    private function post(string $key, $default = ''): mixed
+    {
+        return $_POST[$key] ?? $default;
+    }
+
+    public function register()
+    {
         $this->ensureSession();
-        if (!$this->isGet() && !$this->isPost()) {
-            $this->setStatusCode(405);
-            header('Allow: GET, POST');
-            return $this->render("register");
-        }
-        if($this->isGet()){
-            $allSports = (new SportsRepository())->getAllSports();
-            return $this->render("register", ['allSports' => $allSports]);
+        $allSports = $this->sportsRepository->getAllSports();
+
+        if ($this->isGet()) {
+            return $this->render('register', ['allSports' => $allSports]);
         }
 
-        $allSports = (new SportsRepository())->getAllSports();
-
-        $csrf = $_POST['csrf_token'] ?? '';
-        if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-            $this->setStatusCode(403);
-            return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie", 'allSports' => $allSports]);
+        if (!$this->checkCsrf()) {
+            return $this->render('register', ['messages' => 'Błąd sesji', 'allSports' => $allSports]);
         }
 
-        $email = mb_strtolower(trim($_POST['email'] ?? ''), 'UTF-8');
-        $password = trim($_POST['password'] ?? '');
-        $password2 = trim($_POST['password2'] ?? '');
-        $firstname = trim($_POST['firstname'] ?? '');
-        $lastname = trim($_POST['lastname'] ?? '');
-        $birth_date = trim($_POST['birth_date'] ?? '');
-        $latitude = trim($_POST['latitude'] ?? '');
-        $longitude = trim($_POST['longitude'] ?? '');
+        $email = mb_strtolower(trim($this->post('email')), 'UTF-8');
+        $errors = $this->validateRegisterInputs(
+            $this->post('firstname'),
+            $this->post('lastname'),
+            $email,
+            $this->post('password'),
+            $this->post('password2')
+        );
 
-        $errors = $this->validateRegisterInputs($firstname, $lastname, $email, $password, $password2);
-
-        $favouriteSports = array_map('intval', $_POST['favourite_sports'] ?? []);
-        
-        // Validate birth_date, latitude, longitude
-        if (empty($birth_date)) {
-            $errors[] = "Data urodzenia jest wymagana";
-        } else {
-            $birthTimestamp = strtotime($birth_date);
-            if ($birthTimestamp === false || $birthTimestamp >= time()) {
-                $errors[] = "Data urodzenia musi być w przeszłości i w poprawnym formacie";
-            }
-        }
-        
-        if (empty($latitude)) {
-            $errors[] = "Lokalizacja jest wymagana - wybierz punkt na mapie";
-        } elseif (!is_numeric($latitude) || (float)$latitude < -90 || (float)$latitude > 90) {
-            $errors[] = "Szerokość geograficzna musi być między -90 a 90";
-        }
-        
-        if (empty($longitude)) {
-            $errors[] = "Lokalizacja jest wymagana - wybierz punkt na mapie";
-        } elseif (!is_numeric($longitude) || (float)$longitude < -180 || (float)$longitude > 180) {
-            $errors[] = "Długość geograficzna musi być między -180 a 180";
+        if (empty($this->post('birth_date'))) {
+            $errors[] = 'Data urodzenia jest wymagana';
         }
 
-        $emailExists = false;
+        if (empty($errors)) {
             try {
-                if ($this->userRepository->getUserEntityByEmail($email)) {
-                    $errors[] = "Nie można utworzyć konta z podanymi danymi";
-                    $emailExists = true;
+                if ($this->userRepository->emailExists($email)) {
+                    $errors[] = 'Konto z tym adresem już istnieje';
+                } else {
+                    $newUserId = $this->createNewUser();
+                    if ($newUserId) {
+                        $this->assignFavouriteSports($newUserId, $this->post('favourite_sports', []));
+                        $this->redirect('/login?registered=1');
+                    }
                 }
             } catch (Throwable $e) {
-            $this->setStatusCode(500);
-            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera", 'allSports' => $allSports]);
-        }
-
-        if (!empty($errors)) {
-            $this->setStatusCode($emailExists ? 409 : 400);
-            return $this->render("register", ["messages" => implode('<br>', $errors), 'allSports' => $allSports]);
-        }
-
-        $hashedPassword = $this->hashPassword($password);
-
-        try {
-            $newUserId = $this->userRepository->createUser(
-                $email,
-                $hashedPassword,
-                $firstname,
-                $lastname,
-                $birth_date,
-                (float)$latitude,
-                (float)$longitude,
-                'user' 
-            );
-
-            if ($newUserId) {
-                (new SportsRepository())->setFavouriteSports($newUserId, $favouriteSports);
+                error_log($e->getMessage());
+                $errors[] = 'Błąd bazy danych';
             }
-        } catch (Throwable $e) {
-            error_log("Registration error: " . $e->getMessage());
-            error_log("Trace: " . $e->getTraceAsString());
-            $this->setStatusCode(500);
-            return $this->render("register", ["messages" => "Wewnętrzny błąd serwera: " . $e->getMessage(), 'allSports' => $allSports]);
         }
 
-        header("Location: /login", true, 303);
-        exit();
+        return $this->render('register', [
+            'messages' => implode('<br>', $errors),
+            'allSports' => $allSports
+        ]);
     }
 
-    // Helpers
+    private function validateRegisterInputs($fn, $ln, $em, $p1, $p2): array
+    {
+        $errors = [];
+        if (mb_strlen($fn) < self::MIN_NAME_LENGTH || mb_strlen($fn) > self::MAX_NAME_LENGTH) $errors[] = 'Błędne imię';
+        if (mb_strlen($ln) < self::MIN_NAME_LENGTH || mb_strlen($ln) > self::MAX_NAME_LENGTH) $errors[] = 'Błędne nazwisko';
+        if (!$this->isValidEmail($em)) $errors[] = 'Niepoprawny email';
+        if (mb_strlen($p1) < self::MIN_PASSWORD_LENGTH) $errors[] = 'Hasło za krótkie';
+        if ($p1 !== $p2) $errors[] = 'Hasła nie są zgodne';
+        return $errors;
+    }
+
+    private function createNewUser(): ?int
+    {
+        return $this->userRepository->createUser(
+            mb_strtolower(trim($this->post('email')), 'UTF-8'),
+            password_hash($this->post('password'), PASSWORD_BCRYPT),
+            $this->post('firstname'),
+            $this->post('lastname'),
+            $this->post('birth_date'),
+            (float)$this->post('latitude', 0),
+            (float)$this->post('longitude', 0),
+            self::ROLE_USER
+        );
+    }
+
+    private function assignFavouriteSports(int $userId, array $sportIds): void
+    {
+        $this->sportsRepository->setFavouriteSports($userId, array_map('intval', $sportIds));
+    }
+
+    public function logout(): void
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
+        $_SESSION = [];
+
+        setcookie(session_name(), '', time() - 3600, '/');
+
+        session_destroy();
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+
+        if (isset($_COOKIE['csrf_token'])) {
+            setcookie('csrf_token', '', time() - 3600, '/');
+        }
+        if (isset($_COOKIE['remember_me'])) {
+            setcookie('remember_me', '', time() - 3600, '/');
+        }
+
+        $this->redirect('/login');
+    }
+
+    private function checkCsrf(): bool
+    {
+        $token = $this->post(self::CSRF_KEY);
+        return !empty($token) && isset($_SESSION[self::CSRF_KEY]) && hash_equals($_SESSION[self::CSRF_KEY], $token);
+    }
+
     private function getClientIpHash(): string
     {
-        $clientIp = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        return hash('sha256', $clientIp);
+        return hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
     }
 
     private function incrementIpLimiter(string $ipHash): void
@@ -205,86 +223,24 @@ class SecurityController extends AppController {
         try {
             $this->authRepository->incrementIpWindow($ipHash, self::LOGIN_WINDOW_SECONDS, self::MAX_LOGIN_ATTEMPTS, self::LOGIN_LOCK_SECONDS);
         } catch (Throwable $e) {
-            $now = time();
-            $last = (int)($_SESSION['ip_login_last_attempt'] ?? 0);
-            $count = (int)($_SESSION['ip_login_attempts'] ?? 0);
-            if ($now - $last <= self::LOGIN_WINDOW_SECONDS) {
-                $count++;
-            } else {
-                $count = 1;
-            }
-            $_SESSION['ip_login_last_attempt'] = $now;
-            if ($count >= self::MAX_LOGIN_ATTEMPTS) {
-                $_SESSION['ip_login_lock_until'] = $now + self::LOGIN_LOCK_SECONDS;
-                $_SESSION['ip_login_attempts'] = 0;
-            } else {
-                $_SESSION['ip_login_attempts'] = $count;
-            }
+            error_log("Rate limiter fallback triggered: " . $e->getMessage());
         }
     }
 
     private function isIpLockedAndRespond(string $ipHash): bool
     {
-        $now = time();
-        $lockUntil = 0;
         try {
             $ipAttempt = $this->authRepository->getIpAttempts($ipHash);
+            if ($ipAttempt && (int)$ipAttempt['lock_until'] > time()) {
+                $retry = (int)$ipAttempt['lock_until'] - time();
+                $mins = (int)ceil($retry / 60);
+                header('HTTP/1.1 429 Too Many Requests');
+                $this->render('login', ['messages' => "Zbyt wiele prób. Spróbuj za {$mins} min."]);
+                return true;
+            }
         } catch (Throwable $e) {
-            $ipAttempt = null;
-        }
-        if ($ipAttempt && isset($ipAttempt['lock_until'])) {
-            $lockUntil = (int)$ipAttempt['lock_until'];
-        } elseif ($ipAttempt === null) {
-            // DB unavailable: consider session fallback
-            $lockUntil = (int)($_SESSION['ip_login_lock_until'] ?? 0);
-        }
-        if ($lockUntil > $now) {
-            $retry = $lockUntil - $now;
-            $mins = max(1, (int)ceil($retry / 60));
-            $this->setStatusCode(429);
-            header('Retry-After: ' . $retry);
-            $this->render("login", ["messages" => "Zbyt wiele nieudanych prób. Spróbuj ponownie za {$mins} min."]);
-            return true;
+            error_log($e->getMessage());
         }
         return false;
     }
-
-    private function validateRegisterInputs(string $firstname, string $lastname, string $email, string $password, string $password2): array
-    {
-        $errors = [];
-        if (mb_strlen($firstname, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($firstname, 'UTF-8') > self::MAX_NAME_LENGTH) {
-            $errors[] = "Imię musi mieć " . self::MIN_NAME_LENGTH . "–" . self::MAX_NAME_LENGTH . " znaków";
-        }
-        if (mb_strlen($lastname, 'UTF-8') < self::MIN_NAME_LENGTH || mb_strlen($lastname, 'UTF-8') > self::MAX_NAME_LENGTH) {
-            $errors[] = "Nazwisko musi mieć " . self::MIN_NAME_LENGTH . "–" . self::MAX_NAME_LENGTH . " znaków";
-        }
-        if (mb_strlen($email, 'UTF-8') > self::MAX_EMAIL_LENGTH || !$this->isValidEmail($email)) {
-            $errors[] = "Nieprawidłowy adres email";
-        }
-        if (mb_strlen($password, 'UTF-8') < self::MIN_PASSWORD_LENGTH || mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH) {
-            $errors[] = "Hasło musi mieć " . self::MIN_PASSWORD_LENGTH . "–" . self::MAX_PASSWORD_LENGTH . " znaków";
-        }
-        if ($password !== $password2) {
-            $errors[] = "Hasła muszą być identyczne";
-        }
-        return $errors;
-    }
-
-    public function logout(): void
-    {
-        $this->ensureSession();
-
-        $_SESSION = [];
-
-        if (ini_get('session.use_cookies')) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-        }
-
-        session_destroy();
-
-        header("Location: /login");
-        exit();
-    }
-
 }

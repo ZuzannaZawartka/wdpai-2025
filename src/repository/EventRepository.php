@@ -22,14 +22,11 @@ class EventRepository {
     public function getMyEvents(int $ownerId): array {
         $sql = "
             SELECT
-              e.id,
-              e.title,
-              e.start_time,
-              e.image_url,
-              e.max_players,
-                            e.min_needed,
-              l.name AS level_name,
-              (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+                e.id, e.title, e.start_time, e.image_url, e.max_players, e.min_needed, e.description,
+                e.latitude, e.longitude,
+                l.name AS level_name,
+                l.hex_color AS level_color, -- POPRAWIONE: Dodano kolor
+                (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN levels l ON l.id = e.level_id
             WHERE e.owner_id = :owner AND e.start_time >= NOW()
@@ -37,48 +34,7 @@ class EventRepository {
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute(['owner' => $ownerId]);
-        $rows = $stmt->fetchAll();
-        return array_map(function($r) {
-            $current = (int)($r['current_players'] ?? 0);
-
-            $maxRaw = $r['max_players'] ?? null;
-            $max = is_numeric($maxRaw) ? (int)$maxRaw : null;
-            if ($max !== null && $max <= 0) {
-                $max = null; // 0 / NULL means "no limit"
-            }
-
-            $minRaw = $r['min_needed'] ?? null;
-            $min = is_numeric($minRaw) ? (int)$minRaw : null;
-            if ($min !== null && $min <= 0) {
-                $min = null;
-            }
-
-            $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
-
-            $note = '';
-            if ($min !== null && $max !== null) {
-                $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
-            } elseif ($min !== null) {
-                $note = 'Minimum ' . $min;
-            } elseif ($max !== null) {
-                $note = 'Players ' . $max;
-            }
-
-            if ($note !== '') {
-                $playersText .= ' · ' . $note;
-            }
-
-            $level = is_string($r['level_name'] ?? null) ? $r['level_name'] : 'Intermediate';
-            return [
-                'id' => (int)$r['id'],
-                'title' => (string)$r['title'],
-                'datetime' => $this->formatDateTime($r['start_time'] ?? null),
-                'players' => $playersText,
-                'level' => $level,
-                'levelColor' => $this->levelColor($level),
-                'imageUrl' => (string)($r['image_url'] ?? ''),
-            ];
-        }, $rows);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     // New: return Event entity list for owner's events (future-proof)
@@ -119,12 +75,12 @@ class EventRepository {
     public function getAllForListing(bool $includePast = true): array {
         $where = $includePast ? '' : 'WHERE e.start_time >= NOW()';
         $sql = "
-            SELECT e.id, e.title, e.description, e.sport_id, s.name AS sport_name,
-                   e.location_text, e.latitude, e.longitude,
-                   e.start_time, e.level_id, l.name AS level_name,
-                   e.image_url, e.max_players, e.min_needed,
-                   e.owner_id,
-                   (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+            SELECT 
+                e.*, 
+                s.name AS sport_name, 
+                l.name AS level_name, 
+                l.hex_color AS level_color, -- POPRAWIONE: Dodano kolor
+                (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
             LEFT JOIN levels l ON l.id = e.level_id
@@ -147,12 +103,12 @@ class EventRepository {
 
     public function getEventById(int $id): ?array {
         $sql = "
-            SELECT e.id, e.title, e.description, e.sport_id, s.name AS sport_name,
-                   e.location_text, e.latitude, e.longitude,
-                   e.start_time, e.level_id, l.name AS level_name,
-                   e.image_url, e.max_players, e.min_needed,
-                   e.owner_id, u.email AS owner_email, u.firstname, u.lastname, u.avatar_url,
-                   (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+            SELECT 
+                e.*, s.name AS sport_name,
+                l.name AS level_name, 
+                l.hex_color AS level_color, -- DODANE
+                u.email AS owner_email, u.firstname, u.lastname, u.avatar_url,
+                (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
             LEFT JOIN levels l ON l.id = e.level_id
@@ -286,16 +242,6 @@ class EventRepository {
 
             $eventId = (int)$this->db->lastInsertId();
 
-            // Update user statistics, increment events created
-            if (isset($data['owner_id'])) {
-                $statStmt = $this->db->prepare('
-                    UPDATE user_statistics 
-                    SET total_events_created = total_events_created + 1 
-                    WHERE user_id = ?
-                ');
-                $statStmt->execute([$data['owner_id']]);
-            }
-
             $this->db->commit();
             return $eventId;
         } catch (Throwable $e) {
@@ -364,26 +310,6 @@ class EventRepository {
         return $stmt->rowCount() > 0;
     }
 
-    private function levelColor(string $level): string {
-        switch ($level) {
-            case 'Beginner': return '#22c55e';
-            case 'Advanced': return '#ef4444';
-            default: return '#eab308'; // Intermediate or unknown
-        }
-    }
-
-    private function formatDateTime($dbTs): string {
-        if (empty($dbTs)) { return 'TBD'; }
-        try {
-            $dt = new DateTime($dbTs);
-            // Example: Mon, Jan 15, 6:00 PM
-            return $dt->format('D, M j, g:i A');
-        } catch (Throwable $e) {
-            return (string)$dbTs;
-        }
-    }
-
-    // Pobiera pełne informacje o eventach z widoku vw_events_full
     public function getEventsFromView(?int $limit = null): array {
         $sql = "SELECT * FROM vw_events_full";
         if ($limit) {
@@ -397,7 +323,6 @@ class EventRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    //Joinowanie eventów z aktualizacją statystyk użytkownika
     public function joinEventWithTransaction(int $userId, int $eventId): bool {
         try {
             $this->db->beginTransaction();
@@ -432,14 +357,13 @@ class EventRepository {
         }
     }
 
-    // Opuszczanie eventu z aktualizacją statystyk, (transakcja)
+
     public function cancelParticipationWithTransaction(int $userId, int $eventId): bool {
         try {
             $this->db->beginTransaction();
 
             $this->setAuditUser($userId);
 
-            // Remove user from event
             $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
             $stmt->execute([$eventId, $userId]);
             $this->db->commit();

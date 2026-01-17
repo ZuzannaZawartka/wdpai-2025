@@ -39,17 +39,15 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 
 CREATE TABLE IF NOT EXISTS auth_audit_log (
     id SERIAL PRIMARY KEY,
-    event_type VARCHAR(50) NOT NULL,
-    email_hash CHAR(64),
-    ip_hash CHAR(64) NOT NULL,
-    user_agent VARCHAR(255),
-    reason VARCHAR(100),
+    event_type VARCHAR(50) NOT NULL,      -- login_failed, login_success
+    email_hash CHAR(64),                  -- hash e-maila (SHA-256)
+    ip_hash CHAR(64) NOT NULL,             -- hash IP
+    user_agent VARCHAR(255),              -- opcjonalnie
+    reason VARCHAR(100),                  -- np. bad_credentials, account_locked
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- =========================================
--- CATALOG TABLES
--- =========================================
+-- Catalog tables: sports and levels (must be created BEFORE referencing them)
 CREATE TABLE IF NOT EXISTS sports (
     id SERIAL PRIMARY KEY,
     name VARCHAR(100) UNIQUE NOT NULL,
@@ -75,10 +73,10 @@ INSERT INTO sports (name, icon) VALUES
 ON CONFLICT (name) DO NOTHING;
 
 INSERT INTO levels (name, hex_color) VALUES
-    ('Beginner', '#4CAF50'),
-    ('Intermediate', '#FF9800'),
+    ('Beginner', '#4CAF50'), 
+    ('Intermediate', '#FF9800'), 
     ('Advanced', '#F44336')
-ON CONFLICT (name) DO NOTHING;
+ON CONFLICT (name) DO UPDATE SET hex_color = EXCLUDED.hex_color;
 
 -- =========================================
 -- USER RELATIONS
@@ -128,8 +126,58 @@ CREATE INDEX IF NOT EXISTS idx_events_level ON events(level_id);
 CREATE INDEX IF NOT EXISTS idx_event_participants_user ON event_participants(user_id);
 
 -- =========================================
+-- VIEWS
+-- =========================================
+-- v1: Wszystkie wydarzenia z informacją o właścicielu i sporcie
+CREATE OR REPLACE VIEW vw_events_full AS
+SELECT 
+    e.id,
+    e.title,
+    e.description,
+    e.start_time,
+    e.location_text,
+    e.latitude,
+    e.longitude,
+    e.max_players,
+    e.min_needed,
+    e.image_url, 
+    u.id as owner_id,
+    u.firstname || ' ' || u.lastname as owner_name,
+    u.avatar_url as owner_avatar,
+    s.name as sport_name,
+    s.icon as sport_icon,
+    l.name as level_name,
+    l.hex_color as level_color, 
+    (SELECT COUNT(*) FROM event_participants ep WHERE ep.event_id = e.id) as current_players,
+    e.created_at,
+    e.updated_at
+FROM events e
+JOIN users u ON e.owner_id = u.id
+LEFT JOIN sports s ON e.sport_id = s.id
+LEFT JOIN levels l ON e.level_id = l.id
+ORDER BY e.start_time DESC;
+
+-- v2: Statystyka użytkowników, ich ulubione sporty i wydarzenia
+CREATE OR REPLACE VIEW vw_user_stats AS
+SELECT 
+    u.id,
+    u.firstname || ' ' || u.lastname as full_name,
+    u.email,
+    COUNT(DISTINCT ufs.sport_id) as favorite_sports_count,
+    COUNT(DISTINCT ep.event_id) as events_joined_count,
+    COUNT(DISTINCT e.id) as events_created_count,
+    COALESCE(MAX(e.start_time), NOW()) as last_activity
+FROM users u
+LEFT JOIN user_favourite_sports ufs ON u.id = ufs.user_id
+LEFT JOIN event_participants ep ON u.id = ep.user_id
+LEFT JOIN events e ON u.id = e.owner_id
+GROUP BY u.id, u.firstname, u.lastname, u.email;
+
+
+-- =========================================
 -- FUNCTIONS
 -- =========================================
+-- f1: Oblicza wiek użytkownika na podstawie birth_date
 CREATE OR REPLACE FUNCTION calculate_user_age(birth_date DATE)
 RETURNS INTEGER AS $$
 BEGIN

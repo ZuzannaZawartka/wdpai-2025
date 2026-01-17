@@ -13,6 +13,7 @@ class Event
     private ?string $startTime; // ISO string
     private ?int $levelId;
     private ?string $levelName;
+    private ?string $levelColor;
     private ?string $imageUrl;
     private ?int $maxPlayers;
     private ?int $minNeeded;
@@ -36,6 +37,7 @@ class Event
         $this->startTime = isset($data['start_time']) ? (string)$data['start_time'] : null;
         $this->levelId = isset($data['level_id']) ? (int)$data['level_id'] : null;
         $this->levelName = isset($data['level_name']) ? (string)$data['level_name'] : null;
+        $this->levelColor = isset($data['level_color']) ? (string)$data['level_color'] : null;
         $this->imageUrl = isset($data['image_url']) ? (string)$data['image_url'] : null;
         $this->maxPlayers = isset($data['max_players']) ? (is_numeric($data['max_players']) ? (int)$data['max_players'] : null) : null;
         $this->minNeeded = isset($data['min_needed']) ? (is_numeric($data['min_needed']) ? (int)$data['min_needed'] : null) : null;
@@ -58,6 +60,7 @@ class Event
     public function getStartTime(): ?string { return $this->startTime; }
     public function getLevelId(): ?int { return $this->levelId; }
     public function getLevelName(): ?string { return $this->levelName; }
+    public function getLevelColor(): ?string { return $this->levelColor; }
     public function getImageUrl(): ?string { return $this->imageUrl; }
     public function getMaxPlayers(): ?int { return $this->maxPlayers; }
     public function getMinNeeded(): ?int { return $this->minNeeded; }

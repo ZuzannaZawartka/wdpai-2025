@@ -2,68 +2,54 @@
 
 require_once __DIR__ . '/../dto/UpdateUserDTO.php';
 
-class UserFormValidator {
-    public static function validate(array $postData): array {
+class UserFormValidator
+{
+    public static function validate(array $postData, ?string $currentHash = null, bool $isOwnProfile = false): array
+    {
         $errors = [];
-        $firstName = trim($postData['firstName'] ?? '');
-        $lastName = trim($postData['lastName'] ?? '');
-        $email = trim($postData['email'] ?? '');
-        $birthDate = trim($postData['birthDate'] ?? '');
-        $newPassword = trim($postData['newPassword'] ?? '');
-        $confirmPassword = trim($postData['confirmPassword'] ?? '');
-        $oldPassword = trim($postData['oldPassword'] ?? '');
 
-        if (empty($firstName) || mb_strlen($firstName, 'UTF-8') < 2) {
-            $errors[] = 'First name is required and must be at least 2 characters.';
-        }
-        if (empty($lastName) || mb_strlen($lastName, 'UTF-8') < 2) {
-            $errors[] = 'Last name is required and must be at least 2 characters.';
-        }
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Valid email is required.';
-        }
-        if ($birthDate !== '') {
-            if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $birthDate)) {
-                $errors[] = 'Birth date must be in YYYY-MM-DD format.';
-            } else {
-                $birthTimestamp = strtotime($birthDate);
-                $todayTimestamp = strtotime(date('Y-m-d'));
-                if ($birthTimestamp === false) {
-                    $errors[] = 'Invalid birth date.';
-                } elseif ($birthTimestamp >= $todayTimestamp) {
-                    $errors[] = 'Birth date must be before today.';
-                }
-            }
-        }
-        if (!empty($newPassword) || !empty($confirmPassword) || !empty($oldPassword)) {
-            if (empty($newPassword)) {
-                $errors[] = 'New password is required.';
-            }
-            if (empty($confirmPassword)) {
-                $errors[] = 'Password confirmation is required.';
-            }
-            if (strlen($newPassword) < 8) {
-                $errors[] = 'New password must be at least 8 characters.';
-            }
-            if ($newPassword !== $confirmPassword) {
-                $errors[] = 'Passwords do not match.';
-            }
-        }
         $data = [
-            'firstName' => $firstName,
-            'lastName' => $lastName,
-            'email' => $email,
-            'birthDate' => $birthDate,
-            'newPassword' => $newPassword,
+            'firstName' => trim($postData['firstName'] ?? ''),
+            'lastName'  => trim($postData['lastName'] ?? ''),
+            'email'     => trim($postData['email'] ?? ''),
+            'birthDate' => trim($postData['birthDate'] ?? ''),
+            'newPassword' => $postData['newPassword'] ?? ''
         ];
 
-        require_once __DIR__ . '/../dto/UpdateUserDTO.php';
-        $dto = new UpdateUserDTO($data);
+        if (mb_strlen($data['firstName']) < 2) $errors[] = "Imię jest wymagane (min. 2 znaki).";
+        if (mb_strlen($data['lastName']) < 2)  $errors[] = "Nazwisko jest wymagane (min. 2 znaki).";
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) $errors[] = "Niepoprawny format adresu email.";
 
+        if (!empty($data['birthDate'])) {
+            $date = DateTime::createFromFormat('Y-m-d', $data['birthDate']);
+            if (!$date || $date > new DateTime()) $errors[] = "Data urodzenia musi być poprawną datą z przeszłości.";
+        }
+
+        $confirm = $postData['confirmPassword'] ?? '';
+        $old     = $postData['oldPassword'] ?? '';
+
+        if (!empty($data['newPassword'])) {
+            if (strlen($data['newPassword']) < 8) {
+                $errors[] = "Nowe hasło musi mieć co najmniej 8 znaków.";
+            }
+            if ($data['newPassword'] !== $confirm) {
+                $errors[] = "Hasła nie są identyczne.";
+            }
+            if ($isOwnProfile && $currentHash) {
+                if (empty($old) || !password_verify($old, $currentHash)) {
+                    $errors[] = "Obecne hasło jest niepoprawne.";
+                }
+            }
+        } else {
+            // Jeśli podano current password lub confirm password, ale nie podano new password
+            if (($isOwnProfile && !empty($old)) || !empty($confirm)) {
+                $errors[] = "Aby zmienić hasło, podaj nowe hasło i powtórz je.";
+            }
+        }
         return [
             'errors' => $errors,
             'data' => $data,
-            'dto' => $dto
+            'dto' => new UpdateUserDTO($data)
         ];
     }
 }

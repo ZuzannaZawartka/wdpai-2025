@@ -1,24 +1,28 @@
 <?php
 
 require_once 'AppController.php';
+require_once 'UserController.php'; // Musisz zaimportować UserController
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/UserFormValidator.php';
-require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../entity/User.php';
 
-class AdminController extends AppController {
-    
+class AdminController extends AppController
+{
+
     private UserRepository $userRepository;
     private EventRepository $eventRepository;
-    
-    public function __construct() {
+
+    public function __construct()
+    {
+        parent::__construct();
         $this->userRepository = new UserRepository();
         $this->eventRepository = new EventRepository();
     }
-    
-    public function accounts() {
+
+    public function accounts()
+    {
         $this->requireRole('admin');
 
         $allUserEntities = $this->userRepository->getUsersEntities();
@@ -27,7 +31,7 @@ class AdminController extends AppController {
         foreach ($stats as $stat) {
             $statsById[(int)$stat['id']] = $stat;
         }
-        $usersOut = array_map(function(\User $u) use ($statsById) {
+        $usersOut = array_map(function (\User $u) use ($statsById) {
             $uid = (int)($u->getId() ?? 0);
             $joined = $statsById[$uid]['events_joined_count'] ?? 0;
             $created = $statsById[$uid]['events_created_count'] ?? 0;
@@ -51,22 +55,11 @@ class AdminController extends AppController {
             'pageTitle' => 'Manage Users - Admin'
         ]);
     }
-    
-    public function editUser() {
-        // Przekierowanie do UserController
-        (new UserController())->editUserByAdmin();
-        return;
-    }
-    
-    
-    
-    public function deleteEvent() {
-        // Przekierowanie do EventController
-        (new EventController())->deleteEventByAdmin();
-        return;
-    }
-    
-    protected function isDelete(): bool {
-        return $_SERVER['REQUEST_METHOD'] === 'DELETE';
+
+    public function editUser($id)
+    {
+        $this->requireRole('admin');
+        $userController = new UserController();
+        return $userController->editUser($id);
     }
 }

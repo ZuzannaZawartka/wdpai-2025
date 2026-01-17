@@ -8,8 +8,84 @@ require_once __DIR__ . '/../dto/UpdateEventDTO.php';
 require_once __DIR__ . '/../valueobject/EventMetadata.php';
 require_once __DIR__ . '/../valueobject/Location.php';
 
-class EventController extends AppController {
-    public function edit($id): void
+class EventController extends AppController
+{
+    public function showCreateForm(): void
+    {
+        // Admins cannot create events
+        if ($this->isAdmin()) {
+            header('HTTP/1.1 403 Forbidden');
+            $this->render('404');
+            return;
+        }
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $this->createEvent();
+        } else {
+            $this->renderCreateForm();
+        }
+    }
+
+    private function renderCreateForm(): void
+    {
+        $sportsRepo = new SportsRepository();
+        $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+        $allSports = $sportsRepo->getAllSports();
+        parent::render('create', [
+            'pageTitle' => 'SportMatch - Create Event',
+            'activeNav' => 'create',
+            'skillLevels' => $skillLevels,
+            'allSports' => $allSports,
+        ]);
+    }
+
+    public function createEvent(): void
+    {
+        $this->ensureSession();
+        $validation = EventFormValidator::validate($_POST);
+        if (!empty($validation['errors'])) {
+            $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
+            parent::render('create', [
+                'pageTitle' => 'SportMatch - Create Event',
+                'activeNav' => 'create',
+                'skillLevels' => $skillLevels,
+                'allSports' => $allSports,
+                'errors' => $validation['errors'],
+                'formData' => $_POST
+            ]);
+            return;
+        }
+        $ownerId = $this->getCurrentUserId();
+        $imageUrl = null;
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $tmpName = $_FILES['image']['tmp_name'];
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = 'event_' . uniqid() . '.' . $ext;
+            $targetPath = __DIR__ . '/../../public/images/events/' . $fileName;
+            if (move_uploaded_file($tmpName, $targetPath)) {
+                $imageUrl = '/public/images/events/' . $fileName;
+            }
+        }
+        if (!$imageUrl) {
+            $imageUrl = '/public/images/boisko.png';
+        }
+        $newEvent = array_merge($validation['data'], [
+            'owner_id' => $ownerId,
+            'image_url' => $imageUrl
+        ]);
+        $repo = new EventRepository();
+        $eventId = $repo->createEvent($newEvent);
+        if ($eventId) {
+            header('Location: /event/' . $eventId);
+            exit;
+        } else {
+            http_response_code(500);
+            echo json_encode(['error' => 'Failed to create event']);
+        }
+    }
+
+    public function showEditForm($id): void
     {
         $this->ensureSession();
         $repo = new EventRepository();
@@ -24,7 +100,7 @@ class EventController extends AppController {
         $this->renderEditForm($id, $event, $skillLevels, $isReadOnly, [], $allSports);
     }
 
-    public function save($id): void
+    public function updateEvent($id): void
     {
         $this->ensureSession();
         $repo = new EventRepository();
@@ -35,7 +111,7 @@ class EventController extends AppController {
         // Get current event to check participants count
         $currentEntity = $repo->getEventEntityById((int)$id);
         $currentParticipants = $currentEntity ? (int)$currentEntity->getCurrentPlayers() : null;
-        
+
         $validation = EventFormValidator::validate($_POST, $currentParticipants);
         if (!empty($validation['errors'])) {
             $eventObj = $currentEntity ?? $repo->getEventEntityById((int)$id);
@@ -45,7 +121,7 @@ class EventController extends AppController {
             $this->renderEditForm($id, $eventObj, $skillLevels, false, $validation['errors'], $allSports);
             return;
         }
-        
+
         // Prefer DTO provided by validator when available
         $dtoFromValidator = $validation['dto'] ?? null;
         if ($dtoFromValidator instanceof \UpdateEventDTO) {
@@ -105,6 +181,7 @@ class EventController extends AppController {
         $rangeMinValue = null;
         $rangeMaxValue = null;
         $specificValue = null;
+
         if ($minPeople === $maxPeople && $maxPeople !== null) {
             $participantsType = 'specific';
             $specificValue = $minPeople;
@@ -116,10 +193,12 @@ class EventController extends AppController {
             $rangeMinValue = $minPeople;
             $rangeMaxValue = $maxPeople;
         }
+
         $coordsString = '';
         if ($event->getLatitude() !== null && $event->getLongitude() !== null) {
             $coordsString = $event->getLatitude() . ', ' . $event->getLongitude();
         }
+
         $datetimeInput = '';
         if (!empty($event->getStartTime())) {
             try {
@@ -129,6 +208,7 @@ class EventController extends AppController {
                 $datetimeInput = '';
             }
         }
+
         $formEvent = [
             'id' => $event->getId() ?? $id,
             'title' => $event->getTitle() ?? '',
@@ -145,29 +225,37 @@ class EventController extends AppController {
                 'rangeMax' => $rangeMaxValue
             ]
         ];
+
+        $sportsRepo = new SportsRepository();
+
         $renderData = [
             'pageTitle' => 'SportMatch - Edit Event',
             'activeNav' => 'event-edit',
-            'skillLevels' => $skillLevels,
+            'skillLevels' => $sportsRepo->getAllLevels(),
             'allSports' => $allSports,
             'event' => $formEvent,
             'eventId' => $id,
             'isReadOnly' => $isReadOnly,
         ];
+
         if (!empty($errors)) {
             $renderData['errors'] = $errors;
             $renderData['formData'] = $_POST;
         }
+
         parent::render('event-edit', $renderData);
     }
 
-    public function details($id = null, $action = null) {
+    public function details($id = null, $action = null)
+    {
         $repo = new EventRepository();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
             $this->respondNotFound();
         }
+
         $userId = $this->getCurrentUserId();
+
         $event = [
             'id' => $eventEntity->getId(),
             'title' => $eventEntity->getTitle(),
@@ -177,6 +265,7 @@ class EventController extends AppController {
             'coords' => ($eventEntity->getLatitude() !== null && $eventEntity->getLongitude() !== null) ? ($eventEntity->getLatitude() . ', ' . $eventEntity->getLongitude()) : null,
             'dateTime' => $eventEntity->getStartTime() ? (new DateTime($eventEntity->getStartTime()))->format('D, M j, g:i A') : '',
             'skillLevel' => (string)($eventEntity->getLevelName() ?? 'Intermediate'),
+            'levelColor' => (string)($eventEntity->getLevelColor() ?? '#9E9E9E'),
             'organizer' => [
                 'name' => trim(($eventEntity->getOwnerFirstName() ?? '') . ' ' . ($eventEntity->getOwnerLastName() ?? '')) ?: 'Organizer',
                 'email' => (string)($eventEntity->getOwnerEmail() ?? ''),
@@ -201,7 +290,8 @@ class EventController extends AppController {
         ]);
     }
 
-    public function join($id) {
+    public function join($id)
+    {
         $userId = $this->getCurrentUserId();
         if (!$userId) {
             $this->respondUnauthorized('Not authenticated', true);
@@ -215,7 +305,7 @@ class EventController extends AppController {
             $this->respondBadRequest('Event is full', true);
         }
         $result = $repo->joinEventWithTransaction($userId, (int)$id);
-        
+
         if ($result) {
             $this->respondOk(['message' => 'Joined event']);
         } else {
@@ -223,27 +313,24 @@ class EventController extends AppController {
         }
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
             $this->respondUnauthorized('Not authenticated', true);
         }
         $repo = new EventRepository();
-        $event = $repo->getEventEntityById((int)$id);
-        if (!$event) {
+        $eventEntity = $repo->getEventEntityById((int)$id);
+        if (!$eventEntity) {
             $this->respondNotFound('Event not found', true);
         }
-        $isOwner = ($event->getOwnerId() !== null) && ((int)$event->getOwnerId() === (int)$userId);
-        $isAdmin = $this->isAdmin();
-        $repo = new EventRepository();
-        if ($isOwner) {
-            $result = $repo->deleteEventByOwner((int)$id, (int)$userId);
-        } elseif ($isAdmin) {
-            $result = $repo->deleteEvent((int)$id);
-        } else {
+
+        if (!$this->canDeleteEvent($eventEntity, $userId)) {
             $this->respondForbidden('Only owner or admin can delete event', true);
         }
+
+        $result = $repo->deleteEvent((int)$id);
         if ($result) {
             $this->respondOk(['message' => 'Event deleted']);
         } else {
@@ -251,18 +338,25 @@ class EventController extends AppController {
         }
     }
 
-    public function leave($id) {
+    private function canDeleteEvent(\Event $event, int $userId): bool
+    {
+        return ($this->isAdmin() || ((int)$event->getOwnerId() === (int)$userId));
+    }
+
+    public function leave($id)
+    {
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
             $this->respondUnauthorized('Not authenticated', true);
         }
         $repo = new EventRepository();
-        $event = $repo->getEventById((int)$id);
-        if (!$event) {
+        $eventEntity = $repo->getEventEntityById((int)$id);
+        if (!$eventEntity) {
             $this->respondNotFound('Event not found', true);
         }
-        if ((int)$event['owner_id'] === (int)$userId) {
+
+        if ((int)$eventEntity->getOwnerId() === (int)$userId) {
             $this->respondBadRequest('Owner cannot leave their own event', true);
         }
         $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
@@ -270,29 +364,6 @@ class EventController extends AppController {
             $this->respondOk(['message' => 'Left event']);
         } else {
             $this->respondBadRequest('Failed to leave event', true);
-        }
-    }
-
-    public function deleteEventByAdmin() {
-        $this->requireRole('admin');
-        if (!$this->isPost() && !$this->isDelete()) {
-            $this->respondMethodNotAllowed('Method not allowed', true);
-        }
-        $eventId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
-        if (!$eventId) {
-            $this->respondBadRequest('Event ID required', true);
-        }
-        $repo = new EventRepository();
-        try {
-            $deleted = $repo->deleteEvent($eventId);
-            if ($deleted) {
-                $this->respondOk(['success' => true]);
-            } else {
-                $this->respondNotFound('Event not found', true);
-            }
-        } catch (Throwable $e) {
-            error_log("Admin event delete error: " . $e->getMessage());
-            $this->respondInternalError('Failed to delete event', true);
         }
     }
 }

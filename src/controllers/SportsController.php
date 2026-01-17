@@ -6,180 +6,108 @@ require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../entity/Event.php';
 
 class SportsController extends AppController {
+    private SportsRepository $sportsRepository;
+    private EventRepository $eventRepository;
 
-    public function index(): void
-    {
-        // Accept preselected sports from query: ?sport=Tennis or ?sport[]=Tennis&sport[]=Running
-        $selectedSports = [];
-        if (isset($_GET['sport'])) {
-            if (is_array($_GET['sport'])) {
-                $selectedSports = array_map(function($v) { return trim((string)$v); }, $_GET['sport']);
-            } elseif (is_string($_GET['sport'])) {
-                // allow comma-separated list
-                $selectedSports = array_map('trim', explode(',', $_GET['sport']));
-            }
-        }
+    public function __construct() {
+        parent::__construct();
+        $this->sportsRepository = new SportsRepository();
+        $this->eventRepository = new EventRepository();
+    }
 
-        $selectedLevel = 'Any';
-        if (isset($_GET['level']) && is_string($_GET['level'])) {
-            $selectedLevel = trim($_GET['level']);
-        }
-
-        $selectedLoc = '';
-        $center = null;
-        $radiusKm = null;
-        if (isset($_GET['loc']) && is_string($_GET['loc'])) {
-            $selectedLoc = trim($_GET['loc']);
-            if (preg_match('/^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)\s*$/', $selectedLoc, $m)) {
-                $lat = (float)$m[1];
-                $lng = (float)$m[2];
-                if ($lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180) {
-                    $center = [$lat, $lng];
-                    if (isset($_GET['radius'])) {
-                        $r = (float)$_GET['radius'];
-                        if ($r > 0 && $r <= 1000) { $radiusKm = $r; }
-                    }
-                }
-            }
-        }
-
-        $sportsRepo = new SportsRepository();
-        $sportsFromDb = $sportsRepo->getAllSports();
-        $sportsGrid = array_map(function($row) {
-            return [
-                'id' => (int)$row['id'],
-                'name' => (string)$row['name'],
-                'icon' => $this->sportIcon((string)$row['name'])
-            ];
-        }, $sportsFromDb);
-
-        if (!empty($selectedSports)) {
-            $valid = array_column($sportsGrid, 'name');
-            $selectedSports = array_values(array_intersect($selectedSports, $valid));
-        }
+    public function index(): void {
+        $filters = $this->parseFilters();
+        $rawEvents = $this->eventRepository->getFilteredEventsListing($filters, $this->isAdmin());
         
-        $selectedSportIds = [];
-        foreach ($selectedSports as $sportName) {
-            foreach ($sportsGrid as $s) {
-                if ($s['name'] === $sportName) { $selectedSportIds[] = (int)$s['id']; break; }
+        $matches = [];
+        foreach ($rawEvents as $row) {
+            $ev = new \Event($row);
+            
+            // Filter full events for non-admins
+            // Note: DB filtering is preferred, but getFilteredEventsListing might not filter full events?
+            // Main's code did: $events = array_filter($events, fn($ev) => !$this->eventRepository->isEventFull(...));
+            // We can check fullness on the entity since it has max and current players (from SQL view/subquery)
+            $isFull = $ev->getMaxPlayers() > 0 && $ev->getCurrentPlayers() >= $ev->getMaxPlayers();
+            if (!$this->isAdmin() && $isFull) {
+                continue;
             }
+
+            $matches[] = $this->mapEntityToView($ev);
         }
-
-        $levels = $sportsRepo->getAllLevels();
-        $levelMap = [];
-        foreach ($levels as $l) { $levelMap[(int)$l['id']] = (string)$l['name']; }
-        $validLevels = array_merge(['Any'], array_values($levelMap));
-        if (!in_array($selectedLevel, $validLevels, true)) {
-            $selectedLevel = 'Any';
-        }
-
-        $levelForFilter = $selectedLevel !== 'Any' ? $selectedLevel : null;
-        
-        $eventsRepo = new EventRepository();
-        $entities = $this->isAdmin() ? $eventsRepo->getAllForListingEntities(true) : $eventsRepo->getAllForListingEntities(false);
-        $now = time();
-        $colors = $this->getLevelColors();
-
-        $filteredEntities = array_filter($entities, function(Event $ev) use ($selectedSportIds, $levelForFilter, $center, $radiusKm, $eventsRepo) {
-            if (!empty($selectedSportIds)) {
-                $sid = (int)$ev->getSportId();
-                if ($sid === 0 || !in_array($sid, $selectedSportIds, true)) { return false; }
-            }
-            if ($levelForFilter !== null) {
-                $lname = (string)$ev->getLevelName();
-                if ($lname !== $levelForFilter) { return false; }
-            }
-            if ($center && $radiusKm !== null) {
-                $lat2 = $ev->getLatitude();
-                $lng2 = $ev->getLongitude();
-                if ($lat2 === null || $lng2 === null) { return false; }
-                $dist = $this->distanceKm((float)$center[0], (float)$center[1], (float)$lat2, (float)$lng2);
-                if (!is_finite($dist) || $dist > $radiusKm) { return false; }
-            }
-            if (!$this->isAdmin()) {
-                // For non-admin: filter out full events too
-                $eid = (int)$ev->getId();
-                if ($eventsRepo->isEventFull($eid)) { return false; }
-            }
-            return true;
-        });
-
-        // Map to view model from entities
-        $matches = array_map(function(Event $ev) use ($levelMap, $colors, $now) {
-            $current = (int)$ev->getCurrentPlayers();
-            $max = $ev->getMaxPlayers();
-            if ($max !== null && $max <= 0) { $max = null; }
-            $min = $ev->getMinNeeded();
-            if ($min !== null && $min <= 0) { $min = null; }
-
-            $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
-            $note = '';
-            if ($min !== null && $max !== null) {
-                $note = ($min === $max) ? ('Players ' . $max) : ('Range ' . $min . '–' . $max);
-            } elseif ($min !== null) {
-                $note = 'Minimum ' . $min;
-            } elseif ($max !== null) {
-                $note = 'Players ' . $max;
-            }
-            if ($note !== '') { $playersText .= ' · ' . $note; }
-
-            $levelName = (string)($ev->getLevelName() ?: 'Intermediate');
-            $levelColor = '#eab308';
-            foreach ($levelMap as $lid => $lname) {
-                if ($lname === $levelName) { $levelColor = $colors[$lid] ?? '#eab308'; break; }
-            }
-            $ts = strtotime((string)$ev->getStartTime());
-            $isPast = $ts ? ($ts < $now) : false;
-            return [
-                'id' => $ev->getId(),
-                'title' => $ev->getTitle(),
-                'datetime' => $ts ? date('D, M j, g:i A', $ts) : 'TBD',
-                'desc' => $ev->getDescription() ?? '',
-                'players' => $playersText,
-                'level' => $levelName,
-                'levelColor' => $levelColor,
-                'imageUrl' => $ev->getImageUrl() ?? '',
-                'isPast' => $this->isAdmin() ? $isPast : false
-            ];
-        }, array_values($filteredEntities));
 
         $this->render('sports', [
-            'pageTitle' => 'SportMatch - Sports',
-            'activeNav' => 'sports',
-            'selectedSports' => $selectedSports,
-            'sportsGrid' => $sportsGrid,
-            'matches' => $matches,
-            'selectedLevel' => $selectedLevel,
-            'selectedLoc' => $selectedLoc,
-            'radiusKm' => $radiusKm,
+            'pageTitle'      => 'SportMatch - Sports',
+            'activeNav'      => 'sports',
+            'selectedSports' => $filters['sports'],
+            'sportsGrid'     => $this->getSportsGrid(),
+            'matches'        => $matches, // now it is an array of mapped data
+            'selectedLevel'  => $filters['level'],
+            'selectedLoc'    => $filters['locString'],
+            'radiusKm'       => $filters['radius'],
         ]);
     }
 
-    private function distanceKm(float $lat1, float $lon1, float $lat2, float $lon2): float {
-        $R = 6371.0;
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-        $a = sin($dLat/2) * sin($dLat/2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($dLon/2) * sin($dLon/2);
-        $c = 2 * atan2(sqrt($a), sqrt(1-$a));
-        return $R * $c;
-    }
+    private function mapEntityToView(\Event $ev): array {
+        $current = $ev->getCurrentPlayers();
+        $max = $ev->getMaxPlayers();
+        $min = $ev->getMinNeeded();
+        
+        $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
+        if ($min && $min > 0) {
+             // Logic to show constraint note
+             // e.g. "Minimum 5" or "Range 5-10"
+             if ($max && $max > 0) {
+                 if ($min === $max) {
+                     $playersText .= ' · Players ' . $max;
+                 } else {
+                     $playersText .= ' · Range ' . $min . '–' . $max;
+                 }
+             } else {
+                 $playersText .= ' · Minimum ' . $min;
+             }
+        } elseif ($max && $max > 0) {
+            $playersText .= ' · Players ' . $max;
+        }
 
-    private function getLevelColors(): array {
+        $isPast = false;
+        if ($ev->getStartTime()) {
+            $ts = strtotime($ev->getStartTime());
+            $isPast = $ts ? ($ts < time()) : false;
+        }
+        
         return [
-            1 => '#22c55e',
-            2 => '#eab308',
-            3 => '#ef4444',
+            'id' => $ev->getId(),
+            'title' => $ev->getTitle(),
+            'datetime' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : 'TBD',
+            'desc' => $ev->getDescription() ?? '',
+            'players' => $playersText,
+            'level' => $ev->getLevelName() ?? 'Intermediate',
+            'levelColor' => $ev->getLevelColor() ?? '#eab308',
+            'imageUrl' => $ev->getImageUrl() ?? '',
+            'isPast' => $this->isAdmin() ? $isPast : false
         ];
     }
 
-    private function sportIcon(string $name): string {
-        switch ($name) {
-            case 'Soccer': return '⚽';
-            case 'Basketball': return '🏀';
-            case 'Tennis': return '🎾';
-            case 'Running': return '🏃';
-            case 'Cycling': return '🚴';
-            default: return '🏅';
+    private function parseFilters(): array {
+        $loc = trim((string)($_GET['loc'] ?? ''));
+        $center = null;
+        if (preg_match('/^\s*(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)\s*$/', $loc, $m)) {
+            $center = ['lat' => (float)$m[1], 'lng' => (float)$m[2]];
         }
+        return [
+            'sports'    => (array)($_GET['sport'] ?? []),
+            'level'     => trim((string)($_GET['level'] ?? 'Any')),
+            'locString' => $loc,
+            'center'    => $center,
+            'radius'    => (float)($_GET['radius'] ?? 10)
+        ];
+    }
+
+    private function getSportsGrid(): array {
+        return array_map(fn($s) => [
+            'id'   => (int)$s['id'],
+            'name' => (string)$s['name'],
+            'icon' => $s['icon'] ?: '🏅'
+        ], $this->sportsRepository->getAllSports());
     }
 }
