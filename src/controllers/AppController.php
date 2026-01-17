@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
-require_once __DIR__ . '/../../config.php';
+
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../config/AppConfig.php';
 
