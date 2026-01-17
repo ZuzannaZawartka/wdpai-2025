@@ -243,7 +243,6 @@ class EventRepository {
 
             $eventId = (int)$this->db->lastInsertId();
 
-<<<<<<< Updated upstream
             // Update user statistics, increment events created
             if (isset($data['owner_id'])) {
                 $statStmt = $this->db->prepare('
@@ -254,8 +253,6 @@ class EventRepository {
                 $statStmt->execute([$data['owner_id']]);
             }
 
-=======
->>>>>>> Stashed changes
             $this->db->commit();
             return $eventId;
         } catch (Throwable $e) {
@@ -402,15 +399,6 @@ class EventRepository {
             // Remove user from event
             $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
             $stmt->execute([$eventId, $userId]);
-
-            // Update user statistics
-            $statStmt = $this->db->prepare('
-                UPDATE user_statistics 
-                SET total_events_joined = GREATEST(total_events_joined - 1, 0) 
-                WHERE user_id = ?
-            ');
-            $statStmt->execute([$userId]);
-
             $this->db->commit();
             return $stmt->rowCount() > 0;
         } catch (Throwable $e) {
@@ -419,8 +407,6 @@ class EventRepository {
             return false;
         }
     }
-<<<<<<< Updated upstream
-=======
 
     public function getFilteredEventsListing(array $filters, bool $isAdmin = false): array {
         $params = [];
@@ -510,5 +496,4 @@ class EventRepository {
             ];
         }, $results);
     }
->>>>>>> Stashed changes
 }

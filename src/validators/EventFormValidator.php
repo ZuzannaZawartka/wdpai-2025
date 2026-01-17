@@ -2,7 +2,7 @@
 
 class EventFormValidator {
     
-    public static function validate(array $postData): array {
+    public static function validate(array $postData, ?int $currentParticipantsCount = null): array {
         $errors = [];
         
         // Extract and trim data
@@ -97,6 +97,19 @@ class EventFormValidator {
         } else { // range
             $minNeeded = (int)trim((string)($postData['playersRangeMin'] ?? '0'));
             $maxPlayers = (int)trim((string)($postData['playersRangeMax'] ?? '0'));
+        }
+        
+        // Validate max_players is not less than current participants count (only when editing)
+        if ($currentParticipantsCount !== null && $maxPlayers > 0 && $maxPlayers < $currentParticipantsCount) {
+            $errors[] = "Nie można zmniejszyć limitu uczestników poniżej aktualnej liczby dołączonych osób ({$currentParticipantsCount})";
+        }
+        
+        // If there are errors after this validation, return early
+        if (!empty($errors)) {
+            return [
+                'errors' => $errors,
+                'data' => null
+            ];
         }
         
         // Parse location coords

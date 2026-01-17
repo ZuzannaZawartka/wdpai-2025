@@ -38,13 +38,21 @@ class EditController extends AppController {
             return;
         }
         
+        // Get current event to check participants count
+        $currentEvent = $repo->getEventById((int)$id);
+        $currentParticipants = $currentEvent ? (int)($currentEvent['current_players'] ?? 0) : null;
+        
         // Validate form using EventFormValidator
-        $validation = EventFormValidator::validate($_POST);
+        $validation = EventFormValidator::validate($_POST, $currentParticipants);
         
         if (!empty($validation['errors'])) {
             // Re-render form with errors
-            $row = $repo->getEventById((int)$id);
+            $row = $currentEvent ?? $repo->getEventById((int)$id);
             $sportsRepo = new SportsRepository();
+            $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
+            $allSports = $sportsRepo->getAllSports();
+            $this->renderEditForm($id, $row, $skillLevels, false, $validation['errors'], $allSports);
+            return;
         }
         
         $updates = [
