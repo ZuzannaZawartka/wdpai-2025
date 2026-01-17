@@ -29,8 +29,13 @@
                         <?= htmlspecialchars($lang['login_subtitle'] ?? '', ENT_QUOTES) ?>
                     </p>
                 </div>
+                <?php if(isset($_GET['registered'])): ?>
+                <div class="messages success">
+                    Rejestracja przebiegła pomyślnie. Jeśli konto nie istniało, możesz się zalogować.
+                </div>
+                <?php endif; ?>
                 <?php if(isset($messages)): ?>
-                <div class="messages">
+                <div class="messages error">
                     <?= htmlspecialchars($messages, ENT_QUOTES) ?>
                 </div>
                 <?php endif; ?>

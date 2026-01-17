@@ -44,17 +44,16 @@ class Database
                 ["sslmode" => "prefer"]
             );
 
-            // set the PDO error mode to exception
+
             $conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            // enforce real prepared statements and sane defaults
+
             $conn->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
             $conn->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 
             $this->pdo = $conn;
             return $conn;
         } catch (PDOException $e) {
-            // Log error instead of dying in production, but for now die is consistent with old code
-            // error_log("Connection failed: " . $e->getMessage());
+
             die("Connection failed: " . $e->getMessage());
         }
     }

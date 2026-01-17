@@ -107,6 +107,31 @@
     margin-top: auto;
 }
 
+.meta {
+    color: var(--text-gray);
+    margin-bottom: 0.25rem;
+}
+
+.meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin: 0.5rem 0 1rem;
+    color: var(--text-gray);
+}
+
+.meta-row span {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.level {
+    display: flex;
+    align-items: center;
+}
+
 .section.compact .card-media {
     height: 8rem;
 }

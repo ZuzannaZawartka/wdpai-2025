@@ -14,7 +14,6 @@ class JoinedController extends AppController
         $userId = $this->getCurrentUserId();
         $repo = EventRepository::getInstance();
         $rows = $userId ? $repo->getUserUpcomingEvents($userId) : [];
-        // Map rows to Event entities for clearer code
         $events = array_map(fn($r) => new Event($r), $rows);
         $joinedMatches = array_map(function (Event $e) use ($userId) {
             $current = $e->getCurrentPlayers();

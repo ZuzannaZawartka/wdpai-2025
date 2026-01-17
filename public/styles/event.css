@@ -92,9 +92,14 @@
 
 .participants-stats {
     display: flex;
-    align-items: baseline;
+    align-items: center;
     gap: 0.5rem;
     margin-top: 0.75rem;
+}
+
+.participants-stats .material {
+    font-size: 1.25rem;
+    color: var(--primary);
 }
 
 .event-page .join-actions {
@@ -123,4 +128,10 @@
 .event-page .join-actions #joinBtn.hidden,
 .event-page .join-actions #cancelBtn.hidden {
     display: none;
+}
+
+.event-page .join-actions .button.muted[disabled] {
+    cursor: not-allowed;
+    flex: 1;
+    text-align: center;
 }

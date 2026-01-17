@@ -84,7 +84,7 @@
             const radiusEl = document.getElementById('radiusRange');
             const radiusDisplay = document.querySelector('.filters-bar .control.radius .range-display');
 
-            // Synchronize the dummy display input with the hidden map input
+
             if (mapInput && locInput) {
                 mapInput.addEventListener('change', () => {
                     locInput.value = mapInput.value;
@@ -92,14 +92,14 @@
                     openBtn?.classList.add('applied');
                 });
 
-                // If initial value is set and it's coords, make readonly
+
                 if (locInput.value.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
                     locInput.readOnly = true;
                     openBtn?.classList.add('applied');
                 }
             }
 
-            // Radius display live update
+
             function updateRadiusDisplay() {
                 if (radiusEl && radiusDisplay) {
                     radiusDisplay.textContent = `${radiusEl.value} km`;
@@ -114,9 +114,9 @@
             updateRadiusDisplay();
         })();
     </script>
-    <!-- Obsolete script removed -->
 
-    <!-- Container for dynamic results -->
+
+
     <div class="section panel matches">
         <div id="matches-container">
             <div class="visual-state loading-state" style="display:none; padding: 2rem; text-align: center;">
@@ -126,10 +126,10 @@
                 <p>No events found matching your criteria.</p>
             </div>
         </div>
+        <div id="pagination-container" style="text-align: center; margin-top: 1rem; display: none;"></div>
     </div>
 </section>
 
-<!-- Template for Match Card -->
 <template id="match-template">
     <article class="match img-right">
         <div class="match-body">
@@ -139,7 +139,7 @@
                 <p class="text-body js-desc"></p>
 
                 <div class="meta-row text-small">
-                    <span>👥 <span class="js-players"></span></span>
+                    <span><span class="material">groups</span><span class="js-players"></span></span>
                     <span class="level js-level-wrap">
                         <i class="color-indicator js-level-dot"></i>
                         <span class="js-level-name"></span>
@@ -165,50 +165,64 @@
         const loadingState = container.querySelector('.loading-state');
         const emptyState = container.querySelector('.empty-state');
         const template = document.getElementById('match-template');
+        const paginationContainer = document.getElementById('pagination-container');
+        let currentPage = 1;
+        const limit = 6;
 
-        // Initial Load
         fetchEvents();
 
-        // Attach listeners
         document.getElementById('applySportsFilter')?.addEventListener('click', (e) => {
             e.preventDefault();
+            currentPage = 1;
             fetchEvents();
         });
 
-        document.getElementById('levelSelect')?.addEventListener('change', fetchEvents);
-        document.getElementById('radiusRange')?.addEventListener('change', fetchEvents); // Drag end
+        document.getElementById('levelSelect')?.addEventListener('change', () => {
+            currentPage = 1;
+            fetchEvents();
+        });
+
+        document.getElementById('radiusRange')?.addEventListener('change', () => {
+            currentPage = 1;
+            fetchEvents();
+        });
 
         const locInput = document.getElementById('filterLocation');
-        // Debounce location input? Or just wait for blur/enter? 
-        // For now, let's rely on explicit buttons or 'change' (blur) to avoid too many requests
-        locInput?.addEventListener('change', fetchEvents);
-
-        // Also listen for "Enter" on location
+        locInput?.addEventListener('change', () => {
+            currentPage = 1;
+            fetchEvents();
+        });
         locInput?.addEventListener('keyup', (e) => {
-            if (e.key === 'Enter') fetchEvents();
+            if (e.key === 'Enter') {
+                currentPage = 1;
+                fetchEvents();
+            }
         });
 
-        const clearLoc = document.getElementById('clearLocation');
-        clearLoc?.addEventListener('click', (e) => {
+        document.getElementById('clearLocation')?.addEventListener('click', (e) => {
             e.preventDefault();
             if (locInput) locInput.value = '';
+            currentPage = 1;
             fetchEvents();
         });
 
-        const clearAll = document.getElementById('clearAllFilters');
-        clearAll?.addEventListener('click', (e) => {
+        document.getElementById('clearAllFilters')?.addEventListener('click', (e) => {
             e.preventDefault();
-            // Reset UI
             if (locInput) locInput.value = '';
             const levelSel = document.getElementById('levelSelect');
             if (levelSel) levelSel.value = 'Any';
             document.querySelectorAll('input[name="sport[]"]').forEach(el => el.checked = false);
+            currentPage = 1;
             fetchEvents();
         });
 
-
         function fetchEvents() {
-            // Gather Data
+            Array.from(container.children).forEach(child => {
+                if (!child.classList.contains('visual-state')) {
+                    child.remove();
+                }
+            });
+
             const sports = Array.from(document.querySelectorAll('input[name="sport[]"]:checked')).map(el => el.value);
             const level = document.getElementById('levelSelect')?.value || 'Any';
             const loc = document.getElementById('filterLocation')?.value || '';
@@ -218,18 +232,14 @@
                 sports: sports,
                 level: level,
                 loc: loc,
-                radius: radius
+                radius: radius,
+                page: currentPage,
+                limit: limit
             };
 
-            // UI State
             loadingState.style.display = 'block';
             emptyState.style.display = 'none';
-            // Clear current list (keeping states)
-            Array.from(container.children).forEach(child => {
-                if (!child.classList.contains('visual-state')) {
-                    child.remove();
-                }
-            });
+            paginationContainer.style.display = 'none';
 
             fetch('/api/sports/search', {
                 method: 'POST',
@@ -244,24 +254,49 @@
                 })
                 .then(data => {
                     loadingState.style.display = 'none';
-                    if (!data || data.length === 0) {
-                        emptyState.style.display = 'block';
+                    if (!data || !data.events || data.events.length === 0) {
+                        if (currentPage === 1) emptyState.style.display = 'block';
                         return;
                     }
 
-                    data.forEach(ev => renderEvent(ev));
+                    data.events.forEach(ev => renderEvent(ev));
+                    renderPagination(data.total, data.totalPages, data.page);
                 })
                 .catch(err => {
                     console.error(err);
                     loadingState.style.display = 'none';
-                    // optional: show error message
                 });
+        }
+
+        function renderPagination(total, totalPages, activePage) {
+            paginationContainer.innerHTML = '';
+            if (totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            paginationContainer.style.display = 'block';
+
+            for (let i = 1; i <= totalPages; i++) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = i;
+                btn.className = 'button small ' + (i === activePage ? 'primary' : 'secondary');
+                btn.style.margin = '0 0.25rem';
+                btn.addEventListener('click', () => {
+                    if (i !== currentPage) {
+                        currentPage = i;
+                        fetchEvents();
+                    }
+                });
+                paginationContainer.appendChild(btn);
+            }
         }
 
         function renderEvent(ev) {
             const clone = template.content.cloneNode(true);
 
-            // Text Content
+
             clone.querySelector('.js-title').textContent = ev.title;
             clone.querySelector('.js-datetime').textContent = ev.datetime;
             clone.querySelector('.js-desc').textContent = ev.desc || '';
@@ -270,12 +305,10 @@
             clone.querySelector('.js-sport-name').textContent = ev.sportName || '';
             clone.querySelector('.js-sport-icon').textContent = ev.sportIcon || 'sports_soccer';
 
-            // Styles & Attributes
+
             const levelDot = clone.querySelector('.js-level-dot');
             if (levelDot && ev.levelColor) {
-                // We need to set --level-color variable on the parent .level span usually, 
-                // or just background color here for simplicity?
-                // The template expects --level-color on .level
+
                 const levelWrap = clone.querySelector('.js-level-wrap');
                 if (levelWrap) levelWrap.style.setProperty('--level-color', ev.levelColor);
             }

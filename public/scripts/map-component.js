@@ -2,7 +2,7 @@ class MapComponent {
     constructor(elementId, options = {}) {
         this.elementId = elementId;
         this.mode = options.mode || 'view';
-        this.initialLocation = options.initialLocation || [52.2297, 21.0122]; // Warsaw default
+        this.initialLocation = options.initialLocation || [52.2297, 21.0122];
         this.zoom = options.zoom || 12;
         this.marker = null;
         this.map = null;
@@ -25,7 +25,7 @@ class MapComponent {
             keyboard: this.mode === 'picker' || this.mode === 'view'
         };
 
-        // Force some options for specific modes
+
         if (this.mode === 'preview') {
             mapOptions.scrollWheelZoom = false;
             mapOptions.dragging = false;
@@ -50,7 +50,7 @@ class MapComponent {
             this.setMarker(this.initialLocation);
         }
 
-        // Handle potential container size shifts
+
         setTimeout(() => this.updateSize(), 200);
 
         if (this.mode === 'picker') {

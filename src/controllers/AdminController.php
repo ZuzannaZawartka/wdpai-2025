@@ -1,7 +1,7 @@
 <?php
 
 require_once 'AppController.php';
-require_once 'UserController.php'; // Musisz zaimportować UserController
+require_once 'UserController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
@@ -59,7 +59,7 @@ class AdminController extends AppController
     public function editUser($id)
     {
         $this->requireRole('admin');
-        $userController = new UserController(); // UserController might likely remain new as it's a controller, not a singleton service usually, but let's check if it needs to be single too. For now leaving as is or better? Wait, controllers are usually instantiated by router.
+        $userController = new UserController();
         return $userController->editUser($id);
     }
 }

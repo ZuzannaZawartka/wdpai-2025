@@ -13,7 +13,7 @@ class Event
     private ?string $locationText;
     private ?float $latitude;
     private ?float $longitude;
-    private ?string $startTime; // ISO string
+    private ?string $startTime;
     private ?int $levelId;
     private ?string $levelName;
     private ?string $levelColor;
@@ -26,9 +26,11 @@ class Event
     private ?string $ownerLastName;
     private ?string $ownerAvatarUrl;
     private int $currentPlayers;
+    private array $data;
 
     public function __construct(array $data)
     {
+        $this->data = $data;
         $this->id = isset($data['id']) ? (int)$data['id'] : null;
         $this->title = (string)($data['title'] ?? '');
         $this->description = isset($data['description']) ? (string)$data['description'] : null;
@@ -140,5 +142,10 @@ class Event
     public function getCurrentPlayers(): int
     {
         return $this->currentPlayers;
+    }
+
+    public function getRawData(): array
+    {
+        return $this->data;
     }
 }

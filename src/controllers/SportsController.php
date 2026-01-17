@@ -54,9 +54,7 @@ class SportsController extends AppController
 
         $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
         if ($min && $min > 0) {
-            // Logic to show constraint note
-            // e.g. "Minimum 5" or "Range 5-10"
-            if ($max && $max > 0) {
+            if ($min && $min > 0) {
                 if ($min === $max) {
                     $playersText .= ' · Players ' . $max;
                 } else {
@@ -127,12 +125,21 @@ class SportsController extends AppController
             $criteria = EventSearchRequestDTO::fromRequest($decoded);
             $results = $this->eventRepository->searchEvents($criteria);
 
-            // Map entities to response DTOs
+            $total = 0;
+            if (!empty($results)) {
+                $total = (int)$results[0]->getRawData()['total_count'];
+            }
+
             $dtos = array_map(fn($ev) => EventResponseDTO::fromEntity($ev), $results);
 
             header('Content-Type: application/json');
             http_response_code(200);
-            echo json_encode($dtos);
+            echo json_encode([
+                'events' => $dtos,
+                'total' => $total,
+                'page' => $criteria->page,
+                'totalPages' => ceil($total / $criteria->limit)
+            ]);
             exit();
         } else {
             http_response_code(415);

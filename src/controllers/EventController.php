@@ -13,7 +13,6 @@ class EventController extends AppController
 {
     public function showCreateForm(): void
     {
-        // Admins cannot create events
         if ($this->isAdmin()) {
             $this->respondForbidden('Admins cannot create events');
             return;
@@ -123,7 +122,6 @@ class EventController extends AppController
             $this->respondForbidden('Cannot edit past events');
         }
 
-        // Get current event to check participants count
         $currentEntity = $repo->getEventEntityById((int)$id);
         $currentParticipants = $currentEntity ? (int)$currentEntity->getCurrentPlayers() : null;
 
@@ -137,7 +135,6 @@ class EventController extends AppController
             return;
         }
 
-        // Prefer DTO provided by validator when available
         $dtoFromValidator = $validation['dto'] ?? null;
         if ($dtoFromValidator instanceof \UpdateEventDTO) {
             try {
@@ -145,7 +142,6 @@ class EventController extends AppController
             } catch (Throwable $e) {
                 $this->respondBadRequest('Invalid event metadata');
             }
-            // Normalize via metadata
             $updates = $dtoFromValidator->toArray();
             if (isset($updates['title'])) $updates['title'] = $metadata->title();
             if (isset($updates['description'])) $updates['description'] = $metadata->description();
@@ -180,8 +176,6 @@ class EventController extends AppController
                     $updates['image_url'] = '/public/images/events/' . $fileName;
                 }
             } else {
-                // For edit flow, we might just ignore the invalid file or return error. 
-                // Returning error is safer.
                 $validation['errors'][] = 'Invalid image file (only JPG, PNG, WEBP allowed)';
                 $eventObj = $currentEntity ?? $repo->getEventEntityById((int)$id);
                 $sportsRepo = SportsRepository::getInstance();

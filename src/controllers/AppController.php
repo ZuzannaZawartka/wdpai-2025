@@ -127,10 +127,8 @@ class AppController
     {
         $this->ensureSession();
 
-        // Dodaj avatar
         $variables['currentAvatar'] = $variables['currentAvatar'] ?? $this->getAvatarForCurrentUser();
 
-        // Dodaj język jeśli nie ustawiony
         if (!isset($variables['lang']) && !empty($template)) {
             $variables['lang'] = get_lang($template);
         }
@@ -139,7 +137,6 @@ class AppController
         $templatePath404 = 'public/views/404.html';
         $output = '';
 
-        // Wczytaj template lub 404
         $pathToInclude = file_exists($templatePath) ? $templatePath : $templatePath404;
 
         extract($variables);
@@ -167,7 +164,6 @@ class AppController
                     return $dbUser['avatar_url'];
                 }
             } catch (Throwable $e) {
-                // ignore i fallback
             }
         }
 

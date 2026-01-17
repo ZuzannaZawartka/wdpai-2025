@@ -1,11 +1,11 @@
 @import url('components/button.css');
 
-/* Większy odstęp pod tytułem sekcji w panelu admina */
+
 .accounts-page>.section:first-child {
     margin-bottom: 2.5rem;
 }
 
-/* Styles moved from accounts.html */
+
 .accounts-page .cards-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -70,5 +70,3 @@
     display: flex;
     gap: 0.5rem;
 }
-
-/* Usuwamy .btn-link, używamy .button.primary */

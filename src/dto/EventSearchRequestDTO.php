@@ -10,6 +10,8 @@ class EventSearchRequestDTO
     public ?float $radius;
     public ?float $latitude;
     public ?float $longitude;
+    public int $page;
+    public int $limit;
 
     public function __construct(
         array $sports = [],
@@ -17,7 +19,9 @@ class EventSearchRequestDTO
         ?string $locationString = null,
         ?float $radius = 10.0,
         ?float $latitude = null,
-        ?float $longitude = null
+        ?float $longitude = null,
+        int $page = 1,
+        int $limit = 6
     ) {
         $this->sports = $sports;
         $this->level = $level;
@@ -25,6 +29,8 @@ class EventSearchRequestDTO
         $this->radius = $radius;
         $this->latitude = $latitude;
         $this->longitude = $longitude;
+        $this->page = $page > 0 ? $page : 1;
+        $this->limit = $limit > 0 ? $limit : 6;
     }
 
     public static function fromRequest(array $request): self
@@ -42,7 +48,10 @@ class EventSearchRequestDTO
             $lng = (float)$m[2];
         }
 
-        return new self($sports, $level, $locationString, $radius, $lat, $lng);
+        $page = isset($request['page']) ? (int)$request['page'] : 1;
+        $limit = isset($request['limit']) ? (int)$request['limit'] : 6;
+
+        return new self($sports, $level, $locationString, $radius, $lat, $lng, $page, $limit);
     }
 
     public function hasCoordinates(): bool

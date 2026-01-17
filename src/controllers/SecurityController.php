@@ -66,7 +66,7 @@ class SecurityController extends AppController
                 return $this->render('login', ['messages' => 'Konto jest zablokowane']);
             }
 
-            // Entity Usage for Session Context
+
             require_once __DIR__ . '/../entity/User.php';
             $userEntity = new \User($user);
 
@@ -129,17 +129,7 @@ class SecurityController extends AppController
 
         if (empty($errors)) {
             try {
-                // User enumeration protection:
-                // We check if email exists. If so, we DO NOT tell the user explicitly.
-                // Instead, we just show success or a generic message.
-                // Standard secure practice: "If the account doesn't exist, we registered it. Check email" (but we auto login or redirect).
-                // Here, to be user-friendly but secure: we can redirect to login saying "Registration successful" even if it failed due to duplicate email.
-                // OR, simpler: just return "Registration successful" without creating duplicates.
-
                 if ($this->userRepository->emailExists($email)) {
-                    // Silently fail (or maybe log it)
-                    // Behave AS IF registration worked to prevent enumeration
-                    // Redirect to login with 'registered=1'
                     error_log("Registration attempt with existing email: $email");
                     $this->redirect('/login?registered=1');
                 } else {
@@ -148,13 +138,12 @@ class SecurityController extends AppController
                         $this->assignFavouriteSports($newUserId, $this->post('favourite_sports', []));
                         $this->redirect('/login?registered=1');
                     } else {
-                        // Real DB error
                         $errors[] = 'Wystąpił błąd podczas rejestracji. Spróbuj ponownie później.';
                     }
                 }
             } catch (Throwable $e) {
                 error_log($e->getMessage());
-                // Generic error for user
+                error_log($e->getMessage());
                 $errors[] = 'Wystąpił błąd serwera.';
             }
         }

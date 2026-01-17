@@ -46,7 +46,7 @@ class UserController extends AppController
                 return;
             }
 
-            // DTO Usage
+
             $dto = $validation['dto'] ?? null;
             $validatedData = ($dto instanceof \UpdateUserDTO) ? $dto->toArray() : $validation['data'];
 
@@ -61,7 +61,7 @@ class UserController extends AppController
             return;
         }
 
-        // GET request
+
         $this->render('profile', array_merge(
             $this->prepareProfileViewData($userProfile),
             ['isOwnProfile' => $this->isOwnProfile($targetId)]
@@ -104,7 +104,7 @@ class UserController extends AppController
 
         $success = $this->userRepository->updateUser($existingUser['email'], $updateData);
 
-        // Update session if editing own profile
+
         if ($success && $this->isOwnProfile((int)$existingUser['id'])) {
             $_SESSION['user_avatar'] = $avatarPath;
         }
@@ -159,7 +159,7 @@ class UserController extends AppController
     private function prepareProfileViewData(array $dbUser): array
     {
         $userId = (int)($dbUser['id'] ?? 0);
-        // Entity Usage
+
         $userEntity = new \User($dbUser);
 
         return [
@@ -173,8 +173,7 @@ class UserController extends AppController
                 'location' => ($userEntity->getLatitude() && $userEntity->getLongitude() ? "{$userEntity->getLatitude()}, {$userEntity->getLongitude()}" : ''),
                 'avatar' => $userEntity->getAvatarUrl() ?: AppConfig::DEFAULT_USER_AVATAR,
                 'role' => $userEntity->getRole() ?? 'user',
-                // enabled might not be in Entity if not mapped, using raw array fallback or adding to Entity. 
-                // Assuming Entity maps 'enabled' if passed. Checking User.php... constructs from data.
+
                 'enabled' => $dbUser['enabled'] ?? true,
                 'statistics' => $this->userRepository->getUserStatisticsById($userId),
             ],

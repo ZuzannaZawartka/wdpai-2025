@@ -101,18 +101,12 @@
 }
 
 
-
-/* actions anchoring moved to joined.css for the Joined page */
-
 .sports-page .match-body .meta-row {
     display: flex;
     gap: 1rem;
     align-items: center;
     margin-top: 0.5rem;
 }
-
-
-
 
 .sports-page .map-modal[hidden] {
     display: none;

@@ -130,7 +130,6 @@ class UserRepository extends Repository
         $row = $query->fetch(PDO::FETCH_ASSOC);
         $userId = $row && isset($row['id']) ? (int)$row['id'] : null;
 
-        // Inicjalizuj statystyki dla nowego użytkownika
         if ($userId) {
             $this->initializeUserStatistics($userId);
         }

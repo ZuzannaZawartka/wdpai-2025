@@ -166,8 +166,7 @@
                 </div>
                 <div class="join-actions">
                     <?php if ($event['isPast'] ?? false): ?>
-                    <div class="button muted text-size-small" disabled
-                        style="cursor: not-allowed; flex: 1; text-align: center;">Event Expired</div>
+                    <button class="button muted text-size-small" disabled>Event Expired</button>
                     <?php if(($_SESSION['user_role'] ?? 'user') === 'admin'): ?>
                     <button id="deleteBtn" class="button danger text-size-small"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Delete (Admin)</button>
@@ -186,7 +185,8 @@
                         $isFull = $event['isFull'] ?? false;
                     ?>
                     <?php if ($isFull && !$isParticipant): ?>
-                    <div class="button muted text-size-small" disabled style="cursor: not-allowed;">Event Full</div>
+                    <button class="button muted text-size-small" disabled>Event
+                        Full</button>
                     <?php else: ?>
                     <button id="joinBtn" class="button accent <?= $isParticipant ? 'hidden' : '' ?>"
                         data-event-id="<?= (int)($event['id'] ?? 0) ?>">Join Match</button>

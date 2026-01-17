@@ -122,7 +122,6 @@ class Routing
     {
         $path = trim($path, '/');
 
-        // Check for exact route match (e.g. "api/sports/search")
         if (isset(self::$routes[$path])) {
             self::dispatch($path);
             return;
@@ -132,17 +131,14 @@ class Routing
         $action = $segments[0] ?? '';
         $parameters = array_slice($segments, 1);
 
-        // Initialize session to check auth status
         AppController::getInstance()->ensureSession();
 
-        // Special routes: /accounts/edit/{id}
         if ($action === 'accounts' && ($parameters[0] ?? null) === 'edit' && is_numeric($parameters[1] ?? null)) {
             $_GET['id'] = $parameters[1];
             self::dispatch('accounts-edit', [$parameters[1]]);
             return;
         }
 
-        // Special route: /user/{id}
         if ($action === 'user') {
             if (empty($parameters) || !is_numeric($parameters[0])) {
                 self::render404();
@@ -152,12 +148,10 @@ class Routing
             return;
         }
 
-        // Special route: /event/*
         if ($action === 'event') {
             if (self::handleEventRoute($parameters)) return;
         }
 
-        // Normal dispatch
         self::dispatch($action);
     }
 
@@ -165,7 +159,6 @@ class Routing
     {
         $eventId = $parameters[0] ?? null;
 
-        // /event/edit/{id} or /event/edit/save/{id}
         if (($eventId ?? null) === 'edit' && is_numeric($parameters[1] ?? null)) {
             $id = (int)$parameters[1];
             $isSave = ($parameters[2] ?? null) === 'save' || $_SERVER['REQUEST_METHOD'] === 'POST';
@@ -173,7 +166,6 @@ class Routing
             return true;
         }
 
-        // /event/{id}/join|leave|delete
         if (is_numeric($eventId) && isset($parameters[1])) {
             $map = [
                 'join' => 'event-join',
@@ -189,13 +181,11 @@ class Routing
             return true;
         }
 
-        // /event/{id}
         if (is_numeric($eventId)) {
             self::dispatch('event', [(int)$eventId]);
             return true;
         }
 
-        // /event (no id)
         self::render404();
         return true;
     }
@@ -212,23 +202,19 @@ class Routing
         $method = $route['action'];
         $controller = $controllerClass::getInstance();
 
-        // Override for /event-edit save
         if (!empty($parameters) && $parameters[0] === 'save') {
             $method = 'updateEvent';
             array_shift($parameters);
         }
 
-        // Auth
         if ($route['auth'] ?? false) {
             $controller->requireAuth();
         }
 
-        // Ownership
         if (isset($route['requiresOwnership'])) {
             self::checkOwnership($controller, (int)($parameters[0] ?? 0), $route['requiresOwnership']);
         }
 
-        // Role
         if (isset($route['requiresRole'])) {
             self::checkRole($route['requiresRole'], $controller, $action);
         }

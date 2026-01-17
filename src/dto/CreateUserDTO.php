@@ -3,7 +3,7 @@
 class CreateUserDTO
 {
     public string $email;
-    public string $password; // plaintext; should be hashed by repository/service
+    public string $password;
     public string $firstname;
     public string $lastname;
     public ?string $birthDate = null;

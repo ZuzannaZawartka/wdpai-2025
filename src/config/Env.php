@@ -5,7 +5,7 @@ class Env
     public static function load(string $path): void
     {
         if (!file_exists($path)) {
-            return; // Or throw exception
+            return; 
         }
 
         $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
