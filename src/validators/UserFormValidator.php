@@ -1,9 +1,13 @@
 <?php
 
-class UserFormValidator {
-    public static function validate(array $postData, string $currentHash = null, bool $isOwnProfile = false): array {
+require_once __DIR__ . '/../dto/UpdateUserDTO.php';
+
+class UserFormValidator
+{
+    public static function validate(array $postData, ?string $currentHash = null, bool $isOwnProfile = false): array
+    {
         $errors = [];
-        
+
         $data = [
             'firstName' => trim($postData['firstName'] ?? ''),
             'lastName'  => trim($postData['lastName'] ?? ''),
@@ -42,7 +46,10 @@ class UserFormValidator {
                 $errors[] = "Aby zmienić hasło, podaj nowe hasło i powtórz je.";
             }
         }
-
-        return ['errors' => $errors, 'data' => $data];
+        return [
+            'errors' => $errors,
+            'data' => $data,
+            'dto' => new UpdateUserDTO($data)
+        ];
     }
 }

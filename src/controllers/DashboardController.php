@@ -1,35 +1,57 @@
 <?php
 
-class DashboardController extends AppController {
-    private $cardRepository;
+require_once 'AppController.php';
+require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../repository/EventRepository.php';
+require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../entity/Event.php';
+require_once __DIR__ . '/../entity/User.php';
+class DashboardController extends AppController
+{
     private UserRepository $userRepository;
     private EventRepository $eventRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
         $this->userRepository = new UserRepository();
         $this->eventRepository = new EventRepository();
         $this->sportsRepository = new SportsRepository();
     }
 
-    public function index() {
+    public function index()
+    {
         $this->ensureSession();
         $currentUserId = $this->getCurrentUserId();
-        $currentUser = $this->userRepository->getUserProfileById($currentUserId);
+        // Use Entity
+        $currentUser = $currentUserId ? $this->userRepository->getUserEntityById($currentUserId) : null;
 
+        $locationOverride = null;
+        if ($currentUser) {
+            $lat = $currentUser->getLatitude();
+            $lng = $currentUser->getLongitude();
+            if (is_numeric($lat) && is_numeric($lng)) {
+                $locationOverride = ['lat' => (float)$lat, 'lng' => (float)$lng];
+            }
+        }
 
         $upcomingRows = $this->eventRepository->getUserUpcomingEvents($currentUserId);
-        $upcomingEvents = array_map(function($r) {
+        $upcomingEvents = array_map(function ($r) {
+            $ev = new \Event($r);
+            $current = (int)$ev->getCurrentPlayers();
+            $max = (int)($ev->getMaxPlayers() ?? $current);
+            $level = $ev->getLevelName() ?? 'Intermediate';
             return [
-                'id' => (int)$r['id'],
-                'title' => (string)$r['title'],
-                'dateText' => (new DateTime($r['start_time']))->format('D, M j, g:i A'),
-                'location' => (string)($r['location_text'] ?? ''),
-                'players' => ($r['current_players'] ?? 0) . '/' . ($r['max_players'] ?? 0),
-                'level' => $r['level_name'],
-                'levelColor' => $r['level_color'] ?? '#eab308', 
-                'imageUrl' => $r['image_url'] ?? 'public/img/uploads/default.jpg'
+                'id' => $ev->getId(),
+                'title' => $ev->getTitle(),
+                'datetime' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : '',
+                'dateText' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : '',
+                'location' => (string)($ev->getLocationText() ?? ''),
+                'players' => $current . '/' . $max . ' Players',
+                'level' => $level,
+                'levelColor' => $ev->getLevelColor() ?? '#eab308',
+                'imageUrl' => (string)($ev->getImageUrl() ?? ''),
             ];
         }, $upcomingRows);
 
@@ -37,11 +59,11 @@ class DashboardController extends AppController {
 
 
         $suggestions = [];
-        if ($currentUser && isset($currentUser['latitude'], $currentUser['longitude'])) {
+        if ($currentUser && $currentUser->getLatitude() !== null && $currentUser->getLongitude() !== null) {
             $suggestions = $this->eventRepository->getNearbyEvents(
-                (float)$currentUser['latitude'], 
-                (float)$currentUser['longitude'], 
-                3 
+                (float)$currentUser->getLatitude(),
+                (float)$currentUser->getLongitude(),
+                3
             );
         }
 

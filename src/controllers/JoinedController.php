@@ -3,6 +3,7 @@
 require_once 'AppController.php';
 require_once __DIR__ . '/../repository/EventRepository.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../entity/Event.php';
 
 class JoinedController extends AppController {
 
@@ -12,22 +13,24 @@ class JoinedController extends AppController {
         $userId = $this->getCurrentUserId();
         $repo = new EventRepository();
         $rows = $userId ? $repo->getUserUpcomingEvents($userId) : [];
-        $joinedMatches = array_map(function($r) use ($userId) {
-            $current = (int)($r['current_players'] ?? 0);
-            $max = (int)($r['max_players'] ?? $current);
-            $level = is_string($r['level_name'] ?? null) ? $r['level_name'] : 'Intermediate';
+        // Map rows to Event entities for clearer code
+        $events = array_map(fn($r) => new Event($r), $rows);
+        $joinedMatches = array_map(function(Event $e) use ($userId) {
+            $current = $e->getCurrentPlayers();
+            $max = $e->getMaxPlayers() ?? $current;
+            $level = $e->getLevelName() ?: 'Intermediate';
             return [
-                'id' => (int)$r['id'],
-                'title' => (string)$r['title'],
-                'datetime' => (new DateTime($r['start_time']))->format('D, M j, g:i A'),
-                'desc' => (string)($r['description'] ?? ''),
+                'id' => $e->getId(),
+                'title' => $e->getTitle(),
+                'datetime' => (new DateTime($e->getStartTime()))->format('D, M j, g:i A'),
+                'desc' => $e->getDescription() ?? '',
                 'players' => $current . '/' . $max . ' Players',
                 'level' => $level,
                 'levelColor' => $level === 'Beginner' ? '#22c55e' : ($level === 'Advanced' ? '#ef4444' : '#eab308'),
-                'imageUrl' => (string)($r['image_url'] ?? ''),
-                'isOwner' => (int)($r['owner_id'] ?? 0) === (int)$userId,
+                'imageUrl' => $e->getImageUrl() ?? '',
+                'isOwner' => $e->getOwnerId() === (int)$userId,
             ];
-        }, $rows);
+        }, $events);
         $this->render('joined', [
             'pageTitle' => 'SportMatch - Joined Events',
             'activeNav' => 'joined',

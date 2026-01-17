@@ -3,18 +3,19 @@ require_once __DIR__ . '/../../config/lang/lang_helper.php';
 require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 
-class AppController {
+class AppController
+{
 
     protected static array $instances = [];
 
     protected function __construct() {}
 
-    protected function ensureSession(): void
+    public function ensureSession(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-                    || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
-                    || (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443');
+                || (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https')
+                || (isset($_SERVER['SERVER_PORT']) && (string)$_SERVER['SERVER_PORT'] === '443');
 
             session_set_cookie_params([
                 'lifetime' => 0,
@@ -55,8 +56,7 @@ class AppController {
     public function requireAuth(): void
     {
         if (!$this->isAuthenticated()) {
-            header('Location: /login');
-            exit();
+            $this->respondUnauthorized();
         }
     }
 
@@ -91,7 +91,7 @@ class AppController {
     protected function isValidEmail(string $email): bool
     {
         $normalized = mb_strtolower(trim($email), 'UTF-8');
-       
+
         if ($normalized === '' || mb_strlen($normalized, 'UTF-8') > 254) {
             return false;
         }
@@ -107,7 +107,7 @@ class AppController {
         return self::$instances[$class];
     }
 
-     protected function isGet(): bool
+    protected function isGet(): bool
     {
         return $_SERVER["REQUEST_METHOD"] === 'GET';
     }
@@ -117,7 +117,12 @@ class AppController {
         return $_SERVER["REQUEST_METHOD"] === 'POST';
     }
 
-    protected function render(string $template = null, array $variables = []): void
+    protected function isDelete(): bool
+    {
+        return $_SERVER["REQUEST_METHOD"] === 'DELETE';
+    }
+
+    protected function render(?string $template = null, array $variables = []): void
     {
         $this->ensureSession();
 
@@ -168,57 +173,199 @@ class AppController {
         return DEFAULT_AVATAR;
     }
 
-    
-    protected function hasRole(string $role): bool {
+
+    protected function hasRole(string $role): bool
+    {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === $role;
     }
-    
-    protected function hasRoles(...$roles): bool {
+
+    protected function hasRoles(...$roles): bool
+    {
         if (!isset($_SESSION['user_id'])) {
             return false;
         }
         $userRole = $_SESSION['user_role'] ?? null;
         return in_array($userRole, $roles, true);
     }
-    
-    protected function requireRole(string $role): void {
+
+    protected function requireRole(string $role): void
+    {
         if (!$this->hasRole($role)) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            exit();
+            $this->respondForbidden();
         }
     }
-    
-    protected function requireRoles(...$roles): void {
+
+    protected function requireRoles(...$roles): void
+    {
         if (!$this->hasRoles(...$roles)) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            exit();
+            $this->respondForbidden();
         }
     }
-    
-    protected function ensureAdmin(): bool {
+
+    protected function ensureAdmin(): bool
+    {
         if (!isset($_SESSION['user_id'])) {
             return false;
         }
-        
+
         $role = $_SESSION['user_role'] ?? null;
         if ($role !== 'admin') {
-            header('HTTP/1.1 403 Forbidden');
+            $this->setStatusCode(403);
             return false;
         }
-        
+
         return true;
     }
-    
-    public function isAdmin(): bool {
+
+    public function isAdmin(): bool
+    {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
     }
 
-    protected function mapEventData(array $event): array {
+    protected function setStatusCode(int $code): void
+    {
+        if (!headers_sent()) {
+            http_response_code($code);
+        }
+    }
+
+    protected function isJsonRequest(): bool
+    {
+        return (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
+            || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+    }
+
+    protected function respondUnauthorized(?string $message = null, ?bool $json = null): void
+    {
+        $this->setStatusCode(401);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Unauthorized']);
+        } else {
+            $this->redirect('/login');
+        }
+        exit();
+    }
+
+    public function respondForbidden(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(403);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Forbidden']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    public function respondNotFound(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(404);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Not found']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondBadRequest(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(400);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Bad request']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondInternalError(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(500);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Internal server error']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondMethodNotAllowed(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(405);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Method not allowed']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondConflict(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(409);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Conflict']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondTooManyRequests(?string $message = null, ?bool $json = null, ?string $template = '404'): void
+    {
+        $this->setStatusCode(429);
+        $json = $json ?? $this->isJsonRequest();
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Too many requests']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
+        }
+        exit();
+    }
+
+    protected function respondOk(array $data = []): void
+    {
+        $this->setStatusCode(200);
+        header('Content-Type: application/json');
+        echo json_encode(array_merge(['status' => 'success'], $data));
+        exit();
+    }
+
+    protected function mapEventData(array $event): array
+    {
         $startTime = $event['start_time'] ?? null;
         $formattedDate = 'Unknown date';
-        
+
         if ($startTime) {
             try {
                 $formattedDate = (new DateTime($startTime))->format('D, M j, g:i A');
@@ -234,8 +381,13 @@ class AppController {
             'players'    => (int)($event['current_players'] ?? 0) . " / " . (int)($event['max_players'] ?? 0),
             'level'      => $event['level_name'] ?? 'Intermediate',
             'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : '/public/images/boisko.png',
-            'levelColor' => $event['level_color'] ?? '#9E9E9E' 
+            'levelColor' => $event['level_color'] ?? '#9E9E9E'
         ];
     }
 
+    protected function redirect(string $url, int $code = 303): void
+    {
+        header("Location: $url", true, $code);
+        exit();
+    }
 }

@@ -4,6 +4,7 @@ require_once 'AppController.php';
 require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/AuthRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
+require_once __DIR__ . '/../entity/User.php';
 
 class SecurityController extends AppController
 {
@@ -40,8 +41,7 @@ class SecurityController extends AppController
         }
 
         if (!$this->checkCsrf()) {
-            header('HTTP/1.1 403 Forbidden');
-            return $this->render('login', ['messages' => 'Sesja wygasła, odśwież stronę']);
+            $this->respondForbidden('Sesja wygasła, odśwież stronę', null, 'login');
         }
 
         $ipHash = $this->getClientIpHash();
@@ -66,10 +66,18 @@ class SecurityController extends AppController
                 return $this->render('login', ['messages' => 'Konto jest zablokowane']);
             }
 
-            $this->setAuthContext((int)$user['id'], $user['email'], $user['role'], $user['avatar_url']);
-            session_write_close();
-            $this->redirect($user['role'] === self::ROLE_ADMIN ? '/sports' : '/dashboard');
+            // Entity Usage for Session Context
+            require_once __DIR__ . '/../entity/User.php';
+            $userEntity = new \User($user);
 
+            $this->setAuthContext(
+                (int)$userEntity->getId(),
+                $userEntity->getEmail(),
+                $userEntity->getRole() ?? self::ROLE_USER,
+                $userEntity->getAvatarUrl()
+            );
+            session_write_close();
+            $this->redirect($userEntity->getRole() === self::ROLE_ADMIN ? '/sports' : '/dashboard');
         } catch (Throwable $e) {
             error_log($e->getMessage());
             $this->handleFailedLogin($email, $ipHash, 'exception');
@@ -225,19 +233,12 @@ class SecurityController extends AppController
             if ($ipAttempt && (int)$ipAttempt['lock_until'] > time()) {
                 $retry = (int)$ipAttempt['lock_until'] - time();
                 $mins = (int)ceil($retry / 60);
-                header('HTTP/1.1 429 Too Many Requests');
-                $this->render('login', ['messages' => "Zbyt wiele prób. Spróbuj za {$mins} min."]);
+                $this->respondTooManyRequests("Zbyt wiele prób. Spróbuj za {$mins} min.", null, 'login');
                 return true;
             }
         } catch (Throwable $e) {
             error_log($e->getMessage());
         }
         return false;
-    }
-
-    private function redirect(string $url, int $code = 303): void
-    {
-        header("Location: $url", true, $code);
-        exit();
     }
 }

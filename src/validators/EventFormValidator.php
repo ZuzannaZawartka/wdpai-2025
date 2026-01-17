@@ -1,8 +1,10 @@
 <?php
 
+require_once __DIR__ . '/../dto/UpdateEventDTO.php';
+
 class EventFormValidator {
     
-    public static function validate(array $postData): array {
+    public static function validate(array $postData, ?int $currentParticipantsCount = null): array {
         $errors = [];
         
         // Extract and trim data
@@ -99,6 +101,19 @@ class EventFormValidator {
             $maxPlayers = (int)trim((string)($postData['playersRangeMax'] ?? '0'));
         }
         
+        // Validate max_players is not less than current participants count (only when editing)
+        if ($currentParticipantsCount !== null && $maxPlayers > 0 && $maxPlayers < $currentParticipantsCount) {
+            $errors[] = "Nie można zmniejszyć limitu uczestników poniżej aktualnej liczby dołączonych osób ({$currentParticipantsCount})";
+        }
+        
+        // If there are errors after this validation, return early
+        if (!empty($errors)) {
+            return [
+                'errors' => $errors,
+                'data' => null
+            ];
+        }
+        
         // Parse location coords
         $latitude = null;
         $longitude = null;
@@ -123,20 +138,38 @@ class EventFormValidator {
         $skillLevelId = self::getSkillLevelId($skill);
         
         // Return validated data
+        $data = [
+            'title' => $title,
+            'description' => $description,
+            'sport_id' => $sportId,
+            'start_time' => $startTime,
+            'location_text' => ($locationText !== '' ? substr($locationText, 0, 255) : substr((string)$location, 0, 255)),
+            'latitude' => $latitude,
+            'longitude' => $longitude,
+            'level_id' => $skillLevelId,
+            'min_needed' => $minNeeded,
+            'max_players' => $maxPlayers,
+        ];
+
+        // Backwards-compatible: return array data and also a DTO instance
+        require_once __DIR__ . '/../dto/UpdateEventDTO.php';
+        $dto = new UpdateEventDTO([
+            'title' => $data['title'],
+            'description' => $data['description'],
+            'sport_id' => $data['sport_id'],
+            'location_text' => $data['location_text'],
+            'latitude' => $data['latitude'],
+            'longitude' => $data['longitude'],
+            'start_time' => $data['start_time'],
+            'level_id' => $data['level_id'],
+            'max_players' => $data['max_players'],
+            'min_needed' => $data['min_needed'],
+        ]);
+
         return [
             'errors' => [],
-            'data' => [
-                'title' => $title,
-                'description' => $description,
-                'sport_id' => $sportId,
-                'start_time' => $startTime,
-                'location_text' => ($locationText !== '' ? substr($locationText, 0, 255) : substr((string)$location, 0, 255)),
-                'latitude' => $latitude,
-                'longitude' => $longitude,
-                'level_id' => $skillLevelId,
-                'min_needed' => $minNeeded,
-                'max_players' => $maxPlayers,
-            ]
+            'data' => $data,
+            'dto' => $dto
         ];
     }
     

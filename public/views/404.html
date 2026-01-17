@@ -1,15 +1,46 @@
+<?php 
+$isLoggedIn = isset($_SESSION['user_id']);
+if ($isLoggedIn): 
+    $pageTitle = 'Page Not Found';
+    $activeNav = 'dashboard';
+    include __DIR__ . '/components/header.html';
+?>
+<section class="error-page section">
+    <div class="empty-panel empty-dashed">
+        <span class="material">search_off</span>
+        <h2 class="text-title-large">404</h2>
+        <h3 class="text-title">Strona nie została znaleziona</h3>
+        <p class="text-desc">
+            <?= htmlspecialchars($message ?? ($messages ?? 'Nie znaleźliśmy tego, czego szukasz.'), ENT_QUOTES) ?>
+        </p>
+        <div class="actions" style="justify-content: center; margin-top: 1.5rem;">
+            <a href="/dashboard" class="button primary">Wróć do Panelu</a>
+        </div>
+    </div>
+</section>
+<?php include __DIR__ . '/components/footer.html'; ?>
+
+<?php else: ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="public/styles/main.css">
+    <link rel="stylesheet" href="/public/styles/main.css">
     <title>404</title>
 </head>
 
 <body>
-    <h1>404 Not Found</h1>
+    <div class="site-main" style="text-align: center; padding-top: 100px;">
+        <h1 class="text-title-large" style="font-size: 5rem;">404</h1>
+        <h2 class="text-title">Strona nie znaleziona</h2>
+        <p class="text-desc" style="margin: 1.5rem 0;">
+            <?= htmlspecialchars($message ?? ($messages ?? 'Skontaktuj się z administratorem lub wróć do logowania.'), ENT_QUOTES) ?>
+        </p>
+        <a href="/login" class="button primary">Zaloguj się ponownie</a>
+    </div>
 </body>
 
 </html>
+<?php endif; ?>

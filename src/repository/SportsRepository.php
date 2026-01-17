@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/Repository.php';
+require_once __DIR__ . '/../entity/Sport.php';
 
 class SportsRepository extends Repository {
 
@@ -8,6 +9,13 @@ class SportsRepository extends Repository {
         $stmt = $this->database->connect()->prepare('SELECT id, name, icon FROM sports ORDER BY id');
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    // New: return array of Sport entities
+    public function getAllSportsEntities(): array
+    {
+        $rows = $this->getAllSports();
+        return array_map(fn($r) => new \Sport($r), $rows);
     }
 
     public function getAllLevels(): array {

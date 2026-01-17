@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/../../Database.php';
+require_once __DIR__ . '/../entity/Event.php';
 
 class EventRepository {
     private PDO $db;
@@ -36,6 +37,29 @@ class EventRepository {
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    // New: return Event entity list for owner's events (future-proof)
+    public function getMyEventsEntities(int $ownerId): array
+    {
+        require_once __DIR__ . '/../entity/Event.php';
+        $sql = "
+            SELECT e.id, e.title, e.description, e.sport_id, s.name AS sport_name,
+                   e.location_text, e.latitude, e.longitude,
+                   e.start_time, e.level_id, l.name AS level_name,
+                   e.image_url, e.max_players, e.min_needed,
+                   e.owner_id,
+                   (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+            FROM events e
+            LEFT JOIN sports s ON s.id = e.sport_id
+            LEFT JOIN levels l ON l.id = e.level_id
+            WHERE e.owner_id = :owner AND e.start_time >= NOW()
+            ORDER BY e.start_time ASC
+        ";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute(['owner' => $ownerId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return array_map(fn($r) => new \Event($r), $rows);
+    }
+
     public function deleteEventByOwner(int $eventId, int $ownerId): bool {
         $stmt = $this->db->prepare('DELETE FROM events WHERE id = :id AND owner_id = :owner');
         $stmt->execute(['id' => $eventId, 'owner' => $ownerId]);
@@ -65,7 +89,16 @@ class EventRepository {
         ";
         $stmt = $this->db->prepare($sql);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        // Provide both associative-array API and entity API via a separate method; this keeps backward compatibility.
+        return $rows;
+    }
+
+    // New: return list of Event entities for listing
+    public function getAllForListingEntities(bool $includePast = true): array
+    {
+        $rows = $this->getAllForListing($includePast);
+        return array_map(fn($r) => new \Event($r), $rows);
     }
 
     public function getEventById(int $id): ?array {
@@ -86,6 +119,16 @@ class EventRepository {
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;
+    }
+
+    // New: return Event entity instance or null
+    public function getEventEntityById(int $id): ?\Event
+    {
+        $row = $this->getEventById($id);
+        if (!$row) {
+            return null;
+        }
+        return new \Event($row);
     }
 
     public function getUpcomingWithCoords(): array {
@@ -199,15 +242,6 @@ class EventRepository {
 
             $eventId = (int)$this->db->lastInsertId();
 
-            if (isset($data['owner_id'])) {
-                $statStmt = $this->db->prepare('
-                    UPDATE user_statistics 
-                    SET total_events_created = total_events_created + 1 
-                    WHERE user_id = ?
-                ');
-                $statStmt->execute([$data['owner_id']]);
-            }
-
             $this->db->commit();
             return $eventId;
         } catch (Throwable $e) {
@@ -276,7 +310,7 @@ class EventRepository {
         return $stmt->rowCount() > 0;
     }
 
-    public function getEventsFromView(int $limit = null): array {
+    public function getEventsFromView(?int $limit = null): array {
         $sql = "SELECT * FROM vw_events_full";
         if ($limit) {
             $sql .= " LIMIT :limit";
@@ -312,12 +346,7 @@ class EventRepository {
             $ins->execute([$eventId, $userId]);
 
             // Update user statistics
-            $statStmt = $this->db->prepare('
-                UPDATE user_statistics 
-                SET total_events_joined = total_events_joined + 1 
-                WHERE user_id = ?
-            ');
-            $statStmt->execute([$userId]);
+
 
             $this->db->commit();
             return true;
@@ -337,14 +366,6 @@ class EventRepository {
 
             $stmt = $this->db->prepare('DELETE FROM event_participants WHERE event_id = ? AND user_id = ?');
             $stmt->execute([$eventId, $userId]);
-
-            $statStmt = $this->db->prepare('
-                UPDATE user_statistics 
-                SET total_events_joined = GREATEST(total_events_joined - 1, 0) 
-                WHERE user_id = ?
-            ');
-            $statStmt->execute([$userId]);
-
             $this->db->commit();
             return $stmt->rowCount() > 0;
         } catch (Throwable $e) {
@@ -414,17 +435,17 @@ class EventRepository {
         $sql = "
             SELECT 
                 e.id, e.title, e.location_text, e.image_url, s.name as sport_name,
-                (6371 * acos(cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude)))) AS distance
+                (6371 * acos(GREATEST(-1, LEAST(1, cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude)))))) AS distance
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
-            WHERE e.start_time >= NOW()
+            WHERE e.start_time >= NOW() AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
             ORDER BY distance ASC
             LIMIT :limit
         ";
         
         $stmt = $this->db->prepare($sql);
-        $stmt->bindValue(':lat', $lat);
-        $stmt->bindValue(':lng', $lng);
+        $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
+        $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
         $stmt->execute();
         
