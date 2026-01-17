@@ -9,20 +9,20 @@
 }
 
 .denied-container h1 {
-    color: #ef4444;
+    color: var(--danger);
     font-size: 2rem;
     margin-bottom: 16px;
 }
 
 .denied-container p {
-    color: #333;
+    color: var(--text-dark);
     margin-bottom: 24px;
 }
 
 .denied-container .btn {
     display: inline-block;
     padding: 10px 24px;
-    background: #3b82f6;
+    background: var(--primary);
     color: #fff;
     border-radius: 6px;
     text-decoration: none;
@@ -31,5 +31,6 @@
 }
 
 .denied-container .btn:hover {
-    background: #2563eb;
+    background: var(--primary);
+    filter: brightness(0.9);
 }

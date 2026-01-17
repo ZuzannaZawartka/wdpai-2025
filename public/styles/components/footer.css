@@ -1,6 +1,6 @@
 .site-footer {
-    background: #fff;
-    border-top: 1px solid #e2e8f0;
+    background: var(--white);
+    border-top: 1px solid var(--border-color);
     margin-top: auto;
 }
 
