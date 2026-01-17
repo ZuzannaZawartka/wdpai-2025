@@ -35,7 +35,7 @@ class SportsController extends AppController
         }
 
         $this->render('sports', [
-            'pageTitle'      => 'SportMatch - Sports',
+            'pageTitle'      => 'FindRival - Sports',
             'activeNav'      => 'sports',
             'selectedSports' => $filters['sports'],
             'sportsGrid'     => $this->getSportsGrid(),

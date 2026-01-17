@@ -30,7 +30,7 @@ class EventController extends AppController
         $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
         $allSports = $sportsRepo->getAllSports();
         parent::render('event-create', [
-            'pageTitle' => 'SportMatch - Create Event',
+            'pageTitle' => 'FindRival - Create Event',
             'activeNav' => 'event-create',
             'skillLevels' => $skillLevels,
             'allSports' => $allSports,
@@ -46,7 +46,7 @@ class EventController extends AppController
             $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
             $allSports = $sportsRepo->getAllSports();
             parent::render('event-create', [
-                'pageTitle' => 'SportMatch - Create Event',
+                'pageTitle' => 'FindRival - Create Event',
                 'activeNav' => 'event-create',
                 'skillLevels' => $skillLevels,
                 'allSports' => $allSports,
@@ -73,7 +73,7 @@ class EventController extends AppController
                 $skillLevels = array_map(fn($l) => $l['name'], $sportsRepo->getAllLevels());
                 $allSports = $sportsRepo->getAllSports();
                 parent::render('event-create', [
-                    'pageTitle' => 'SportMatch - Create Event',
+                    'pageTitle' => 'FindRival - Create Event',
                     'activeNav' => 'event-create',
                     'skillLevels' => $skillLevels,
                     'allSports' => $allSports,
@@ -250,7 +250,7 @@ class EventController extends AppController
         $sportsRepo = SportsRepository::getInstance();
 
         $renderData = [
-            'pageTitle' => 'SportMatch - Edit Event',
+            'pageTitle' => 'FindRival - Edit Event',
             'activeNav' => 'event-edit',
             'skillLevels' => $sportsRepo->getAllLevels(),
             'allSports' => $allSports,
@@ -306,7 +306,7 @@ class EventController extends AppController
         }
         $event['isPast'] = $repo->isEventPast((int)$id);
         $this->render('event', [
-            'pageTitle' => 'SportMatch - Match Details',
+            'pageTitle' => 'FindRival - Match Details',
             'activeNav' => 'sports',
             'event' => $event
         ]);

@@ -32,7 +32,7 @@ class JoinedController extends AppController
             ];
         }, $events);
         $this->render('joined', [
-            'pageTitle' => 'SportMatch - Joined Events',
+            'pageTitle' => 'FindRival - Joined Events',
             'activeNav' => 'joined',
             'joinedMatches' => $joinedMatches,
         ]);

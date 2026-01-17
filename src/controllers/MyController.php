@@ -52,7 +52,7 @@ class MyController extends AppController
         }
 
         $this->render('my', [
-            'pageTitle' => 'SportMatch - My Events',
+            'pageTitle' => 'FindRival - My Events',
             'activeNav' => 'my',
             'myEvents'  => $myEvents,
         ]);
