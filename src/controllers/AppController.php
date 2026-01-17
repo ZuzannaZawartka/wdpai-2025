@@ -10,7 +10,7 @@ class AppController
 
     protected function __construct() {}
 
-    protected function ensureSession(): void
+    public function ensureSession(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
             $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
@@ -229,88 +229,126 @@ class AppController
         }
     }
 
-    protected function respondUnauthorized(?string $message = null, bool $json = false): void
+    protected function isJsonRequest(): bool
+    {
+        return (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
+            || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
+    }
+
+    protected function respondUnauthorized(?string $message = null, ?bool $json = null): void
     {
         $this->setStatusCode(401);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Unauthorized']);
         } else {
-            header('Location: /login');
+            $this->redirect('/login');
         }
         exit();
     }
 
-    public function respondForbidden(?string $message = null, bool $json = false): void
+    public function respondForbidden(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(403);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Forbidden']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
         } else {
-            $this->render('404');
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    public function respondNotFound(?string $message = null, bool $json = false): void
+    public function respondNotFound(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(404);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Not found']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
         } else {
-            $this->render('404');
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    protected function respondBadRequest(?string $message = null, bool $json = false): void
+    protected function respondBadRequest(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(400);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Bad request']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    protected function respondInternalError(?string $message = null, bool $json = false): void
+    protected function respondInternalError(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(500);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Internal server error']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    protected function respondMethodNotAllowed(?string $message = null, bool $json = false): void
+    protected function respondMethodNotAllowed(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(405);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Method not allowed']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    protected function respondConflict(?string $message = null, bool $json = false): void
+    protected function respondConflict(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(409);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Conflict']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }
 
-    protected function respondTooManyRequests(?string $message = null, bool $json = false): void
+    protected function respondTooManyRequests(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(429);
+        $json = $json ?? $this->isJsonRequest();
         if ($json) {
             header('Content-Type: application/json');
             echo json_encode(['status' => 'error', 'message' => $message ?? 'Too many requests']);
+        } elseif (!$this->isAuthenticated()) {
+            $this->redirect('/login');
+        } else {
+            $this->render($template, ['messages' => $message, 'message' => $message]);
         }
         exit();
     }

@@ -14,8 +14,7 @@ class EventController extends AppController
     {
         // Admins cannot create events
         if ($this->isAdmin()) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
+            $this->respondForbidden('Admins cannot create events');
             return;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -77,11 +76,9 @@ class EventController extends AppController
         $repo = new EventRepository();
         $eventId = $repo->createEvent($newEvent);
         if ($eventId) {
-            header('Location: /event/' . $eventId);
-            exit;
+            $this->redirect('/event/' . $eventId);
         } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to create event']);
+            $this->respondInternalError('Failed to create event');
         }
     }
 
@@ -105,7 +102,7 @@ class EventController extends AppController
         $this->ensureSession();
         $repo = new EventRepository();
         if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
-            $this->respondForbidden('Cannot edit past events', true);
+            $this->respondForbidden('Cannot edit past events');
         }
 
         // Get current event to check participants count
@@ -128,7 +125,7 @@ class EventController extends AppController
             try {
                 $metadata = new EventMetadata($dtoFromValidator->title ?? ($dtoFromValidator->title ?? ''), $dtoFromValidator->description ?? null);
             } catch (Throwable $e) {
-                $this->respondBadRequest('Invalid event metadata', true);
+                $this->respondBadRequest('Invalid event metadata');
             }
             // Normalize via metadata
             $updates = $dtoFromValidator->toArray();
@@ -139,7 +136,7 @@ class EventController extends AppController
             try {
                 $metadata = new EventMetadata($dtoData['title'], $dtoData['description']);
             } catch (Throwable $e) {
-                $this->respondBadRequest('Invalid event metadata', true);
+                $this->respondBadRequest('Invalid event metadata');
             }
             $updateDto = new UpdateEventDTO([
                 'title' => $metadata->title(),
@@ -165,10 +162,9 @@ class EventController extends AppController
         }
         $result = $repo->updateEvent((int)$id, $updates);
         if ($result) {
-            header('Location: /event/' . (int)$id);
-            exit;
+            $this->redirect('/event/' . (int)$id);
         } else {
-            $this->respondInternalError('Failed to update event', true);
+            $this->respondInternalError('Failed to update event');
         }
     }
 
@@ -294,22 +290,22 @@ class EventController extends AppController
     {
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            $this->respondUnauthorized('Not authenticated', true);
+            $this->respondUnauthorized('Not authenticated');
         }
 
         $repo = new EventRepository();
         if ($repo->isEventPast((int)$id)) {
-            $this->respondBadRequest('Event has already passed', true);
+            $this->respondBadRequest('Event has already passed');
         }
         if ($repo->isEventFull((int)$id)) {
-            $this->respondBadRequest('Event is full', true);
+            $this->respondBadRequest('Event is full');
         }
         $result = $repo->joinEventWithTransaction($userId, (int)$id);
 
         if ($result) {
             $this->respondOk(['message' => 'Joined event']);
         } else {
-            $this->respondBadRequest('Failed to join event', true);
+            $this->respondBadRequest('Failed to join event');
         }
     }
 
@@ -318,23 +314,23 @@ class EventController extends AppController
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            $this->respondUnauthorized('Not authenticated', true);
+            $this->respondUnauthorized('Not authenticated');
         }
         $repo = new EventRepository();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
-            $this->respondNotFound('Event not found', true);
+            $this->respondNotFound('Event not found');
         }
 
         if (!$this->canDeleteEvent($eventEntity, $userId)) {
-            $this->respondForbidden('Only owner or admin can delete event', true);
+            $this->respondForbidden('Only owner or admin can delete event');
         }
 
         $result = $repo->deleteEvent((int)$id);
         if ($result) {
             $this->respondOk(['message' => 'Event deleted']);
         } else {
-            $this->respondInternalError('Failed to delete event', true);
+            $this->respondInternalError('Failed to delete event');
         }
     }
 
@@ -348,22 +344,22 @@ class EventController extends AppController
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            $this->respondUnauthorized('Not authenticated', true);
+            $this->respondUnauthorized('Not authenticated');
         }
         $repo = new EventRepository();
         $eventEntity = $repo->getEventEntityById((int)$id);
         if (!$eventEntity) {
-            $this->respondNotFound('Event not found', true);
+            $this->respondNotFound('Event not found');
         }
 
         if ((int)$eventEntity->getOwnerId() === (int)$userId) {
-            $this->respondBadRequest('Owner cannot leave their own event', true);
+            $this->respondBadRequest('Owner cannot leave their own event');
         }
         $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
         if ($result) {
             $this->respondOk(['message' => 'Left event']);
         } else {
-            $this->respondBadRequest('Failed to leave event', true);
+            $this->respondBadRequest('Failed to leave event');
         }
     }
 }

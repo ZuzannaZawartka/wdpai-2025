@@ -27,8 +27,7 @@ class UserController extends AppController
         $dbUser = $this->userRepository->getUserProfileById($targetId);
 
         if (!$dbUser) {
-            header('Location: /dashboard');
-            exit();
+            $this->redirect('/dashboard');
         }
 
         $this->render('profile', array_merge(
@@ -45,8 +44,7 @@ class UserController extends AppController
         $userProfile = $this->userRepository->getUserProfileById($targetId);
 
         if (!$userProfile) {
-            header('Location: /dashboard');
-            exit();
+            $this->redirect('/dashboard');
         }
 
         $passwordHash = null;
@@ -205,7 +203,6 @@ class UserController extends AppController
     private function finalizeUpdate(string $context): void
     {
         $path = ($context === 'admin_panel') ? '/accounts?success=1' : '/profile?success=1';
-        header("Location: $path");
-        exit();
+        $this->redirect($path);
     }
 }

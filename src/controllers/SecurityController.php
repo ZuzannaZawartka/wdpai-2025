@@ -41,8 +41,7 @@ class SecurityController extends AppController
         }
 
         if (!$this->checkCsrf()) {
-            header('HTTP/1.1 403 Forbidden');
-            return $this->render('login', ['messages' => 'Sesja wygasła, odśwież stronę']);
+            $this->respondForbidden('Sesja wygasła, odśwież stronę', null, 'login');
         }
 
         $ipHash = $this->getClientIpHash();
@@ -234,8 +233,7 @@ class SecurityController extends AppController
             if ($ipAttempt && (int)$ipAttempt['lock_until'] > time()) {
                 $retry = (int)$ipAttempt['lock_until'] - time();
                 $mins = (int)ceil($retry / 60);
-                header('HTTP/1.1 429 Too Many Requests');
-                $this->render('login', ['messages' => "Zbyt wiele prób. Spróbuj za {$mins} min."]);
+                $this->respondTooManyRequests("Zbyt wiele prób. Spróbuj za {$mins} min.", null, 'login');
                 return true;
             }
         } catch (Throwable $e) {

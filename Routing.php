@@ -125,6 +125,9 @@ class Routing
         $action = $segments[0] ?? '';
         $parameters = array_slice($segments, 1);
 
+        // Initialize session to check auth status
+        AppController::getInstance()->ensureSession();
+
         // Special routes: /accounts/edit/{id}
         if ($action === 'accounts' && ($parameters[0] ?? null) === 'edit' && is_numeric($parameters[1] ?? null)) {
             $_GET['id'] = $parameters[1];
@@ -232,18 +235,10 @@ class Routing
         $hasRole = is_array($requiredRole) ? in_array($userRole, $requiredRole, true) : $userRole === $requiredRole;
 
         if (!$hasRole) {
-            if ($action === 'event-delete') {
-                header('Content-Type: application/json');
-                http_response_code(403);
-                echo json_encode([
-                    'status' => 'error',
-                    'message' => 'Forbidden: requires role ' . (is_array($requiredRole) ? implode(',', $requiredRole) : $requiredRole) . ', got ' . var_export($userRole, true)
-                ]);
-                exit();
+            if ($action === 'event-delete' || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+                self::jsonResponse(403, 'Forbidden: requires role ' . (is_array($requiredRole) ? implode(',', $requiredRole) : $requiredRole));
             }
-            http_response_code(403);
-            self::render404();
-            exit();
+            self::render403();
         }
     }
 
@@ -271,12 +266,14 @@ class Routing
 
     private static function render404(bool $json = false): void
     {
-        if ($json) {
-            header('Content-Type: application/json');
-            http_response_code(404);
-            echo json_encode(['status' => 'error', 'message' => 'Route not found']);
+        AppController::getInstance()->ensureSession();
+        if ($json || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+            self::jsonResponse(404, 'Route not found');
+        } elseif (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
         } else {
             http_response_code(404);
+            $message = 'Strona, której szukasz, nie została znaleziona.';
             include 'public/views/404.html';
         }
         exit();
@@ -284,8 +281,24 @@ class Routing
 
     private static function render403(): void
     {
-        http_response_code(403);
-        include 'public/views/404.html';
+        AppController::getInstance()->ensureSession();
+        if (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')) {
+            self::jsonResponse(403, 'Forbidden access');
+        } elseif (!isset($_SESSION['user_id'])) {
+            header('Location: /login');
+        } else {
+            http_response_code(403);
+            $message = 'Nie masz uprawnień do obejrzenia tej strony.';
+            include 'public/views/404.html';
+        }
+        exit();
+    }
+
+    private static function jsonResponse(int $code, string $message): void
+    {
+        header('Content-Type: application/json');
+        http_response_code($code);
+        echo json_encode(['status' => 'error', 'message' => $message]);
         exit();
     }
 }
