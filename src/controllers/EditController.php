@@ -33,9 +33,7 @@ class EditController extends AppController {
         
         $repo = new EventRepository();
         if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Cannot edit past events']);
-            return;
+            $this->respondForbidden('Cannot edit past events', true);
         }
         
         // Get current event to check participants count
@@ -80,8 +78,7 @@ class EditController extends AppController {
             header('Location: /event/' . (int)$id);
             exit;
         } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update event']);
+            $this->respondInternalError('Failed to update event', true);
         }
     }
     

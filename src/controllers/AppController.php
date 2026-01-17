@@ -63,8 +63,7 @@ class AppController {
     public function requireAuth(): void
     {
         if (!$this->isAuthenticated()) {
-            header('Location: /login');
-            exit();
+            $this->respondUnauthorized();
         }
     }
 
@@ -189,17 +188,13 @@ class AppController {
     
     protected function requireRole(string $role): void {
         if (!$this->hasRole($role)) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            exit();
+            $this->respondForbidden();
         }
     }
     
     protected function requireRoles(...$roles): void {
         if (!$this->hasRoles(...$roles)) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            exit();
+            $this->respondForbidden();
         }
     }
     
@@ -210,7 +205,7 @@ class AppController {
         
         $role = $_SESSION['user_role'] ?? null;
         if ($role !== 'admin') {
-            header('HTTP/1.1 403 Forbidden');
+            $this->setStatusCode(403);
             return false;
         }
         
@@ -219,6 +214,97 @@ class AppController {
     
     public function isAdmin(): bool {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
+    }
+
+    protected function setStatusCode(int $code): void {
+        if (!headers_sent()) {
+            http_response_code($code);
+        }
+    }
+    
+    protected function respondUnauthorized(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(401);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Unauthorized']);
+        } else {
+            header('Location: /login');
+        }
+        exit();
+    }
+    
+    public function respondForbidden(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(403);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Forbidden']);
+        } else {
+            $this->render('404');
+        }
+        exit();
+    }
+    
+    protected function respondNotFound(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(404);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Not found']);
+        } else {
+            $this->render('404');
+        }
+        exit();
+    }
+    
+    protected function respondBadRequest(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(400);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Bad request']);
+        }
+        exit();
+    }
+    
+    protected function respondInternalError(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(500);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Internal server error']);
+        }
+        exit();
+    }
+    
+    protected function respondMethodNotAllowed(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(405);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Method not allowed']);
+        }
+        exit();
+    }
+    
+    protected function respondConflict(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(409);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Conflict']);
+        }
+        exit();
+    }
+    
+    protected function respondTooManyRequests(?string $message = null, bool $json = false): void {
+        $this->setStatusCode(429);
+        if ($json) {
+            header('Content-Type: application/json');
+            echo json_encode(['status' => 'error', 'message' => $message ?? 'Too many requests']);
+        }
+        exit();
+    }
+    
+    protected function respondOk(array $data = []): void {
+        $this->setStatusCode(200);
+        header('Content-Type: application/json');
+        echo json_encode(array_merge(['status' => 'success'], $data));
+        exit();
     }
 
 }

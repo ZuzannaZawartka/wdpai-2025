@@ -30,7 +30,7 @@ class SecurityController extends AppController {
     public function login() {
         $this->ensureSession();
         if (!$this->isGet() && !$this->isPost()) {
-            header('HTTP/1.1 405 Method Not Allowed');
+            $this->setStatusCode(405);
             header('Allow: GET, POST');
             return $this->render("login");
         }
@@ -40,7 +40,7 @@ class SecurityController extends AppController {
 
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-            header('HTTP/1.1 403 Forbidden');
+            $this->setStatusCode(403);
             return $this->render("login", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie"]);
         }
 
@@ -61,23 +61,21 @@ class SecurityController extends AppController {
             mb_strlen($password, 'UTF-8') > self::MAX_PASSWORD_LENGTH ||
             !$this->isValidEmail($email)
         ) {
-            // Nieudana próba logowania (złe dane wejściowe)
             $this->incrementIpLimiter($ipHash);
-            header('HTTP/1.1 400 Bad Request');
+            $this->setStatusCode(400);
             return $this->render("login", ["messages" => "Email lub hasło niepoprawne"]);
         }
 
         try {
             $user = $this->userRepository->getUserByEmail($email);
         } catch (Throwable $e) {
-            header('HTTP/1.1 500 Internal Server Error');
+            $this->setStatusCode(500);
             return $this->render("login", ["messages" => "Wewnętrzny błąd serwera"]);
         }
 
         if(!$user || !$this->verifyPassword($password, $user['password'])){
-            // Nieudana próba logowania (zły email lub hasło)
             $this->incrementIpLimiter($ipHash);
-            header('HTTP/1.1 401 Unauthorized');
+            $this->setStatusCode(401);
             return $this->render("login", ["messages"=>"Email lub hasło niepoprawne"]);
         }
 
@@ -97,7 +95,7 @@ class SecurityController extends AppController {
     public function register(){
         $this->ensureSession();
         if (!$this->isGet() && !$this->isPost()) {
-            header('HTTP/1.1 405 Method Not Allowed');
+            $this->setStatusCode(405);
             header('Allow: GET, POST');
             return $this->render("register");
         }
@@ -110,7 +108,7 @@ class SecurityController extends AppController {
 
         $csrf = $_POST['csrf_token'] ?? '';
         if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-            header('HTTP/1.1 403 Forbidden');
+            $this->setStatusCode(403);
             return $this->render("register", ["messages" => "Sesja wygasła, odśwież stronę i spróbuj ponownie", 'allSports' => $allSports]);
         }
 
@@ -156,16 +154,12 @@ class SecurityController extends AppController {
                 $emailExists = true;
             }
         } catch (Throwable $e) {
-            header('HTTP/1.1 500 Internal Server Error');
+            $this->setStatusCode(500);
             return $this->render("register", ["messages" => "Wewnętrzny błąd serwera", 'allSports' => $allSports]);
         }
 
         if (!empty($errors)) {
-            if ($emailExists) {
-                header('HTTP/1.1 409 Conflict');
-            } else {
-                header('HTTP/1.1 400 Bad Request');
-            }
+            $this->setStatusCode($emailExists ? 409 : 400);
             return $this->render("register", ["messages" => implode('<br>', $errors), 'allSports' => $allSports]);
         }
 
@@ -189,7 +183,7 @@ class SecurityController extends AppController {
         } catch (Throwable $e) {
             error_log("Registration error: " . $e->getMessage());
             error_log("Trace: " . $e->getTraceAsString());
-            header('HTTP/1.1 500 Internal Server Error');
+            $this->setStatusCode(500);
             return $this->render("register", ["messages" => "Wewnętrzny błąd serwera: " . $e->getMessage(), 'allSports' => $allSports]);
         }
 
@@ -245,7 +239,7 @@ class SecurityController extends AppController {
         if ($lockUntil > $now) {
             $retry = $lockUntil - $now;
             $mins = max(1, (int)ceil($retry / 60));
-            header('HTTP/1.1 429 Too Many Requests');
+            $this->setStatusCode(429);
             header('Retry-After: ' . $retry);
             $this->render("login", ["messages" => "Zbyt wiele nieudanych prób. Spróbuj ponownie za {$mins} min."]);
             return true;

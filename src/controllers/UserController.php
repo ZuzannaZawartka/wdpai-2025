@@ -93,9 +93,7 @@ class UserController extends AppController {
     }
 
     public function updateFavourites(): void {
-        http_response_code(405);
-        header('Content-Type: application/json');
-        echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+        $this->respondMethodNotAllowed('Method not allowed', true);
     }
 
     public function updateProfile(): void {
@@ -103,8 +101,7 @@ class UserController extends AppController {
         $this->ensureSession();
 
         if (!$this->isPost()) {
-            header('HTTP/1.1 405 Method Not Allowed');
-            http_response_code(405);
+            $this->setStatusCode(405);
             return;
         }
 
@@ -164,7 +161,7 @@ class UserController extends AppController {
             foreach ($allSports as $sport) {
                 $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
             }
-            header('HTTP/1.1 400 Bad Request');
+            $this->setStatusCode(400);
             $this->render('profile', [
                 'pageTitle' => 'SportMatch - Profile',
                 'activeNav' => 'profile',
@@ -198,7 +195,7 @@ class UserController extends AppController {
                 foreach ($allSports as $sport) {
                     $sportIdToIcon[(int)$sport['id']] = $sport['icon'] ?? '🏅';
                 }
-                header('HTTP/1.1 401 Unauthorized');
+                $this->setStatusCode(401);
                 $this->render('profile', [
                     'pageTitle' => 'SportMatch - Profile',
                     'activeNav' => 'profile',
@@ -259,7 +256,7 @@ class UserController extends AppController {
             }
         } catch (Throwable $e) {
             error_log("Profile update error: " . $e->getMessage());
-            header('HTTP/1.1 500 Internal Server Error');
+            $this->setStatusCode(500);
             $this->render('profile', ['messages' => 'Failed to update profile']);
             return;
         }
@@ -271,9 +268,7 @@ class UserController extends AppController {
         $this->ensureSession();
         $editUserId = (int)($_GET['id'] ?? $userId ?? 0);
         if (!$editUserId) {
-            http_response_code(400);
-            $this->render('404');
-            return;
+            $this->respondBadRequest();
         }
         if ($this->isPost()) {
             $ok = $this->handleUserEdit($editUserId, false);
@@ -287,9 +282,7 @@ class UserController extends AppController {
         $sportsRepo = new SportsRepository();
         $user = $repo->getUserById($editUserId);
         if (!$user) {
-            http_response_code(404);
-            $this->render('404');
-            return;
+            $this->respondNotFound();
         }
         if (empty($user['location']) && !empty($user['latitude']) && !empty($user['longitude'])) {
             $user['location'] = $user['latitude'] . ', ' . $user['longitude'];
@@ -309,9 +302,7 @@ class UserController extends AppController {
         $this->requireRole('admin');
         $userId = (int)($_GET['id'] ?? $userId ?? 0);
         if (!$userId) {
-            http_response_code(400);
-            $this->render('404');
-            return;
+            $this->respondBadRequest();
         }
         if ($this->isPost()) {
             $ok = $this->handleUserEdit($userId, true);
@@ -329,9 +320,7 @@ class UserController extends AppController {
         $sportsRepo = new SportsRepository();
         $user = $repo->getUserById($userId);
         if (!$user) {
-            http_response_code(404);
-            $this->render('404');
-            return;
+            $this->respondNotFound();
         }
         $user['firstName'] = $user['firstname'] ?? '';
         $user['lastName'] = $user['lastname'] ?? '';
@@ -400,8 +389,7 @@ class UserController extends AppController {
         $sportsRepo = new SportsRepository();
         $user = $repo->getUserById($userId);
         if (!$user) {
-            http_response_code(404);
-            $this->render('404');
+            $this->respondNotFound();
             return false;
         }
         $validation = UserFormValidator::validate($_POST);

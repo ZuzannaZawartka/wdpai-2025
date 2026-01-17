@@ -1,5 +1,6 @@
 <?php
 
+require_once 'src/controllers/AppController.php';
 require_once 'src/controllers/SecurityController.php';
 require_once 'src/controllers/UserController.php';
 require_once 'src/controllers/DashboardController.php';
@@ -205,15 +206,12 @@ class Routing{
         // Sesja jest zarządzana przez ensureSession() w AppController
         $isEventDelete = ($action === 'event-delete');
         if (!isset(self::$routes[$action])) {
+            $tempController = AppController::getInstance();
             if ($isEventDelete) {
-                header('Content-Type: application/json');
-                http_response_code(404);
-                echo json_encode(['status' => 'error', 'message' => 'Route not found for event-delete']);
+                $tempController->respondNotFound('Route not found for event-delete', true);
             } else {
-                include 'public/views/404.html';
-                echo "<h2>404</h2>";
+                $tempController->respondNotFound();
             }
-            return;
         }
 
         $controllerClass = self::$routes[$action]['controller'];
@@ -249,19 +247,12 @@ class Routing{
                 $roleMatch = ($userRole === $requiredRole);
             }
             if (!$roleMatch) {
+                $actualRole = $_SESSION['user_role'] ?? null;
+                $message = 'Forbidden: requires role ' . (is_array($requiredRole) ? implode(',', $requiredRole) : $requiredRole) . ', got ' . var_export($actualRole, true);
                 if ($isEventDelete) {
-                    header('Content-Type: application/json');
-                    http_response_code(403);
-                    $actualRole = $_SESSION['user_role'] ?? null;
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => 'Forbidden: requires role ' . (is_array($requiredRole) ? implode(',', $requiredRole) : $requiredRole) . ', got ' . var_export($actualRole, true)
-                    ]);
-                    exit();
+                    $controller->respondForbidden($message, true);
                 } else {
-                    http_response_code(403);
-                    include 'public/views/404.html';
-                    exit();
+                    $controller->respondForbidden();
                 }
             }
         }
@@ -279,9 +270,7 @@ class Routing{
         
         $userId = $controller->getCurrentUserId();
         if (!$userId) {
-            http_response_code(403);
-            include 'public/views/404.html';
-            exit();
+            $controller->respondForbidden();
         }
         
         $isOwner = false;
@@ -295,9 +284,7 @@ class Routing{
         }
                 
         if (!$isOwner) {
-            http_response_code(403);
-            include 'public/views/404.html';
-            exit();
+            $controller->respondForbidden();
         }
     }
 }

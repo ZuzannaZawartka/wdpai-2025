@@ -12,7 +12,7 @@ class MyController extends AppController {
         if ($this->isPost() && isset($_POST['deleteId'])) {
             $csrf = $_POST['csrf_token'] ?? '';
             if (empty($csrf) || empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $csrf)) {
-                http_response_code(403);
+                $this->setStatusCode(403);
                 $this->render('my', [
                     'pageTitle' => 'SportMatch - My Events',
                     'activeNav' => 'my',

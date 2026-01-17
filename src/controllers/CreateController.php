@@ -9,11 +9,8 @@ class CreateController extends AppController {
 
     public function index(): void
     {
-        // Admins cannot create events
         if ($this->isAdmin()) {
-            header('HTTP/1.1 403 Forbidden');
-            $this->render('404');
-            return;
+            $this->respondForbidden();
         }
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -80,8 +77,7 @@ class CreateController extends AppController {
             header('Location: /event/' . $eventId);
             exit;
         } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to create event']);
+            $this->respondInternalError('Failed to create event', true);
         }
     }
 }

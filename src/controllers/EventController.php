@@ -11,8 +11,7 @@ class EventController extends AppController {
         $repo = new EventRepository();
         $row = $repo->getEventById((int)$id);
         if (!$row) {
-            $this->render('404');
-            return;
+            $this->respondNotFound();
         }
         $isReadOnly = !$this->isAdmin() && $repo->isEventPast((int)$id);
         $sportsRepo = new SportsRepository();
@@ -26,9 +25,7 @@ class EventController extends AppController {
         $this->ensureSession();
         $repo = new EventRepository();
         if ($repo->isEventPast((int)$id) && !$this->isAdmin()) {
-            http_response_code(403);
-            echo json_encode(['error' => 'Cannot edit past events']);
-            return;
+            $this->respondForbidden('Cannot edit past events', true);
         }
 
         // Get current event to check participants count
@@ -70,8 +67,7 @@ class EventController extends AppController {
             header('Location: /event/' . (int)$id);
             exit;
         } else {
-            http_response_code(500);
-            echo json_encode(['error' => 'Failed to update event']);
+            $this->respondInternalError('Failed to update event', true);
         }
     }
 
@@ -143,9 +139,7 @@ class EventController extends AppController {
         $repo = new EventRepository();
         $row = $repo->getEventById((int)$id);
         if (!$row) {
-            http_response_code(404);
-            $this->render('404');
-            return;
+            $this->respondNotFound();
         }
         $userId = $this->getCurrentUserId();
         $event = [
@@ -182,51 +176,37 @@ class EventController extends AppController {
     }
 
     public function join($id) {
-        header('Content-Type: application/json');
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
-            return;
+            $this->respondUnauthorized('Not authenticated', true);
         }
 
         $repo = new EventRepository();
         if ($repo->isEventPast((int)$id)) {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Event has already passed']);
-            return;
+            $this->respondBadRequest('Event has already passed', true);
         }
         if ($repo->isEventFull((int)$id)) {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Event is full']);
-            return;
+            $this->respondBadRequest('Event is full', true);
         }
         $result = $repo->joinEventWithTransaction($userId, (int)$id);
         
         if ($result) {
-            http_response_code(200);
-            echo json_encode(['status' => 'success', 'message' => 'Joined event']);
+            $this->respondOk(['message' => 'Joined event']);
         } else {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to join event']);
+            $this->respondBadRequest('Failed to join event', true);
         }
     }
 
     public function delete($id) {
-        header('Content-Type: application/json');
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
-            exit();
+            $this->respondUnauthorized('Not authenticated', true);
         }
         $repo = new EventRepository();
         $event = $repo->getEventById((int)$id);
         if (!$event) {
-            http_response_code(404);
-            echo json_encode(['status' => 'error', 'message' => 'Event not found']);
-            exit();
+            $this->respondNotFound('Event not found', true);
         }
         $isOwner = isset($event['owner_id']) && ((int)$event['owner_id'] === (int)$userId);
         $isAdmin = $this->isAdmin();
@@ -236,81 +216,57 @@ class EventController extends AppController {
         } elseif ($isAdmin) {
             $result = $repo->deleteEvent((int)$id);
         } else {
-            http_response_code(403);
-            echo json_encode(['status' => 'error', 'message' => 'Only owner or admin can delete event']);
-            exit();
+            $this->respondForbidden('Only owner or admin can delete event', true);
         }
         if ($result) {
-            http_response_code(200);
-            echo json_encode(['status' => 'success', 'message' => 'Event deleted']);
+            $this->respondOk(['message' => 'Event deleted']);
         } else {
-            http_response_code(500);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to delete event']);
+            $this->respondInternalError('Failed to delete event', true);
         }
-        exit();
     }
 
     public function leave($id) {
-        header('Content-Type: application/json');
         $this->ensureSession();
         $userId = $this->getCurrentUserId();
         if (!$userId) {
-            http_response_code(401);
-            echo json_encode(['status' => 'error', 'message' => 'Not authenticated']);
-            exit();
+            $this->respondUnauthorized('Not authenticated', true);
         }
         $repo = new EventRepository();
         $event = $repo->getEventById((int)$id);
         if (!$event) {
-            http_response_code(404);
-            echo json_encode(['status' => 'error', 'message' => 'Event not found']);
-            exit();
+            $this->respondNotFound('Event not found', true);
         }
-        // Nie pozwól ownerowi opuścić własnego eventu (może tylko usunąć)
         if ((int)$event['owner_id'] === (int)$userId) {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Owner cannot leave their own event']);
-            exit();
+            $this->respondBadRequest('Owner cannot leave their own event', true);
         }
         $result = $repo->cancelParticipationWithTransaction($userId, (int)$id);
         if ($result) {
-            http_response_code(200);
-            echo json_encode(['status' => 'success', 'message' => 'Left event']);
+            $this->respondOk(['message' => 'Left event']);
         } else {
-            http_response_code(400);
-            echo json_encode(['status' => 'error', 'message' => 'Failed to leave event']);
+            $this->respondBadRequest('Failed to leave event', true);
         }
-        exit();
     }
 
     public function deleteEventByAdmin() {
         $this->requireRole('admin');
         if (!$this->isPost() && !$this->isDelete()) {
-            header('HTTP/1.1 405 Method Not Allowed');
-            echo json_encode(['error' => 'Method not allowed']);
-            return;
+            $this->respondMethodNotAllowed('Method not allowed', true);
         }
         $eventId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
         if (!$eventId) {
-            header('HTTP/1.1 400 Bad Request');
-            echo json_encode(['error' => 'Event ID required']);
-            return;
+            $this->respondBadRequest('Event ID required', true);
         }
         $repo = new EventRepository();
         try {
             $deleted = $repo->deleteEvent($eventId);
             if ($deleted) {
-                header('Content-Type: application/json');
-                echo json_encode(['success' => true]);
+                $this->respondOk(['success' => true]);
             } else {
-                header('HTTP/1.1 404 Not Found');
-                echo json_encode(['error' => 'Event not found']);
+                $this->respondNotFound('Event not found', true);
             }
         } catch (Throwable $e) {
             error_log("Admin event delete error: " . $e->getMessage());
-            header('HTTP/1.1 500 Internal Server Error');
-            echo json_encode(['error' => 'Failed to delete event']);
+            $this->respondInternalError('Failed to delete event', true);
         }
-        exit();
     }
 }

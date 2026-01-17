@@ -130,18 +130,17 @@ class DashboardController extends AppController {
         $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
 
         if ($contentType !== "application/json") {
-            http_response_code(415);
+            $this->setStatusCode(415);
+            header('Content-Type: application/json');
             echo json_encode(["status"=> 415,"message" => "Content type must be: application/json"]);
             return;
         }
 
-        if ($this->isPost() ) {
-            http_response_code(405);
-            echo json_encode(["status"=> 405,"message" => "Method not allowed"]);
-            return;
+        if ($this->isPost()) {
+            $this->respondMethodNotAllowed('Method not allowed', true);
         }
         header('Content-Type: application/json');
-        http_response_code(200);
+        $this->setStatusCode(200);
 
         $content = trim(file_get_contents("php://input"));
         $decoded = json_decode($content, true);
