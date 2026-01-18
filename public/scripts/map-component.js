@@ -1,4 +1,17 @@
+/**
+ * MapComponent - Interactive map component using Leaflet
+ * Supports multiple modes: view, picker, and preview
+ */
 class MapComponent {
+    /**
+     * Creates a new MapComponent instance
+     * @param {string} elementId - DOM element ID for the map container
+     * @param {Object} options - Configuration options
+     * @param {string} [options.mode='view'] - Map mode: 'view', 'picker', or 'preview'
+     * @param {Array<number>} [options.initialLocation=[52.2297, 21.0122]] - Initial coordinates [lat, lng]
+     * @param {number} [options.zoom=12] - Initial zoom level
+     * @param {Function} [options.onLocationChange] - Callback when location is selected (picker mode)
+     */
     constructor(elementId, options = {}) {
         this.elementId = elementId;
         this.mode = options.mode || 'view';
@@ -11,6 +24,11 @@ class MapComponent {
         this.init();
     }
 
+    /**
+     * Initializes the map with Leaflet
+     * Sets up tile layer, markers, and event handlers based on mode
+     * @private
+     */
     init() {
         const container = document.getElementById(this.elementId);
         if (!container) return;
@@ -63,6 +81,10 @@ class MapComponent {
         }
     }
 
+    /**
+     * Sets or updates the marker position on the map
+     * @param {Array<number>|Object} latlng - Coordinates as [lat, lng] array or {lat, lng} object
+     */
     setMarker(latlng) {
         if (!latlng) return;
 
@@ -78,18 +100,33 @@ class MapComponent {
         }
     }
 
+    /**
+     * Sets the map view to specified location and zoom
+     * @param {Array<number>|Object} latlng - Coordinates as [lat, lng] array or {lat, lng} object
+     * @param {number} [zoom] - Zoom level (optional, uses current zoom if not specified)
+     */
     setView(latlng, zoom) {
         if (!latlng) return;
         this.map.setView(latlng, zoom || this.map.getZoom());
         this.setMarker(latlng);
     }
 
+    /**
+     * Updates map size (useful after container resize)
+     * Should be called when map container dimensions change
+     */
     updateSize() {
         if (this.map) {
             this.map.invalidateSize();
         }
     }
 
+    /**
+     * Geocodes an address using OpenStreetMap Nominatim API
+     * @static
+     * @param {string} address - Address to geocode
+     * @returns {Promise<{lat: number, lon: number}|null>} Coordinates or null if not found
+     */
     static async geocode(address) {
         try {
             const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`;
@@ -105,6 +142,12 @@ class MapComponent {
         return null;
     }
 
+    /**
+     * Parses a location string in "lat, lng" format
+     * @static
+     * @param {string} locationStr - Location string like "52.2297, 21.0122"
+     * @returns {{lat: number, lng: number}|null} Parsed coordinates or null if invalid
+     */
     static parseLocation(locationStr) {
         if (!locationStr) return null;
         const m = locationStr.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);

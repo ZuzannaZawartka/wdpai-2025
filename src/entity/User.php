@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * User entity class
+ * Represents a user with personal information and location
+ */
 class User
 {
     private ?int $id;

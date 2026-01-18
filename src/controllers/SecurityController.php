@@ -33,6 +33,10 @@ class SecurityController extends AppController
         $this->sportsRepository = SportsRepository::getInstance();
     }
 
+    /**
+     * Handles user login
+     * Validates credentials, verifies password and creates session
+     */
     public function login()
     {
         $this->ensureSession();
@@ -85,22 +89,48 @@ class SecurityController extends AppController
         }
     }
 
+    /**
+     * Validates login input data
+     * 
+     * @param string $email User email
+     * @param string $password User password
+     * @return bool true if data is valid
+     */
     private function validateLoginInputs(string $email, string $password): bool
     {
         return $this->isValidEmail($email) && mb_strlen($password) >= self::MIN_PASSWORD_LENGTH;
     }
 
+    /**
+     * Handles failed login attempt
+     * Increments retry counter and logs the event
+     * 
+     * @param string|null $email User email
+     * @param string $ipHash IP address hash
+     * @param string $reason Failure reason
+     */
     private function handleFailedLogin(?string $email, string $ipHash, string $reason): void
     {
         $this->incrementIpLimiter($ipHash);
         $this->authRepository->logFailedLoginAttempt($email, $ipHash, $reason);
     }
 
+    /**
+     * Gets value from POST array
+     * 
+     * @param string $key POST key
+     * @param mixed $default Default value if key not found
+     * @return mixed POST value or default
+     */
     private function post(string $key, $default = ''): mixed
     {
         return $_POST[$key] ?? $default;
     }
 
+    /**
+     * Handles new user registration
+     * Validates data, creates account and assigns favorite sports
+     */
     public function register()
     {
         $this->ensureSession();
@@ -154,6 +184,16 @@ class SecurityController extends AppController
         ]);
     }
 
+    /**
+     * Validates registration data
+     * 
+     * @param string $fn First name
+     * @param string $ln Last name
+     * @param string $em Email
+     * @param string $p1 Password
+     * @param string $p2 Password confirmation
+     * @return array Array of errors (empty if OK)
+     */
     private function validateRegisterInputs($fn, $ln, $em, $p1, $p2): array
     {
         $errors = [];
@@ -165,6 +205,11 @@ class SecurityController extends AppController
         return $errors;
     }
 
+    /**
+     * Creates new user in database
+     * 
+     * @return int|null New user ID or null on error
+     */
     private function createNewUser(): ?int
     {
         $location = $this->post('location');
@@ -191,11 +236,21 @@ class SecurityController extends AppController
         );
     }
 
+    /**
+     * Assigns favorite sports to user
+     * 
+     * @param int $userId User ID
+     * @param array $sportIds Array of sport IDs
+     */
     private function assignFavouriteSports(int $userId, array $sportIds): void
     {
         $this->sportsRepository->setFavouriteSports($userId, array_map('intval', $sportIds));
     }
 
+    /**
+     * Logs out user
+     * Destroys session and redirects to login page
+     */
     public function logout(): void
     {
         if (session_status() !== PHP_SESSION_ACTIVE) {
@@ -222,17 +277,32 @@ class SecurityController extends AppController
         $this->redirect('/login');
     }
 
+    /**
+     * Checks if CSRF token is valid
+     * 
+     * @return bool true if token is valid
+     */
     private function checkCsrf(): bool
     {
         $token = $this->post(self::CSRF_KEY);
         return !empty($token) && isset($_SESSION[self::CSRF_KEY]) && hash_equals($_SESSION[self::CSRF_KEY], $token);
     }
 
+    /**
+     * Gets client IP address hash
+     * 
+     * @return string SHA-256 hash of IP address
+     */
     private function getClientIpHash(): string
     {
         return hash('sha256', $_SERVER['REMOTE_ADDR'] ?? 'unknown');
     }
 
+    /**
+     * Increments IP-based rate limiter
+     * 
+     * @param string $ipHash IP address hash
+     */
     private function incrementIpLimiter(string $ipHash): void
     {
         try {
@@ -242,6 +312,12 @@ class SecurityController extends AppController
         }
     }
 
+    /**
+     * Checks if IP is locked and responds with error
+     * 
+     * @param string $ipHash IP address hash
+     * @return bool true if IP is locked (and response sent)
+     */
     private function isIpLockedAndRespond(string $ipHash): bool
     {
         try {

@@ -9,6 +9,13 @@ class AuthRepository extends Repository
         parent::__construct();
     }
 
+    /**
+     * Logs failed login attempt
+     * 
+     * @param string|null $email User email
+     * @param string $ipHash IP address hash
+     * @param string|null $reason Failure reason
+     */
     public function logFailedLoginAttempt(
         ?string $email,
         string $ipHash,
@@ -36,6 +43,12 @@ class AuthRepository extends Repository
     }
 
 
+    /**
+     * Gets login attempts for IP address
+     * 
+     * @param string $ipHash IP address hash
+     * @return array|null Attempts data or null
+     */
     public function getIpAttempts(string $ipHash): ?array
     {
         $query = $this->database->connect()->prepare('
@@ -50,6 +63,15 @@ class AuthRepository extends Repository
         return $row ?: null;
     }
 
+    /**
+     * Increments IP login attempt counter
+     * Implements rate limiting and locking
+     * 
+     * @param string $ipHash IP address hash
+     * @param int $windowSeconds Time window for attempts
+     * @param int $maxAttempts Max attempts before lock
+     * @param int $lockSeconds Lock duration in seconds
+     */
     public function incrementIpWindow(string $ipHash, int $windowSeconds, int $maxAttempts, int $lockSeconds): void
     {
         $conn = $this->database->connect();

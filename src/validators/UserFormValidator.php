@@ -2,8 +2,20 @@
 
 require_once __DIR__ . '/../dto/UpdateUserDTO.php';
 
+/**
+ * User form validator
+ * Validates user profile update forms with password validation
+ */
 class UserFormValidator
 {
+    /**
+     * Validates user profile form data
+     * 
+     * @param array $postData Form POST data
+     * @param string|null $currentHash Current password hash (for password changes)
+     * @param bool $isOwnProfile Whether user is editing own profile
+     * @return array Validation result with errors, data, and DTO
+     */
     public static function validate(array $postData, ?string $currentHash = null, bool $isOwnProfile = false): array
     {
         $errors = [];

@@ -21,6 +21,12 @@ class UserController extends AppController
     }
 
 
+    /**
+     * Handles user profile editing
+     * Both own profile and admin editing other users
+     * 
+     * @param int|null $userId User ID to edit (null for own profile)
+     */
     public function editUser($userId = null)
     {
         $this->ensureSession();
@@ -68,6 +74,13 @@ class UserController extends AppController
         ));
     }
 
+    /**
+     * Gets target user ID for editing
+     * Admin can edit any user, regular users only themselves
+     * 
+     * @param int|null $id User ID from parameter
+     * @return int Target user ID
+     */
     private function getTargetUserId(?int $id = null): int
     {
         if ($this->isAdmin() && $id !== null) {
@@ -79,11 +92,25 @@ class UserController extends AppController
         return $this->getCurrentUserId();
     }
 
+    /**
+     * Checks if target profile belongs to current user
+     * 
+     * @param int $targetId Target user ID
+     * @return bool true if it's user's own profile
+     */
     private function isOwnProfile(int $targetId): bool
     {
         return $targetId === $this->getCurrentUserId();
     }
 
+    /**
+     * Updates user information in database
+     * 
+     * @param array $existingUser Existing user data
+     * @param array $validated Validated form data
+     * @param array $location Location coordinates
+     * @param string $avatarPath Avatar file path
+     */
     private function updateUserInfo(array $existingUser, array $validated, array $location, string $avatarPath): void
     {
         $updateData = [
@@ -110,6 +137,12 @@ class UserController extends AppController
         }
     }
 
+    /**
+     * Updates user password if new password provided
+     * 
+     * @param array $existingUser Existing user data
+     * @param array $validated Validated form data
+     */
     private function updateUserPasswordIfNeeded(array $existingUser, array $validated): void
     {
         if (!empty($validated['newPassword'])) {
@@ -118,11 +151,23 @@ class UserController extends AppController
         }
     }
 
+    /**
+     * Updates user's favorite sports
+     * 
+     * @param int $userId User ID
+     * @param array $sportIds Array of sport IDs
+     */
     private function updateFavouriteSports(int $userId, array $sportIds): void
     {
         $this->sportsRepository->setFavouriteSports($userId, array_map('intval', $sportIds));
     }
 
+    /**
+     * Handles avatar file upload
+     * 
+     * @param string|null $existingAvatar Current avatar path
+     * @return string New avatar path or existing/default
+     */
     private function handleAvatarUpload(?string $existingAvatar = null): string
     {
         require_once __DIR__ . '/../config/AppConfig.php';
@@ -145,6 +190,12 @@ class UserController extends AppController
         return $default;
     }
 
+    /**
+     * Parses location string to coordinates
+     * 
+     * @param string $location Location string (lat, lng)
+     * @return array Array with 'lat' and 'lng' keys
+     */
     private function parseLocation(string $location): array
     {
         if (str_contains($location, ',')) {
@@ -156,6 +207,12 @@ class UserController extends AppController
         return ['lat' => null, 'lng' => null];
     }
 
+    /**
+     * Prepares profile view data
+     * 
+     * @param array $dbUser User data from database
+     * @return array View data array
+     */
     private function prepareProfileViewData(array $dbUser): array
     {
         $userId = (int)($dbUser['id'] ?? 0);
@@ -184,6 +241,12 @@ class UserController extends AppController
         ];
     }
 
+    /**
+     * Renders profile with validation errors
+     * 
+     * @param array $user User data
+     * @param array $errors Validation errors
+     */
     private function renderProfileWithErrors(array $user, array $errors): void
     {
         $this->render('profile', array_merge(
@@ -192,6 +255,11 @@ class UserController extends AppController
         ));
     }
 
+    /**
+     * Redirects after successful update
+     * 
+     * @param string $context Context ('admin_panel' or 'user_profile')
+     */
     private function finalizeUpdate(string $context): void
     {
         $path = ($context === 'admin_panel') ? '/accounts?success=1' : '/profile?success=1';

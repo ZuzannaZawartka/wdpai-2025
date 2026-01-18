@@ -17,6 +17,10 @@ class SportsController extends AppController
         $this->eventRepository = EventRepository::getInstance();
     }
 
+    /**
+     * Shows sports events listing page
+     * Applies filters and renders filtered events
+     */
     public function index(): void
     {
         $filters = $this->parseFilters();
@@ -46,6 +50,12 @@ class SportsController extends AppController
         ]);
     }
 
+    /**
+     * Maps Event entity to view data array
+     * 
+     * @param Event $ev Event entity
+     * @return array View data
+     */
     private function mapEntityToView(\Event $ev): array
     {
         $current = $ev->getCurrentPlayers();
@@ -86,6 +96,11 @@ class SportsController extends AppController
         ];
     }
 
+    /**
+     * Parses filter parameters from query string
+     * 
+     * @return array Filter criteria
+     */
     private function parseFilters(): array
     {
         $loc = trim((string)($_GET['loc'] ?? ''));
@@ -102,6 +117,11 @@ class SportsController extends AppController
         ];
     }
 
+    /**
+     * Gets sports grid data for filtering
+     * 
+     * @return array Sports list with icons
+     */
     private function getSportsGrid(): array
     {
         return array_map(fn($s) => [
@@ -111,6 +131,10 @@ class SportsController extends AppController
         ], $this->sportsRepository->getAllSports());
     }
 
+    /**
+     * API endpoint for event search
+     * Returns JSON response with filtered events
+     */
     public function search(): void
     {
         $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';

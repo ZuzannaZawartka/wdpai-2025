@@ -15,6 +15,9 @@ class EventController extends AppController
     {
         parent::__construct();
     }
+    /**
+     * Shows event creation form or processes form submission
+     */
     public function showCreateForm(): void
     {
         if ($this->isAdmin()) {
@@ -28,6 +31,9 @@ class EventController extends AppController
         }
     }
 
+    /**
+     * Renders the event creation form with sports and skill levels
+     */
     private function renderCreateForm(): void
     {
         $sportsRepo = SportsRepository::getInstance();
@@ -41,6 +47,10 @@ class EventController extends AppController
         ]);
     }
 
+    /**
+     * Creates a new event
+     * Validates data, handles image upload, and saves to database
+     */
     public function createEvent(): void
     {
         $this->ensureSession();
@@ -103,6 +113,11 @@ class EventController extends AppController
         }
     }
 
+    /**
+     * Shows event edit form
+     * 
+     * @param int $id Event ID
+     */
     public function showEditForm($id): void
     {
         $this->ensureSession();
@@ -118,6 +133,11 @@ class EventController extends AppController
         $this->renderEditForm($id, $event, $skillLevels, $isReadOnly, [], $allSports);
     }
 
+    /**
+     * Updates an existing event
+     * 
+     * @param int $id Event ID
+     */
     public function updateEvent($id): void
     {
         $this->ensureSession();
@@ -197,6 +217,16 @@ class EventController extends AppController
         }
     }
 
+    /**
+     * Renders the event edit form
+     * 
+     * @param int $id Event ID
+     * @param Event $event Event entity
+     * @param array $skillLevels Available skill levels
+     * @param bool $isReadOnly Whether form is read-only
+     * @param array $errors Validation errors
+     * @param array $allSports Available sports
+     */
     private function renderEditForm($id, \Event $event, $skillLevels, $isReadOnly, $errors = [], $allSports = []): void
     {
         $minPeople = (int)($event->getMinNeeded() ?? 6);
@@ -271,6 +301,12 @@ class EventController extends AppController
         parent::render('event-edit', $renderData);
     }
 
+    /**
+     * Shows event details page
+     * 
+     * @param int|null $id Event ID
+     * @param string|null $action Optional action parameter
+     */
     public function details($id = null, $action = null)
     {
         $repo = EventRepository::getInstance();
@@ -316,6 +352,11 @@ class EventController extends AppController
         ]);
     }
 
+    /**
+     * Joins current user to an event
+     * 
+     * @param int $id Event ID
+     */
     public function join($id)
     {
         $userId = $this->getCurrentUserId();
@@ -339,6 +380,12 @@ class EventController extends AppController
         }
     }
 
+    /**
+     * Deletes an event
+     * Only owner or admin can delete
+     * 
+     * @param int $id Event ID
+     */
     public function delete($id)
     {
         $this->ensureSession();
@@ -364,11 +411,23 @@ class EventController extends AppController
         }
     }
 
+    /**
+     * Checks if user can delete event
+     * 
+     * @param Event $event Event entity
+     * @param int $userId User ID
+     * @return bool true if user can delete
+     */
     private function canDeleteEvent(\Event $event, int $userId): bool
     {
         return ($this->isAdmin() || ((int)$event->getOwnerId() === (int)$userId));
     }
 
+    /**
+     * Removes current user from event
+     * 
+     * @param int $id Event ID
+     */
     public function leave($id)
     {
         $this->ensureSession();
@@ -392,6 +451,12 @@ class EventController extends AppController
             $this->respondBadRequest('Failed to leave event');
         }
     }
+    /**
+     * Validates uploaded image file
+     * 
+     * @param array $file Uploaded file info
+     * @return bool true if file is valid image
+     */
     private function validateImage(array $file): bool
     {
         $allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];

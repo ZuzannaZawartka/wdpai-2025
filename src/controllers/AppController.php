@@ -36,31 +36,58 @@ class AppController
     }
 
 
+    /**
+     * Checks if user is authenticated
+     * 
+     * @return bool true if user is logged in
+     */
     protected function isAuthenticated(): bool
     {
         $this->ensureSession();
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']);
     }
 
-    public function getCurrentUserId(): ?int
+    /**
+     * Gets current user ID from session
+     * 
+     * @return int|null User ID or null if not authenticated
+     */
+    protected function getCurrentUserId(): ?int
     {
         $this->ensureSession();
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
     }
 
-    protected function getCurrentUserEmail(): string
+    /**
+     * Gets current user email from session
+     * 
+     * @return string|null User email or null
+     */
+    protected function getCurrentUserEmail(): ?string
     {
         $this->ensureSession();
         return isset($_SESSION['user_email']) ? (string)$_SESSION['user_email'] : '';
     }
 
-    public function requireAuth(): void
+    /**
+     * Requires user to be authenticated
+     * Redirects to login if not authenticated
+     */
+    protected function requireAuth(): void
     {
         if (!$this->isAuthenticated()) {
             $this->respondUnauthorized();
         }
     }
 
+    /**
+     * Sets authentication context in session
+     * 
+     * @param int $userId User ID
+     * @param string $email User email
+     * @param string $role User role (default: 'user')
+     * @param string|null $avatar Avatar URL
+     */
     protected function setAuthContext(int $userId, string $email, string $role = 'user', ?string $avatar = null): void
     {
         $this->ensureSession();
@@ -76,6 +103,12 @@ class AppController
         }
     }
 
+    /**
+     * Hashes a given password using a secure algorithm.
+     * 
+     * @param string $password The plain-text password to hash.
+     * @return string The hashed password.
+     */
     protected function hashPassword(string $password): string
     {
         if (defined('PASSWORD_ARGON2ID')) {
@@ -84,11 +117,24 @@ class AppController
         return password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
     }
 
+    /**
+     * Verifies if a plain-text password matches a given hash.
+     * 
+     * @param string $password The plain-text password.
+     * @param string $hash The hashed password.
+     * @return bool True if the password matches the hash, false otherwise.
+     */
     protected function verifyPassword(string $password, string $hash): bool
     {
         return password_verify($password, $hash);
     }
 
+    /**
+     * Validates email format
+     * 
+     * @param string $email Email to validate
+     * @return bool true if valid
+     */
     protected function isValidEmail(string $email): bool
     {
         $normalized = mb_strtolower(trim($email), 'UTF-8');
@@ -99,6 +145,11 @@ class AppController
         return filter_var($normalized, FILTER_VALIDATE_EMAIL) !== false;
     }
 
+    /**
+     * Returns the singleton instance of the current class.
+     * 
+     * @return static The singleton instance.
+     */
     public static function getInstance(): static
     {
         $class = static::class;
@@ -108,21 +159,42 @@ class AppController
         return self::$instances[$class];
     }
 
+    /**
+     * Checks if request is GET
+     * 
+     * @return bool true if GET request
+     */
     protected function isGet(): bool
     {
         return $_SERVER["REQUEST_METHOD"] === 'GET';
     }
 
+    /**
+     * Checks if request is POST
+     * 
+     * @return bool true if POST request
+     */
     protected function isPost(): bool
     {
         return $_SERVER["REQUEST_METHOD"] === 'POST';
     }
 
+    /**
+     * Checks if the current request method is DELETE.
+     * 
+     * @return bool True if the request method is DELETE, false otherwise.
+     */
     protected function isDelete(): bool
     {
         return $_SERVER["REQUEST_METHOD"] === 'DELETE';
     }
 
+    /**
+     * Renders view template
+     * 
+     * @param string|null $template Template name
+     * @param array $variables Data to pass to view
+     */
     protected function render(?string $template = null, array $variables = []): void
     {
         $this->ensureSession();
@@ -148,6 +220,12 @@ class AppController
         echo $output;
     }
 
+    /**
+     * Retrieves the avatar URL for the current user.
+     * Falls back to default avatar if not found in session or database.
+     * 
+     * @return string The URL of the user's avatar.
+     */
     protected function getAvatarForCurrentUser(): string
     {
         if (!empty($_SESSION['user_avatar'])) {
@@ -170,12 +248,23 @@ class AppController
         return \AppConfig::DEFAULT_USER_AVATAR;
     }
 
-
+    /**
+     * Checks if the authenticated user has a specific role.
+     * 
+     * @param string $role The role to check for.
+     * @return bool True if the user has the specified role, false otherwise.
+     */
     protected function hasRole(string $role): bool
     {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === $role;
     }
 
+    /**
+     * Checks if the authenticated user has any of the specified roles.
+     * 
+     * @param string ...$roles A variable number of roles to check against.
+     * @return bool True if the user has at least one of the specified roles, false otherwise.
+     */
     protected function hasRoles(...$roles): bool
     {
         if (!isset($_SESSION['user_id'])) {
@@ -185,6 +274,12 @@ class AppController
         return in_array($userRole, $roles, true);
     }
 
+    /**
+     * Requires the authenticated user to have a specific role.
+     * Responds with forbidden status if the user does not have the role.
+     * 
+     * @param string $role The role required.
+     */
     protected function requireRole(string $role): void
     {
         if (!$this->hasRole($role)) {
@@ -192,6 +287,12 @@ class AppController
         }
     }
 
+    /**
+     * Requires the authenticated user to have at least one of the specified roles.
+     * Responds with forbidden status if the user does not have any of the roles.
+     * 
+     * @param string ...$roles A variable number of roles required.
+     */
     protected function requireRoles(...$roles): void
     {
         if (!$this->hasRoles(...$roles)) {
@@ -199,6 +300,11 @@ class AppController
         }
     }
 
+    /**
+     * Ensures the authenticated user has an 'admin' role.
+     * 
+     * @return bool True if the user is an admin, false otherwise (and sets 403 status).
+     */
     protected function ensureAdmin(): bool
     {
         if (!isset($_SESSION['user_id'])) {
@@ -214,11 +320,21 @@ class AppController
         return true;
     }
 
+    /**
+     * Checks if current user is admin
+     * 
+     * @return bool true if user has admin role
+     */
     public function isAdmin(): bool
     {
         return isset($_SESSION['user_id']) && ($_SESSION['user_role'] ?? null) === 'admin';
     }
 
+    /**
+     * Sets HTTP response status code
+     * 
+     * @param int $code HTTP status code
+     */
     protected function setStatusCode(int $code): void
     {
         if (!headers_sent()) {
@@ -226,12 +342,23 @@ class AppController
         }
     }
 
+    /**
+     * Checks if request accepts JSON response
+     * 
+     * @return bool true if JSON request
+     */
     protected function isJsonRequest(): bool
     {
         return (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))
             || (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest');
     }
 
+    /**
+     * Responds with 401 Unauthorized
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     */
     protected function respondUnauthorized(?string $message = null, ?bool $json = null): void
     {
         $this->setStatusCode(401);
@@ -245,6 +372,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 403 Forbidden
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     public function respondForbidden(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(403);
@@ -260,6 +394,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 404 Not Found
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     public function respondNotFound(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(404);
@@ -275,6 +416,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 400 Bad Request
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     protected function respondBadRequest(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(400);
@@ -290,6 +438,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 500 Internal Server Error
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     protected function respondInternalError(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(500);
@@ -305,6 +460,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 405 Method Not Allowed
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     protected function respondMethodNotAllowed(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(405);
@@ -320,6 +482,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 409 Conflict
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     protected function respondConflict(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(409);
@@ -335,6 +504,13 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 429 Too Many Requests
+     * 
+     * @param string|null $message Error message
+     * @param bool|null $json Force JSON response
+     * @param string|null $template Template to render
+     */
     protected function respondTooManyRequests(?string $message = null, ?bool $json = null, ?string $template = '404'): void
     {
         $this->setStatusCode(429);
@@ -350,6 +526,11 @@ class AppController
         exit();
     }
 
+    /**
+     * Responds with 200 OK JSON
+     * 
+     * @param array $data Response data
+     */
     protected function respondOk(array $data = []): void
     {
         $this->setStatusCode(200);
@@ -358,6 +539,12 @@ class AppController
         exit();
     }
 
+    /**
+     * Maps event database array to view array
+     * 
+     * @param array $event Event data from database
+     * @return array Formatted event data
+     */
     protected function mapEventData(array $event): array
     {
         $startTime = $event['start_time'] ?? null;
@@ -382,6 +569,12 @@ class AppController
         ];
     }
 
+    /**
+     * Redirects to specified URL
+     * 
+     * @param string $url Target URL
+     * @param int $code HTTP redirect code (default: 303)
+     */
     protected function redirect(string $url, int $code = 303): void
     {
         header("Location: $url", true, $code);

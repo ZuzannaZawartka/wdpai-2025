@@ -20,6 +20,10 @@ class DashboardController extends AppController
         $this->sportsRepository = SportsRepository::getInstance();
     }
 
+    /**
+     * Shows the main dashboard page
+     * Displays user's upcoming events, favorite sports, and personalized suggestions
+     */
     public function index()
     {
         $this->ensureSession();

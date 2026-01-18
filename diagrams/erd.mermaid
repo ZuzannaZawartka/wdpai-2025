@@ -1,0 +1,105 @@
+
+Table users {
+  id integer [primary key]
+  firstname varchar(100) [not null]
+  lastname varchar(100) [not null]
+  email varchar(150) [not null, unique]
+  password varchar(255) [not null]
+  birth_date date
+  avatar_url text
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  bio text
+  role varchar(20) [default: 'user']
+  enabled boolean [default: true]
+}
+
+Table user_statistics {
+  user_id integer [primary key, ref: > users.id]
+  total_events_joined integer [not null, default: 0]
+  total_events_created integer [not null, default: 0]
+}
+
+Table user_favourite_sports {
+  user_id integer [ref: > users.id]
+  sport_id integer [ref: > sports.id]
+
+  indexes {
+    (user_id, sport_id) [pk]
+  }
+}
+
+Table login_attempts {
+  email varchar(150) [not null]
+  ip_hash varchar(64) [not null]
+  count integer [not null, default: 0]
+  lock_until bigint [not null, default: 0]
+  last_attempt bigint [not null, default: 0]
+
+  indexes {
+    (email, ip_hash) [pk]
+  }
+}
+
+Table auth_audit_log {
+  id serial [primary key]
+  event_type varchar(50) [not null]
+  email_hash char(64)
+  ip_hash char(64) [not null]
+  user_agent varchar(255)
+  reason varchar(100)
+  created_at timestamptz [not null, default: `NOW()`]
+}
+
+Table audit_log {
+  id serial [primary key]
+  table_name varchar(100) [not null]
+  operation varchar(10) [not null]
+  record_id integer
+  old_data jsonb
+  new_data jsonb
+  changed_by integer [ref: > users.id]
+  changed_at timestamptz [default: `NOW()`]
+}
+
+
+Table sports {
+  id serial [primary key]
+  name varchar(100) [unique, not null]
+  icon varchar(50) [default: 'sports']
+}
+
+Table levels {
+  id serial [primary key]
+  name varchar(50) [unique, not null]
+  hex_color varchar(7) [default: '#9E9E9E']
+}
+
+Table events {
+  id serial [primary key]
+  owner_id integer [ref: > users.id, not null]
+  title varchar(200) [not null]
+  description text
+  sport_id integer [ref: > sports.id, not null]
+  level_id integer [ref: > levels.id]
+  location_text varchar(255)
+  latitude decimal(9,6)
+  longitude decimal(9,6)
+  start_time timestamptz [not null]
+  max_players integer [default: 12]
+  min_needed integer [default: 0]
+  image_url text
+  created_at timestamptz [default: `NOW()`]
+  updated_at timestamptz [default: `NOW()`]
+}
+
+Table event_participants {
+  event_id integer [ref: > events.id, not null]
+  user_id integer [ref: > users.id, not null]
+  status varchar(20) [default: 'confirmed']
+  joined_at timestamptz [default: `NOW()`]
+
+  indexes {
+    (event_id, user_id) [pk]
+  }
+}

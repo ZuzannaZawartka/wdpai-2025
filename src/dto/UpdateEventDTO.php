@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Update event data transfer object
+ * Holds validated event update data
+ */
 class UpdateEventDTO
 {
     public ?string $title = null;

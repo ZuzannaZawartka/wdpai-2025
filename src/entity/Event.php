@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/../config/AppConfig.php';
 
+/**
+ * Event entity class
+ * Represents a sports event with location, participants, and owner information
+ */
 class Event
 {
     private ?int $id;

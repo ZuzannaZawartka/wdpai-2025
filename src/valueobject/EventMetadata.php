@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Event metadata value object
+ * Immutable event title and description with validation
+ */
 class EventMetadata
 {
     private string $title;
@@ -15,10 +19,17 @@ class EventMetadata
         $this->description = $description !== null ? trim($description) : null;
     }
 
-    public function title(): string { return $this->title; }
-    public function description(): ?string { return $this->description; }
+    public function title(): string
+    {
+        return $this->title;
+    }
+    public function description(): ?string
+    {
+        return $this->description;
+    }
 
-    public function short(int $len = 50): string {
+    public function short(int $len = 50): string
+    {
         $d = $this->description ?? '';
         return strlen($d) <= $len ? $d : substr($d, 0, $len) . '...';
     }

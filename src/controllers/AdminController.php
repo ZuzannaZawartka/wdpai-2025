@@ -21,6 +21,10 @@ class AdminController extends AppController
         $this->eventRepository = EventRepository::getInstance();
     }
 
+    /**
+     * Shows admin panel with all user accounts
+     * Displays user list with statistics
+     */
     public function accounts()
     {
         $this->requireRole('admin');
@@ -56,6 +60,12 @@ class AdminController extends AppController
         ]);
     }
 
+    /**
+     * Admin edit user endpoint
+     * Delegates to UserController
+     * 
+     * @param int $id User ID to edit
+     */
     public function editUser($id)
     {
         $this->requireRole('admin');

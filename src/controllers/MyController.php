@@ -11,6 +11,10 @@ class MyController extends AppController
         parent::__construct();
     }
 
+    /**
+     * Shows events created by current user
+     * Handles event deletion and displays user's own events
+     */
     public function index(): void
     {
         $this->ensureSession();
