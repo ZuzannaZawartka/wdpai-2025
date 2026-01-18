@@ -11,10 +11,9 @@
 .profile-page .messages {
     padding: 1rem;
     margin-bottom: 1rem;
-    background: #fee;
-    color: #c33;
-    border: 1px solid #fcc;
+    background: rgba(var(--danger-rgb), 0.1);
+    color: var(--danger);
+    border: 1px solid rgba(var(--danger-rgb), 0.2);
     border-radius: 0.5rem;
     font-size: 0.875rem;
 }
-

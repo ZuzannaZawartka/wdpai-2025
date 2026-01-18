@@ -25,13 +25,41 @@ class User
         $this->avatarUrl = isset($data['avatar_url']) ? (string)$data['avatar_url'] : null;
     }
 
-    public function getId(): ?int { return $this->id; }
-    public function getFirstname(): ?string { return $this->firstname; }
-    public function getLastname(): ?string { return $this->lastname; }
-    public function getEmail(): ?string { return $this->email; }
-    public function getRole(): ?string { return $this->role; }
-    public function getBirthDate(): ?string { return $this->birthDate; }
-    public function getLatitude(): ?float { return $this->latitude; }
-    public function getLongitude(): ?float { return $this->longitude; }
-    public function getAvatarUrl(): ?string { return $this->avatarUrl; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getFirstname(): ?string
+    {
+        return $this->firstname;
+    }
+    public function getLastname(): ?string
+    {
+        return $this->lastname;
+    }
+    public function getEmail(): ?string
+    {
+        return $this->email;
+    }
+    public function getRole(): ?string
+    {
+        return $this->role;
+    }
+    public function getBirthDate(): ?string
+    {
+        return $this->birthDate;
+    }
+    public function getLatitude(): ?float
+    {
+        return $this->latitude;
+    }
+    public function getLongitude(): ?float
+    {
+        return $this->longitude;
+    }
+    public function getAvatarUrl(): string
+    {
+        require_once __DIR__ . '/../config/AppConfig.php';
+        return $this->avatarUrl ?: AppConfig::DEFAULT_USER_AVATAR;
+    }
 }

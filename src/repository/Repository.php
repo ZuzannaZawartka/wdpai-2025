@@ -1,15 +1,15 @@
 <?php
-require_once __DIR__ . '/../../Database.php';
+require_once __DIR__ . '/../services/Database.php';
 
 class Repository
 {
-    protected $database;
+    protected \Database $database;
 
     protected static $instances = [];
 
     protected function __construct()
     {
-        $this->database = new \Database();
+        $this->database = Database::getInstance();
     }
 
     public static function getInstance(): static

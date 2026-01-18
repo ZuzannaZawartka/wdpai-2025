@@ -12,7 +12,7 @@ class DashboardController extends AppController
     private EventRepository $eventRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();
@@ -24,7 +24,6 @@ class DashboardController extends AppController
     {
         $this->ensureSession();
         $currentUserId = $this->getCurrentUserId();
-        // Use Entity
         $currentUser = $currentUserId ? $this->userRepository->getUserEntityById($currentUserId) : null;
 
         $locationOverride = null;
@@ -41,7 +40,6 @@ class DashboardController extends AppController
             $ev = new \Event($r);
             $current = (int)$ev->getCurrentPlayers();
             $max = (int)($ev->getMaxPlayers() ?? $current);
-            $level = $ev->getLevelName() ?? 'Intermediate';
             return [
                 'id' => $ev->getId(),
                 'title' => $ev->getTitle(),
@@ -49,9 +47,9 @@ class DashboardController extends AppController
                 'dateText' => $ev->getStartTime() ? (new DateTime($ev->getStartTime()))->format('D, M j, g:i A') : '',
                 'location' => (string)($ev->getLocationText() ?? ''),
                 'players' => $current . '/' . $max . ' Players',
-                'level' => $level,
-                'levelColor' => $ev->getLevelColor() ?? '#eab308',
-                'imageUrl' => (string)($ev->getImageUrl() ?? ''),
+                'level' => $ev->getLevelName(),
+                'levelColor' => $ev->getLevelColor(),
+                'imageUrl' => $ev->getImageUrl(),
             ];
         }, $upcomingRows);
 
@@ -63,7 +61,8 @@ class DashboardController extends AppController
             $suggestions = $this->eventRepository->getNearbyEvents(
                 (float)$currentUser->getLatitude(),
                 (float)$currentUser->getLongitude(),
-                3
+                3,
+                $currentUserId
             );
         }
 

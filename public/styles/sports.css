@@ -62,12 +62,12 @@
     inset: -2px;
     border-radius: 0.65rem;
     pointer-events: none;
-    box-shadow: 0 0 0 0 rgba(19, 164, 236, 0);
+    box-shadow: 0 0 0 0 rgba(var(--primary-rgb), 0);
     transition: box-shadow .2s ease, border-color .2s ease;
 }
 
 .sports-page .tile.selectable:has(input:focus-visible)::before {
-    box-shadow: 0 0 0 3px rgba(19, 164, 236, .25);
+    box-shadow: 0 0 0 3px rgba(var(--primary-rgb), .25);
 }
 
 .sports-page .tile.selectable:has(input:checked) {
@@ -101,18 +101,12 @@
 }
 
 
-
-/* actions anchoring moved to joined.css for the Joined page */
-
 .sports-page .match-body .meta-row {
     display: flex;
     gap: 1rem;
     align-items: center;
     margin-top: 0.5rem;
 }
-
-
-
 
 .sports-page .map-modal[hidden] {
     display: none;
@@ -121,7 +115,7 @@
 .sports-page .map-modal {
     position: fixed;
     inset: 0;
-    z-index: 100;
+    z-index: 10000;
 }
 
 .sports-page .map-modal-backdrop {
@@ -132,7 +126,7 @@
 
 .sports-page .map-modal-content {
     position: relative;
-    z-index: 101;
+    z-index: 10001;
     background: var(--white);
     max-width: 720px;
     margin: 5vh auto;
@@ -220,10 +214,10 @@
 }
 
 .sports-page .match.past-event .button.past {
-    background: #9ca3af;
+    background: var(--text-note);
     color: var(--white);
 }
 
 .sports-page .match.past-event .button.past:hover {
-    background: #6b7280;
+    background: var(--text-gray);
 }

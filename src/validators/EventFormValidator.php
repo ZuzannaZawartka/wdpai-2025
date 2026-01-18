@@ -2,12 +2,14 @@
 
 require_once __DIR__ . '/../dto/UpdateEventDTO.php';
 
-class EventFormValidator {
-    
-    public static function validate(array $postData, ?int $currentParticipantsCount = null): array {
+class EventFormValidator
+{
+
+    public static function validate(array $postData, ?int $currentParticipantsCount = null): array
+    {
         $errors = [];
-        
-        // Extract and trim data
+
+
         $title = trim($postData['title'] ?? '');
         $datetime = $postData['datetime'] ?? '';
         $location = $postData['location'] ?? '';
@@ -16,19 +18,19 @@ class EventFormValidator {
         $sport = $postData['sport'] ?? '';
         $description = trim($postData['desc'] ?? '');
         $participantsType = $postData['participantsType'] ?? 'range';
-        
-        // Validate title
+
+
         if (empty($title)) {
             $errors[] = 'Event name is required';
         }
-        
-        // Validate sport
+
+
         $sportId = (int)$sport;
         if ($sportId <= 0) {
             $errors[] = 'Please select a sport';
         }
-        
-        // Validate datetime
+
+
         if (empty($datetime)) {
             $errors[] = 'Date and time is required';
         } else {
@@ -37,13 +39,13 @@ class EventFormValidator {
                 $errors[] = $dateError;
             }
         }
-        
-        // Validate location
+
+
         if (empty($location)) {
             $errors[] = 'Location is required - please choose on map';
         }
 
-        // Validate participants inputs
+
         if (!in_array($participantsType, ['specific', 'minimum', 'range'], true)) {
             $errors[] = 'Invalid participants type';
         } else {
@@ -57,7 +59,7 @@ class EventFormValidator {
                 if ($raw === '' || !ctype_digit($raw) || (int)$raw <= 0) {
                     $errors[] = 'Please provide a valid minimum number of players';
                 }
-            } else { // range
+            } else {
                 $rawMin = trim((string)($postData['playersRangeMin'] ?? ''));
                 $rawMax = trim((string)($postData['playersRangeMax'] ?? ''));
 
@@ -76,19 +78,19 @@ class EventFormValidator {
                 }
             }
         }
-        
-        // If there are errors, return early
+
+
         if (!empty($errors)) {
             return [
                 'errors' => $errors,
                 'data' => null
             ];
         }
-        
-        // Parse participants based on type
+
+
         $minNeeded = 0;
         $maxPlayers = 0;
-        
+
         if ($participantsType === 'specific') {
             $value = (int)trim((string)($postData['playersSpecific'] ?? '0'));
             $minNeeded = $value;
@@ -96,25 +98,25 @@ class EventFormValidator {
         } elseif ($participantsType === 'minimum') {
             $minNeeded = (int)trim((string)($postData['playersMin'] ?? '0'));
             $maxPlayers = 0;
-        } else { // range
+        } else {
             $minNeeded = (int)trim((string)($postData['playersRangeMin'] ?? '0'));
             $maxPlayers = (int)trim((string)($postData['playersRangeMax'] ?? '0'));
         }
-        
-        // Validate max_players is not less than current participants count (only when editing)
+
+
         if ($currentParticipantsCount !== null && $maxPlayers > 0 && $maxPlayers < $currentParticipantsCount) {
             $errors[] = "Nie można zmniejszyć limitu uczestników poniżej aktualnej liczby dołączonych osób ({$currentParticipantsCount})";
         }
-        
-        // If there are errors after this validation, return early
+
+
         if (!empty($errors)) {
             return [
                 'errors' => $errors,
                 'data' => null
             ];
         }
-        
-        // Parse location coords
+
+
         $latitude = null;
         $longitude = null;
         if (!empty($location) && str_contains($location, ',')) {
@@ -124,20 +126,19 @@ class EventFormValidator {
                 $longitude = (float)$parts[1];
             }
         }
-        
-        // Format datetime for DB
+
+
         $startTime = null;
         try {
             $dt = new DateTime($datetime);
             $startTime = $dt->format('Y-m-d H:i:s');
         } catch (Throwable $e) {
-            // Already validated above
         }
-        
-        // Get skill level ID
+
+
         $skillLevelId = self::getSkillLevelId($skill);
-        
-        // Return validated data
+
+
         $data = [
             'title' => $title,
             'description' => $description,
@@ -151,7 +152,7 @@ class EventFormValidator {
             'max_players' => $maxPlayers,
         ];
 
-        // Backwards-compatible: return array data and also a DTO instance
+
         require_once __DIR__ . '/../dto/UpdateEventDTO.php';
         $dto = new UpdateEventDTO([
             'title' => $data['title'],
@@ -172,9 +173,10 @@ class EventFormValidator {
             'dto' => $dto
         ];
     }
-    
 
-    private static function validateDateTime(string $datetime): ?string {
+
+    private static function validateDateTime(string $datetime): ?string
+    {
         try {
             $eventDateTime = new DateTime($datetime);
             if ($eventDateTime < new DateTime('now')) {
@@ -183,17 +185,18 @@ class EventFormValidator {
         } catch (Throwable $e) {
             return 'Invalid date format';
         }
-        
+
         return null;
     }
-    
-    private static function getSkillLevelId(string $skill): int {
+
+    private static function getSkillLevelId(string $skill): int
+    {
         $skillMap = [
             'Beginner' => 1,
             'Intermediate' => 2,
             'Advanced' => 3,
         ];
-        
+
         return $skillMap[$skill] ?? 2;
     }
 }

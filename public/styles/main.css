@@ -15,6 +15,7 @@
     --accent: #ff5722;
     --accent-rgb: 255, 87, 34;
     --danger: #ef4444;
+    --danger-rgb: 239, 68, 68;
     --success: #10b981;
     --warning: #f59e0b;
 
@@ -177,7 +178,7 @@ body {
     background: var(--white);
 }
 
-/* Section Header Component */
+
 .section-head {
     display: flex;
     align-items: center;
@@ -186,7 +187,7 @@ body {
     gap: 1rem;
 }
 
-/* Page Header Component */
+
 .page-header {
     display: flex;
     flex-direction: column;
@@ -200,7 +201,7 @@ body {
     }
 }
 
-/* Match Row Component */
+
 .match {
     margin-bottom: 1rem;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -243,7 +244,7 @@ body {
     flex-shrink: 0;
 }
 
-/* Past Events Styling */
+
 .match.past-event {
     opacity: 0.65;
     filter: grayscale(0.3);
@@ -260,7 +261,7 @@ body {
     cursor: not-allowed;
 }
 
-/* Page version of past events */
+
 .event-page.past-event {
     opacity: 0.85;
     filter: grayscale(0.2);
@@ -318,4 +319,10 @@ body {
     border-radius: 50%;
     margin-right: 0.5rem;
     background-color: var(--level-color, #e2e8f0);
+}
+
+.meta-row .material {
+    font-size: 1rem;
+    vertical-align: middle;
+    margin-right: 0.25rem;
 }

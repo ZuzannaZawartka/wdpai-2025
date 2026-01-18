@@ -41,7 +41,7 @@ class UserFormValidator
                 }
             }
         } else {
-            // Jeśli podano current password lub confirm password, ale nie podano new password
+
             if (($isOwnProfile && !empty($old)) || !empty($confirm)) {
                 $errors[] = "Aby zmienić hasło, podaj nowe hasło i powtórz je.";
             }

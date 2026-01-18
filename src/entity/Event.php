@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../config/AppConfig.php';
+
 class Event
 {
     private ?int $id;
@@ -7,10 +9,11 @@ class Event
     private ?string $description;
     private ?int $sportId;
     private ?string $sportName;
+    private ?string $sportIcon;
     private ?string $locationText;
     private ?float $latitude;
     private ?float $longitude;
-    private ?string $startTime; // ISO string
+    private ?string $startTime;
     private ?int $levelId;
     private ?string $levelName;
     private ?string $levelColor;
@@ -23,14 +26,17 @@ class Event
     private ?string $ownerLastName;
     private ?string $ownerAvatarUrl;
     private int $currentPlayers;
+    private array $data;
 
     public function __construct(array $data)
     {
+        $this->data = $data;
         $this->id = isset($data['id']) ? (int)$data['id'] : null;
         $this->title = (string)($data['title'] ?? '');
         $this->description = isset($data['description']) ? (string)$data['description'] : null;
         $this->sportId = isset($data['sport_id']) ? (int)$data['sport_id'] : null;
         $this->sportName = isset($data['sport_name']) ? (string)$data['sport_name'] : null;
+        $this->sportIcon = isset($data['sport_icon']) ? (string)$data['sport_icon'] : null;
         $this->locationText = isset($data['location_text']) ? (string)$data['location_text'] : null;
         $this->latitude = isset($data['latitude']) ? (float)$data['latitude'] : null;
         $this->longitude = isset($data['longitude']) ? (float)$data['longitude'] : null;
@@ -49,25 +55,97 @@ class Event
         $this->currentPlayers = isset($data['current_players']) ? (int)$data['current_players'] : 0;
     }
 
-    public function getId(): ?int { return $this->id; }
-    public function getTitle(): string { return $this->title; }
-    public function getDescription(): ?string { return $this->description; }
-    public function getSportId(): ?int { return $this->sportId; }
-    public function getSportName(): ?string { return $this->sportName; }
-    public function getLocationText(): ?string { return $this->locationText; }
-    public function getLatitude(): ?float { return $this->latitude; }
-    public function getLongitude(): ?float { return $this->longitude; }
-    public function getStartTime(): ?string { return $this->startTime; }
-    public function getLevelId(): ?int { return $this->levelId; }
-    public function getLevelName(): ?string { return $this->levelName; }
-    public function getLevelColor(): ?string { return $this->levelColor; }
-    public function getImageUrl(): ?string { return $this->imageUrl; }
-    public function getMaxPlayers(): ?int { return $this->maxPlayers; }
-    public function getMinNeeded(): ?int { return $this->minNeeded; }
-    public function getOwnerId(): ?int { return $this->ownerId; }
-    public function getOwnerEmail(): ?string { return $this->ownerEmail; }
-    public function getOwnerFirstName(): ?string { return $this->ownerFirstName; }
-    public function getOwnerLastName(): ?string { return $this->ownerLastName; }
-    public function getOwnerAvatarUrl(): ?string { return $this->ownerAvatarUrl; }
-    public function getCurrentPlayers(): int { return $this->currentPlayers; }
+    public function getId(): ?int
+    {
+        return $this->id;
+    }
+    public function getTitle(): string
+    {
+        return $this->title;
+    }
+    public function getDescription(): ?string
+    {
+        return $this->description;
+    }
+    public function getSportId(): ?int
+    {
+        return $this->sportId;
+    }
+    public function getSportName(): ?string
+    {
+        return $this->sportName;
+    }
+    public function getSportIcon(): string
+    {
+        return $this->sportIcon ?: AppConfig::DEFAULT_SPORT_ICON;
+    }
+    public function getLocationText(): ?string
+    {
+        return $this->locationText;
+    }
+    public function getLatitude(): ?float
+    {
+        return $this->latitude;
+    }
+    public function getLongitude(): ?float
+    {
+        return $this->longitude;
+    }
+    public function getStartTime(): ?string
+    {
+        return $this->startTime;
+    }
+    public function getLevelId(): ?int
+    {
+        return $this->levelId;
+    }
+    public function getLevelName(): string
+    {
+        return $this->levelName ?: AppConfig::DEFAULT_LEVEL_NAME;
+    }
+    public function getLevelColor(): string
+    {
+        return $this->levelColor ?: AppConfig::DEFAULT_LEVEL_COLOR;
+    }
+    public function getImageUrl(): string
+    {
+        return $this->imageUrl ?: AppConfig::DEFAULT_EVENT_IMAGE;
+    }
+    public function getMaxPlayers(): ?int
+    {
+        return $this->maxPlayers;
+    }
+    public function getMinNeeded(): ?int
+    {
+        return $this->minNeeded;
+    }
+    public function getOwnerId(): ?int
+    {
+        return $this->ownerId;
+    }
+    public function getOwnerEmail(): ?string
+    {
+        return $this->ownerEmail;
+    }
+    public function getOwnerFirstName(): ?string
+    {
+        return $this->ownerFirstName;
+    }
+    public function getOwnerLastName(): ?string
+    {
+        return $this->ownerLastName;
+    }
+    public function getOwnerAvatarUrl(): string
+    {
+        return $this->ownerAvatarUrl ?: AppConfig::DEFAULT_USER_AVATAR;
+    }
+    public function getCurrentPlayers(): int
+    {
+        return $this->currentPlayers;
+    }
+
+    public function getRawData(): array
+    {
+        return $this->data;
+    }
 }

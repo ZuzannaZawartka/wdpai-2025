@@ -51,7 +51,10 @@ VALUES
     (5, 'Rowerowa wycieczka', 'Trasa przez Mazury', 5, 'Mazury', 53.1325, 23.1688, NOW() + INTERVAL '7 days', 3, 12),
     -- Past events created by Kasia (user_id = 3)
     (3, 'Siatkówka na plaży - zakończona', 'Turniej siatkówki plażowej', 6, 'Plaża Wrocław', 51.1079, 17.0385, '2026-01-10 14:00:00', 2, 12),
-    (3, 'Poranny jogging - zakończony', 'Wspólny bieg o poranku', 4, 'Park Wrocław', 51.1079, 17.0385, '2026-01-05 08:00:00', 1, 15)
+    (3, 'Poranny jogging - zakończony', 'Wspólny bieg o poranku', 4, 'Park Wrocław', 51.1079, 17.0385, '2026-01-05 08:00:00', 1, 15),
+    -- Full and Almost Full Events for Testing
+    (1, 'Full Match Test', 'This match is full', 2, 'Full Arena', 52.2297, 21.0122, NOW() + INTERVAL '2 days', 2, 2),
+    (1, 'Almost Full Match Test', 'One spot left here', 3, 'Open Court', 52.2297, 21.0122, NOW() + INTERVAL '3 days', 2, 3)
 ON CONFLICT DO NOTHING;
 
 -- Past events that Kasia joined
@@ -70,5 +73,10 @@ VALUES
     (5, 10, 'confirmed'), (5, 1, 'confirmed'),
     -- Kasia joined past events (event IDs 8 and 9)
     (8, 3, 'confirmed'),
-    (9, 3, 'confirmed')
+    (9, 3, 'confirmed'),
+    -- Event 10 (Full): 2/2 players
+    (10, 2, 'confirmed'), (10, 3, 'confirmed'),
+    -- Event 11 (Almost Full): 2/3 players
+    (11, 2, 'confirmed'), (11, 3, 'confirmed')
 ON CONFLICT DO NOTHING;
+

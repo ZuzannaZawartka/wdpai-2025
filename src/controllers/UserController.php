@@ -5,6 +5,7 @@ require_once __DIR__ . '/../repository/UserRepository.php';
 require_once __DIR__ . '/../repository/SportsRepository.php';
 require_once __DIR__ . '/../validators/UserFormValidator.php';
 require_once __DIR__ . '/../entity/User.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
 class UserController extends AppController
 {
@@ -12,7 +13,7 @@ class UserController extends AppController
     private UserRepository $userRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();
@@ -45,7 +46,7 @@ class UserController extends AppController
                 return;
             }
 
-            // DTO Usage
+
             $dto = $validation['dto'] ?? null;
             $validatedData = ($dto instanceof \UpdateUserDTO) ? $dto->toArray() : $validation['data'];
 
@@ -60,7 +61,7 @@ class UserController extends AppController
             return;
         }
 
-        // GET request
+
         $this->render('profile', array_merge(
             $this->prepareProfileViewData($userProfile),
             ['isOwnProfile' => $this->isOwnProfile($targetId)]
@@ -89,8 +90,8 @@ class UserController extends AppController
             'firstname'  => $validated['firstName'],
             'lastname'   => $validated['lastName'],
             'birth_date' => $validated['birthDate'] ?: null,
-            'latitude'   => $location['lat'] ?? null,
-            'longitude'  => $location['lng'] ?? null,
+            'latitude'   => $location['lat'] ?? $existingUser['latitude'],
+            'longitude'  => $location['lng'] ?? $existingUser['longitude'],
             'avatar_url' => $avatarPath,
             'role'       => $existingUser['role'],
             'enabled'    => $existingUser['enabled'] ? 'true' : 'false'
@@ -101,7 +102,12 @@ class UserController extends AppController
             $updateData['enabled'] = isset($_POST['enabled']) ? 'true' : 'false';
         }
 
-        $this->userRepository->updateUser($existingUser['email'], $updateData);
+        $success = $this->userRepository->updateUser($existingUser['email'], $updateData);
+
+
+        if ($success && $this->isOwnProfile((int)$existingUser['id'])) {
+            $_SESSION['user_avatar'] = $avatarPath;
+        }
     }
 
     private function updateUserPasswordIfNeeded(array $existingUser, array $validated): void
@@ -119,7 +125,8 @@ class UserController extends AppController
 
     private function handleAvatarUpload(?string $existingAvatar = null): string
     {
-        $default = $existingAvatar ?: '/public/img/default-avatar.png';
+        require_once __DIR__ . '/../config/AppConfig.php';
+        $default = $existingAvatar ?: AppConfig::DEFAULT_USER_AVATAR;
 
         if (!isset($_FILES['avatar']) || $_FILES['avatar']['error'] !== UPLOAD_ERR_OK) {
             return $default;
@@ -152,11 +159,12 @@ class UserController extends AppController
     private function prepareProfileViewData(array $dbUser): array
     {
         $userId = (int)($dbUser['id'] ?? 0);
-        // Entity Usage
         $userEntity = new \User($dbUser);
+        $isOwnProfile = $this->isOwnProfile($userId);
 
         return [
-            'pageTitle' => 'Edycja Profilu',
+            'pageTitle' => $isOwnProfile ? 'Moja Profil' : 'Edycja Użytkownika',
+            'headerTitle' => $isOwnProfile ? 'My Profile' : 'Edit User',
             'user' => [
                 'id' => $userEntity->getId(),
                 'firstName' => $userEntity->getFirstname() ?? '',
@@ -164,15 +172,15 @@ class UserController extends AppController
                 'email' => $userEntity->getEmail() ?? '',
                 'birthDate' => $userEntity->getBirthDate() ?? '',
                 'location' => ($userEntity->getLatitude() && $userEntity->getLongitude() ? "{$userEntity->getLatitude()}, {$userEntity->getLongitude()}" : ''),
-                'avatar' => $userEntity->getAvatarUrl() ?: '/public/img/default-avatar.png',
+                'avatar' => $userEntity->getAvatarUrl() ?: AppConfig::DEFAULT_USER_AVATAR,
                 'role' => $userEntity->getRole() ?? 'user',
-                // enabled might not be in Entity if not mapped, using raw array fallback or adding to Entity. 
-                // Assuming Entity maps 'enabled' if passed. Checking User.php... constructs from data.
                 'enabled' => $dbUser['enabled'] ?? true,
                 'statistics' => $this->userRepository->getUserStatisticsById($userId),
             ],
             'allSports' => $this->sportsRepository->getAllSports(),
-            'selectedSportIds' => $this->sportsRepository->getFavouriteSportsIds($userId)
+            'selectedSportIds' => $this->sportsRepository->getFavouriteSportsIds($userId),
+            'isOwnProfile' => $isOwnProfile,
+            'isAdminViewer' => $this->isAdmin()
         ];
     }
 

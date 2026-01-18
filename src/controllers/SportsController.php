@@ -10,7 +10,7 @@ class SportsController extends AppController
     private SportsRepository $sportsRepository;
     private EventRepository $eventRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->sportsRepository = SportsRepository::getInstance();
@@ -26,10 +26,6 @@ class SportsController extends AppController
         foreach ($rawEvents as $row) {
             $ev = new \Event($row);
 
-            // Filter full events for non-admins
-            // Note: DB filtering is preferred, but getFilteredEventsListing might not filter full events?
-            // Main's code did: $events = array_filter($events, fn($ev) => !$this->eventRepository->isEventFull(...));
-            // We can check fullness on the entity since it has max and current players (from SQL view/subquery)
             $isFull = $ev->getMaxPlayers() > 0 && $ev->getCurrentPlayers() >= $ev->getMaxPlayers();
             if (!$this->isAdmin() && $isFull) {
                 continue;
@@ -39,11 +35,11 @@ class SportsController extends AppController
         }
 
         $this->render('sports', [
-            'pageTitle'      => 'SportMatch - Sports',
+            'pageTitle'      => 'FindRival - Sports',
             'activeNav'      => 'sports',
             'selectedSports' => $filters['sports'],
             'sportsGrid'     => $this->getSportsGrid(),
-            'matches'        => $matches, // now it is an array of mapped data
+            'matches'        => $matches,
             'selectedLevel'  => $filters['level'],
             'selectedLoc'    => $filters['locString'],
             'radiusKm'       => $filters['radius'],
@@ -58,9 +54,7 @@ class SportsController extends AppController
 
         $playersText = ($max === null) ? ($current . ' joined') : ($current . ' / ' . $max . ' joined');
         if ($min && $min > 0) {
-            // Logic to show constraint note
-            // e.g. "Minimum 5" or "Range 5-10"
-            if ($max && $max > 0) {
+            if ($min && $min > 0) {
                 if ($min === $max) {
                     $playersText .= ' · Players ' . $max;
                 } else {
@@ -115,5 +109,42 @@ class SportsController extends AppController
             'name' => (string)$s['name'],
             'icon' => $s['icon'] ?: '🏅'
         ], $this->sportsRepository->getAllSports());
+    }
+
+    public function search(): void
+    {
+        $contentType = isset($_SERVER["CONTENT_TYPE"]) ? trim($_SERVER["CONTENT_TYPE"]) : '';
+
+        if ($contentType === "application/json") {
+            $content = trim(file_get_contents("php://input"));
+            $decoded = json_decode($content, true);
+
+            require_once __DIR__ . '/../dto/EventSearchRequestDTO.php';
+            require_once __DIR__ . '/../dto/EventResponseDTO.php';
+
+            $criteria = EventSearchRequestDTO::fromRequest($decoded);
+            $results = $this->eventRepository->searchEvents($criteria);
+
+            $total = 0;
+            if (!empty($results)) {
+                $total = (int)$results[0]->getRawData()['total_count'];
+            }
+
+            $dtos = array_map(fn($ev) => EventResponseDTO::fromEntity($ev), $results);
+
+            header('Content-Type: application/json');
+            http_response_code(200);
+            echo json_encode([
+                'events' => $dtos,
+                'total' => $total,
+                'page' => $criteria->page,
+                'totalPages' => ceil($total / $criteria->limit)
+            ]);
+            exit();
+        } else {
+            http_response_code(415);
+            echo json_encode(['error' => 'Unsupported Media Type']);
+            exit();
+        }
     }
 }

@@ -72,7 +72,7 @@
                     <a class="logout" href="/logout">Logout</a>
                     <div class="avatar-wrap">
                         <?php
-                            $avatarSrc = $currentAvatar ?? (isset($user['avatar']) ? $user['avatar'] : (($_SESSION['user_avatar'] ?? null) ?: DEFAULT_AVATAR));
+                            $avatarSrc = $currentAvatar ?? (isset($user['avatar']) ? $user['avatar'] : (($_SESSION['user_avatar'] ?? null) ?: \AppConfig::DEFAULT_USER_AVATAR));
                         ?>
                         <a href="/profile" class="avatar" role="img" aria-label="User profile picture"
                             style="background-image: url('<?= htmlspecialchars($avatarSrc) ?>')"></a>

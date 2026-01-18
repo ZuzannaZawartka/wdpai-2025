@@ -9,7 +9,7 @@ class CreateEventDTO
     public ?string $locationText;
     public ?float $latitude;
     public ?float $longitude;
-    public ?string $startTime; // ISO datetime string
+    public ?string $startTime;
     public ?int $levelId;
     public ?string $imageUrl;
     public ?int $maxPlayers;

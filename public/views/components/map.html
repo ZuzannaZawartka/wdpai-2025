@@ -1,12 +1,5 @@
 <?php
-/**
- * Global Map Component
- * @var string $mapId - Unique ID for the map element
- * @var string $mode - 'view', 'picker', 'preview'
- * @var string $location - Initial location (lat,lng or address)
- * @var string $inputName - Name of the hidden input for 'picker' mode
- * @var string $placeholder - Placeholder for empty state
- */
+
 $mode = $mode ?? 'view';
 $mapId = $mapId ?? ('map-' . uniqid());
 $location = $location ?? '';
@@ -50,7 +43,7 @@ $placeholder = $placeholder ?? 'Nie wybrano lokalizacji';
     <?php endif; ?>
 </div>
 
-<!-- Dependencies -->
+
 <script>
     (function () {
         if (typeof L === 'undefined' && !window._leafletLoading) {

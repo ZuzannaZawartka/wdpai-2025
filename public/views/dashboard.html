@@ -1,4 +1,4 @@
-<?php $pageTitle = 'SportMatch Dashboard'; $activeNav = $activeNav ?? 'dashboard'; ?>
+<?php $pageTitle = 'FindRival Dashboard'; $activeNav = $activeNav ?? 'dashboard'; ?>
 <?php include __DIR__ . '/components/header.html'; ?>
 
 <section class="hero">
@@ -112,13 +112,21 @@
                                 <?= htmlspecialchars($rec['title']) ?>
                             </h3>
                             <p class="meta text-small">
-                                <?= htmlspecialchars($rec['sport']) ?>
+                                <?= htmlspecialchars($rec['start_time']) ?>
                             </p>
-                            <p class="meta text-small">
-                                <?= htmlspecialchars($rec['distanceText']) ?>
-                            </p>
-                            <a href="/event/<?= (int)($rec['id'] ?? 0) ?>" class="button text-size-small primary block">
-                                <?= htmlspecialchars($rec['cta']) ?>
+                            <div class="meta-row text-small">
+                                <span><span class="material">groups</span>
+                                    <?= htmlspecialchars($rec['current_players']) ?> /
+                                    <?= htmlspecialchars($rec['max_players']) ?>
+                                </span>
+                                <span class="level"
+                                    style="--level-color: <?= htmlspecialchars($rec['level_color']) ?>;">
+                                    <i class="color-indicator"></i>
+                                    <?= htmlspecialchars($rec['level_name'] ?? 'Intermediate') ?>
+                                </span>
+                            </div>
+                            <a href="/event/<?= (int)($rec['id'] ?? 0) ?>" class="button primary small block">
+                                View Details
                             </a>
                         </div>
                     </article>

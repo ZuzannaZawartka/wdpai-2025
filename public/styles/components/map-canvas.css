@@ -1,4 +1,3 @@
-
 .map-modal[hidden] {
     display: none;
 }
@@ -32,8 +31,15 @@
 }
 
 @keyframes modal-slide-in {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .map-actions {
@@ -59,14 +65,14 @@
     justify-content: center;
     gap: 0.5rem;
     border: 2px dashed var(--border-color);
-    background: #fafafa;
+    background: var(--bg-light);
     color: var(--text-gray);
     transition: all 0.2s ease;
 }
 
 .hero-map-empty:hover {
     border-color: var(--primary);
-    background: #f0f7ff;
+    background: color-mix(in oklab, var(--primary) 8%, var(--white));
 }
 
 .hero-map-empty .material {
@@ -100,6 +106,7 @@
         width: 95%;
         margin: 2vh auto;
     }
+
     .map-canvas {
         height: 350px;
     }

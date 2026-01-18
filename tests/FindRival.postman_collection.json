@@ -1,0 +1,84 @@
+{
+	"info": {
+		"name": "FindRival Basic Suite",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Test 1: View Login Page",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/login"
+				}
+			}
+		},
+		{
+			"name": "Test 2: Admin Login",
+			"request": {
+				"method": "POST",
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "admin@gmail.com"
+						},
+						{
+							"key": "password",
+							"value": "adminadmin"
+						},
+						{
+							"key": "csrf_token",
+							"value": "manual_token_required"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/login"
+				}
+			}
+		},
+		{
+			"name": "Test 3: Failed Login",
+			"request": {
+				"method": "POST",
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": [
+						{
+							"key": "email",
+							"value": "wrong@user.com"
+						},
+						{
+							"key": "password",
+							"value": "wrongpass"
+						},
+						{
+							"key": "csrf_token",
+							"value": "manual_token_required"
+						}
+					]
+				},
+				"url": {
+					"raw": "{{baseUrl}}/login"
+				}
+			}
+		},
+		{
+			"name": "Test 4: View Register Page",
+			"request": {
+				"method": "GET",
+				"url": {
+					"raw": "{{baseUrl}}/register"
+				}
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		}
+	]
+}

@@ -1,13 +1,15 @@
 <?php
 
-require_once __DIR__ . '/../../Database.php';
+
 require_once __DIR__ . '/../entity/Event.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
 require_once __DIR__ . '/Repository.php';
+require_once __DIR__ . '/../dto/EventSearchRequestDTO.php';
 
 class EventRepository extends Repository
 {
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
     }
@@ -18,7 +20,6 @@ class EventRepository extends Repository
             $stmt = $this->database->connect()->prepare("SELECT set_config('app.user_id', :uid, true)");
             $stmt->execute([':uid' => (string)$userId]);
         } catch (Throwable $e) {
-            // Audit context is optional; ignore failures.
         }
     }
 
@@ -29,7 +30,7 @@ class EventRepository extends Repository
                 e.id, e.title, e.start_time, e.image_url, e.max_players, e.min_needed, e.description,
                 e.latitude, e.longitude,
                 l.name AS level_name,
-                l.hex_color AS level_color, -- POPRAWIONE: Dodano kolor
+                l.hex_color AS level_color,
                 (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN levels l ON l.id = e.level_id
@@ -41,7 +42,7 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    // New: return Event entity list for owner's events (future-proof)
+
     public function getMyEventsEntities(int $ownerId): array
     {
         require_once __DIR__ . '/../entity/Event.php';
@@ -86,7 +87,7 @@ class EventRepository extends Repository
                 e.*, 
                 s.name AS sport_name, 
                 l.name AS level_name, 
-                l.hex_color AS level_color, -- POPRAWIONE: Dodano kolor
+                l.hex_color AS level_color,
                 (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
@@ -97,11 +98,10 @@ class EventRepository extends Repository
         $stmt = $this->database->connect()->prepare($sql);
         $stmt->execute();
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-        // Provide both associative-array API and entity API via a separate method; this keeps backward compatibility.
         return $rows;
     }
 
-    // New: return list of Event entities for listing
+
     public function getAllForListingEntities(bool $includePast = true): array
     {
         $rows = $this->getAllForListing($includePast);
@@ -114,7 +114,7 @@ class EventRepository extends Repository
             SELECT 
                 e.*, s.name AS sport_name,
                 l.name AS level_name, 
-                l.hex_color AS level_color, -- DODANE
+                l.hex_color AS level_color,
                 u.email AS owner_email, u.firstname, u.lastname, u.avatar_url,
                 (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
             FROM events e
@@ -129,7 +129,7 @@ class EventRepository extends Repository
         return $row ?: null;
     }
 
-    // New: return Event entity instance or null
+
     public function getEventEntityById(int $id): ?\Event
     {
         $row = $this->getEventById($id);
@@ -166,10 +166,20 @@ class EventRepository extends Repository
             JOIN events e ON e.id = ep.event_id
             LEFT JOIN levels l ON l.id = e.level_id
             WHERE ep.user_id = :uid $whereTime
-            ORDER BY e.start_time DESC
+            
+            UNION
+            
+            SELECT e.id, e.title, e.description, e.start_time, e.image_url, e.max_players, e.location_text, e.owner_id,
+                   l.name AS level_name,
+                   (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+            FROM events e
+            LEFT JOIN levels l ON l.id = e.level_id
+            WHERE e.owner_id = :uid2 $whereTime
+            
+            ORDER BY start_time DESC
         ";
         $stmt = $this->database->connect()->prepare($sql);
-        $stmt->execute([':uid' => $userId]);
+        $stmt->execute([':uid' => $userId, ':uid2' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -350,19 +360,16 @@ class EventRepository extends Repository
 
             $this->setAuditUser($userId);
 
-            // Check if event exists and is not full
             if ($this->isEventFull($eventId)) {
                 $this->database->connect()->rollBack();
                 return false;
             }
 
-            // Check if event is in the past
             if ($this->isEventPast($eventId)) {
                 $this->database->connect()->rollBack();
                 return false;
             }
 
-            // Add user to event
             $ins = $this->database->connect()->prepare('INSERT INTO event_participants(event_id, user_id) VALUES(?, ?)');
             $ins->execute([$eventId, $userId]);
 
@@ -434,14 +441,14 @@ class EventRepository extends Repository
         $whereSql = $conditions ? "WHERE " . implode(" AND ", $conditions) : "";
 
         $sql = "
-            SELECT e.*, s.name AS sport_name, l.name AS level_name, l.hex_color AS level_color, -- DODANE
+            SELECT e.*, s.name AS sport_name, l.name AS level_name, l.hex_color AS level_color,
                 (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
                 $distanceField
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
             LEFT JOIN levels l ON l.id = e.level_id
             $whereSql
-            GROUP BY e.id, s.name, l.name, l.hex_color -- POPRAWIONE: Grupowanie o hex_color
+            GROUP BY e.id, s.name, l.name, l.hex_color
             $having
             ORDER BY e.start_time ASC
         ";
@@ -451,15 +458,31 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getNearbyEvents(float $lat, float $lng, int $limit = 3): array
+    public function getNearbyEvents(float $lat, float $lng, int $limit = 3, ?int $excludeUserId = null): array
     {
         $sql = "
             SELECT 
-                e.id, e.title, e.location_text, e.image_url, s.name as sport_name,
+                e.*, s.name as sport_name, l.name as level_name, l.hex_color as level_color,
+                (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) as current_players,
                 (6371 * acos(GREATEST(-1, LEAST(1, cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude)))))) AS distance
             FROM events e
             LEFT JOIN sports s ON s.id = e.sport_id
-            WHERE e.start_time >= NOW() AND e.latitude IS NOT NULL AND e.longitude IS NOT NULL
+            LEFT JOIN levels l ON l.id = e.level_id
+            WHERE e.start_time >= NOW() 
+              AND e.latitude IS NOT NULL 
+              AND e.longitude IS NOT NULL
+              AND (
+                  e.max_players IS NULL 
+                  OR e.max_players = 0 
+                  OR (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) < e.max_players
+              )
+        ";
+
+        if ($excludeUserId !== null) {
+            $sql .= " AND e.owner_id != :excludeUserId ";
+        }
+
+        $sql .= "
             ORDER BY distance ASC
             LIMIT :limit
         ";
@@ -468,6 +491,11 @@ class EventRepository extends Repository
         $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
         $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+
+        if ($excludeUserId !== null) {
+            $stmt->bindValue(':excludeUserId', $excludeUserId, PDO::PARAM_INT);
+        }
+
         $stmt->execute();
 
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -477,11 +505,81 @@ class EventRepository extends Repository
                 'id' => $r['id'],
                 'title' => $r['title'] ?? 'Event',
                 'sport' => $r['sport_name'] ?? 'Sport',
-                // TO MUSI SIĘ NAZYWAĆ TAK JAK W TWOIM HTML (linia ok. 95)
+                'start_time' => $r['start_time'] ? (new \DateTime($r['start_time']))->format('D, M j, g:i A') : 'TBD',
+                'current_players' => (int)($r['current_players'] ?? 0),
+                'max_players' => (int)($r['max_players'] ?? 0),
+                'level_name' => $r['level_name'] ?? 'Intermediate',
+                'level_color' => $r['level_color'] ?? '#9E9E9E',
                 'distanceText' => sprintf('%.1f km away', $r['distance']),
-                'imageUrl' => $r['image_url'] ?? 'public/img/uploads/default.jpg',
+                'imageUrl' => $r['image_url'] ?: \AppConfig::DEFAULT_EVENT_IMAGE,
                 'cta' => 'See Details'
             ];
         }, $results);
+    }
+    public function searchEvents(EventSearchRequestDTO $criteria): array
+    {
+        $params = [];
+        $conditions = ["e.start_time >= NOW()"];
+
+        if (!empty($criteria->sports)) {
+            $placeholders = [];
+            foreach ($criteria->sports as $i => $name) {
+                $key = ":sport" . $i;
+                $placeholders[] = $key;
+                $params[$key] = $name;
+            }
+            $conditions[] = "s.name IN (" . implode(',', $placeholders) . ")";
+        }
+
+        if ($criteria->level !== 'Any') {
+            $conditions[] = "l.name = :level";
+            $params[':level'] = $criteria->level;
+        }
+
+        $distanceField = "";
+        $having = "";
+
+        if ($criteria->hasCoordinates()) {
+            $lat = $criteria->latitude;
+            $lng = $criteria->longitude;
+            $haversine = "(6371 * acos(GREATEST(-1, LEAST(1, cos(radians(:lat)) * cos(radians(e.latitude)) * cos(radians(e.longitude) - radians(:lng)) + sin(radians(:lat)) * sin(radians(e.latitude))))))";
+            $distanceField = ", $haversine AS distance";
+            $having = "HAVING $haversine <= :radius";
+            $params[':lat'] = $lat;
+            $params[':lng'] = $lng;
+            $params[':radius'] = $criteria->radius;
+        }
+
+        $whereSql = "WHERE " . implode(" AND ", $conditions);
+
+        $sql = "
+            SELECT e.*, s.name AS sport_name, s.icon AS sport_icon, 
+                   l.name AS level_name, l.hex_color AS level_color,
+                (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players,
+                COUNT(*) OVER() AS total_count
+                $distanceField
+            FROM events e
+            LEFT JOIN sports s ON s.id = e.sport_id
+            LEFT JOIN levels l ON l.id = e.level_id
+            $whereSql
+            GROUP BY e.id, s.name, s.icon, l.name, l.hex_color
+            $having
+            ORDER BY e.start_time ASC
+            LIMIT :limit OFFSET :offset
+        ";
+
+        $stmt = $this->database->connect()->prepare($sql);
+        foreach ($params as $key => $val) {
+            $stmt->bindValue($key, $val);
+        }
+
+        $offset = ($criteria->page - 1) * $criteria->limit;
+        $stmt->bindValue(':limit', $criteria->limit, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(fn($row) => new \Event($row), $rows);
     }
 }

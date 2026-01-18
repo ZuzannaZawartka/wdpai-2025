@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../../config/lang/lang_helper.php';
-require_once __DIR__ . '/../../config.php';
+
 require_once __DIR__ . '/../repository/UserRepository.php';
+require_once __DIR__ . '/../config/AppConfig.php';
 
 class AppController
 {
@@ -126,10 +127,8 @@ class AppController
     {
         $this->ensureSession();
 
-        // Dodaj avatar
         $variables['currentAvatar'] = $variables['currentAvatar'] ?? $this->getAvatarForCurrentUser();
 
-        // Dodaj język jeśli nie ustawiony
         if (!isset($variables['lang']) && !empty($template)) {
             $variables['lang'] = get_lang($template);
         }
@@ -138,7 +137,6 @@ class AppController
         $templatePath404 = 'public/views/404.html';
         $output = '';
 
-        // Wczytaj template lub 404
         $pathToInclude = file_exists($templatePath) ? $templatePath : $templatePath404;
 
         extract($variables);
@@ -159,18 +157,17 @@ class AppController
         $uid = $this->getCurrentUserId();
         if ($uid) {
             try {
-                $repo = new UserRepository();
+                $repo = UserRepository::getInstance();
                 $dbUser = $repo->getUserProfileById($uid);
                 if (!empty($dbUser['avatar_url'])) {
                     $_SESSION['user_avatar'] = $dbUser['avatar_url'];
                     return $dbUser['avatar_url'];
                 }
             } catch (Throwable $e) {
-                // ignore i fallback
             }
         }
 
-        return DEFAULT_AVATAR;
+        return \AppConfig::DEFAULT_USER_AVATAR;
     }
 
 
@@ -379,9 +376,9 @@ class AppController
             'title'      => (string)($event['title'] ?? 'Untitled'),
             'datetime'   => $formattedDate,
             'players'    => (int)($event['current_players'] ?? 0) . " / " . (int)($event['max_players'] ?? 0),
-            'level'      => $event['level_name'] ?? 'Intermediate',
-            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : '/public/images/boisko.png',
-            'levelColor' => $event['level_color'] ?? '#9E9E9E'
+            'level'      => $event['level_name'] ?? \AppConfig::DEFAULT_LEVEL_NAME,
+            'imageUrl'   => !empty($event['image_url']) ? $event['image_url'] : \AppConfig::DEFAULT_EVENT_IMAGE,
+            'levelColor' => $event['level_color'] ?? \AppConfig::DEFAULT_LEVEL_COLOR
         ];
     }
 

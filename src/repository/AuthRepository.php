@@ -2,8 +2,13 @@
 
 require_once __DIR__ . '/Repository.php';
 
-class AuthRepository extends Repository {
-    
+class AuthRepository extends Repository
+{
+    protected function __construct()
+    {
+        parent::__construct();
+    }
+
     public function logFailedLoginAttempt(
         ?string $email,
         string $ipHash,
@@ -31,8 +36,8 @@ class AuthRepository extends Repository {
     }
 
 
-    // IP-only limiter: track attempts per IP regardless of email
-    public function getIpAttempts(string $ipHash): ?array {
+    public function getIpAttempts(string $ipHash): ?array
+    {
         $query = $this->database->connect()->prepare('
             SELECT count, lock_until FROM login_attempts
             WHERE email = :email AND ip_hash = :ip
@@ -45,11 +50,13 @@ class AuthRepository extends Repository {
         return $row ?: null;
     }
 
-    public function incrementIpWindow(string $ipHash, int $windowSeconds, int $maxAttempts, int $lockSeconds): void {
+    public function incrementIpWindow(string $ipHash, int $windowSeconds, int $maxAttempts, int $lockSeconds): void
+    {
         $conn = $this->database->connect();
         try {
             $conn->exec('ALTER TABLE login_attempts ADD COLUMN IF NOT EXISTS last_attempt BIGINT NOT NULL DEFAULT 0');
-        } catch (Throwable $e) {}
+        } catch (Throwable $e) {
+        }
 
         $emailStar = '*';
         $now = time();

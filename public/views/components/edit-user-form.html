@@ -4,9 +4,12 @@
     $isTargetAdmin = ($user['role'] ?? 'user') === 'admin';
     $currentUserId = $_SESSION['user_id'] ?? null;
     $targetUserId = $user['id'] ?? null;
-    $isOwnProfile = ($currentUserId !== null && $targetUserId !== null && (int)$currentUserId === (int)$targetUserId);
+    // We already have these from the controller, but let's be safe
+    $isOwnProfile = $isOwnProfile ?? (($currentUserId !== null && $targetUserId !== null && (int)$currentUserId === (int)$targetUserId));
+    $isAdminViewer = $isAdminViewer ?? (($_SESSION['user_role'] ?? 'user') === 'admin');
+    
     $currentUrl = $_SERVER['REQUEST_URI'];
-    $isInsideAdminPanel = (strpos($currentUrl, 'accounts') !== false);
+    $isInsideAdminPanel = (strpos($currentUrl, 'accounts') !== false) || (!$isOwnProfile && $isAdminViewer);
 ?>
 
 <form id="editUserForm" class="form" method="post" enctype="multipart/form-data"
@@ -37,24 +40,6 @@
             <label class="text-small" for="email">Email</label>
             <input id="email" name="email" type="email" class="input-common"
                 value="<?= htmlspecialchars($user['email'] ?? '') ?>" readonly />
-        </div>
-        <div class="field input-group full">
-            <label class="text-small" for="locationDisplayAdmin">Location</label>
-            <div class="control with-icon has-action">
-                <span class="material">location_on</span>
-                <input id="locationDisplayAdmin" type="text" class="input-common"
-                    value="<?= htmlspecialchars($user['location'] ?? '') ?>" />
-                <button type="button" class="icon-btn pick-map" data-target="adminPickerMap">
-                    <span class="material">my_location</span>
-                </button>
-            </div>
-            <?php 
-                $mode = 'picker';
-                $mapId = 'adminPickerMap';
-                $inputName = 'location';
-                $location = $user['location'] ?? '';
-                include __DIR__ . '/map.html';
-            ?>
         </div>
     </div>
     <?php else: ?>
@@ -181,37 +166,12 @@
             }
         };
 
-        // Handle Admin Picker
-        const adminSync = () => {
-            const openBtn = document.querySelector('.pick-map[data-target="adminPickerMap"]');
-            const mapInput = document.getElementById('input-adminPickerMap');
-            const locDisplay = document.getElementById('locationDisplayAdmin');
-            if (!mapInput || !locDisplay) return;
-
-            mapInput.addEventListener('change', () => {
-                locDisplay.value = mapInput.value;
-                locDisplay.readOnly = true;
-                openBtn?.classList.add('applied');
-            });
-
-            // Reverse sync
-            locDisplay.addEventListener('input', () => {
-                mapInput.value = locDisplay.value;
-            });
-
-            if (locDisplay.value.match(/^-?\d+\.\d+,\s*-?\d+\.\d+$/)) {
-                locDisplay.readOnly = true;
-                openBtn?.classList.add('applied');
-            }
-        };
-
         // Initialize avatars
         document.querySelectorAll('.avatar[data-initial-avatar]').forEach(div => {
             div.style.backgroundImage = `url('${div.dataset.initialAvatar}')`;
         });
 
         userSync();
-        adminSync();
     })();
 
     function previewAvatar(input) {
