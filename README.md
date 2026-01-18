@@ -31,33 +31,32 @@ The application utilizes a layered architecture to ensure separation of concerns
 
 ### System Flow
 
-![alt text](image-7.png)
+<img width="563" height="350" alt="image" src="https://github.com/user-attachments/assets/a83f381d-f428-465a-8144-9731df5365de" />
+
 
 ### Database Design (ERD)
+<img width="596" height="404" alt="image" src="https://github.com/user-attachments/assets/a251741e-028a-4543-bb06-5ad7e6531446" />
 
-![Database Entity-Relationship Diagram](docs/erd_diagram.png)
+
+
 
 ---
 
-## Application Demo
+## Application
 
-![alt text](image.png)
-
-![alt text](image-1.png)
 
 ### Key Features Walkthrough
 
-![alt text](image-3.png)
+<img width="951" height="475" alt="image-3" src="https://github.com/user-attachments/assets/04cf7fcc-4669-4096-b59e-8868eeb58ebf" />
 
-![alt text](image-4.png)
+<img width="951" height="474" alt="image-4" src="https://github.com/user-attachments/assets/babf123d-6fc1-44f1-a887-f0153d12a56a" />
+<img width="949" height="473" alt="image-5" src="https://github.com/user-attachments/assets/57e3f4f4-6387-4599-85cd-755443c91b55" />
 
-![alt text](image-5.png)
-
-![alt text](image-6.png)
-
+<img width="952" height="473" alt="image-6" src="https://github.com/user-attachments/assets/f6c8e2c5-1f00-4fdd-902e-da7dac6392ab" />
 
 ### Admin Panel
-![alt text](image-2.png)
+<img width="1885" height="1000" alt="image-2" src="https://github.com/user-attachments/assets/948344dd-9685-40bb-a40b-94254a470691" />
+
 
 ---
 
@@ -163,6 +162,7 @@ chmod +x tests/api_tests.sh
 ### Postman Collection
 For manual testing, import the `tests/FindRival.postman_collection.json` file into Postman. It contains pre-configured requests for Login, Registration, and Event Search.
 
+---
 
 ## Getting Started
 
