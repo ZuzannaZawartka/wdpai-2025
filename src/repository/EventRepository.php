@@ -166,10 +166,20 @@ class EventRepository extends Repository
             JOIN events e ON e.id = ep.event_id
             LEFT JOIN levels l ON l.id = e.level_id
             WHERE ep.user_id = :uid $whereTime
-            ORDER BY e.start_time DESC
+            
+            UNION
+            
+            SELECT e.id, e.title, e.description, e.start_time, e.image_url, e.max_players, e.location_text, e.owner_id,
+                   l.name AS level_name,
+                   (SELECT COUNT(*) FROM event_participants p WHERE p.event_id = e.id) AS current_players
+            FROM events e
+            LEFT JOIN levels l ON l.id = e.level_id
+            WHERE e.owner_id = :uid2 $whereTime
+            
+            ORDER BY start_time DESC
         ";
         $stmt = $this->database->connect()->prepare($sql);
-        $stmt->execute([':uid' => $userId]);
+        $stmt->execute([':uid' => $userId, ':uid2' => $userId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
@@ -448,7 +458,7 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    public function getNearbyEvents(float $lat, float $lng, int $limit = 3): array
+    public function getNearbyEvents(float $lat, float $lng, int $limit = 3, ?int $excludeUserId = null): array
     {
         $sql = "
             SELECT 
@@ -466,6 +476,13 @@ class EventRepository extends Repository
                   OR e.max_players = 0 
                   OR (SELECT COUNT(*) FROM event_participants WHERE event_id = e.id) < e.max_players
               )
+        ";
+
+        if ($excludeUserId !== null) {
+            $sql .= " AND e.owner_id != :excludeUserId ";
+        }
+
+        $sql .= "
             ORDER BY distance ASC
             LIMIT :limit
         ";
@@ -474,6 +491,11 @@ class EventRepository extends Repository
         $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
         $stmt->bindValue(':lng', $lng, PDO::PARAM_STR);
         $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+
+        if ($excludeUserId !== null) {
+            $stmt->bindValue(':excludeUserId', $excludeUserId, PDO::PARAM_INT);
+        }
+
         $stmt->execute();
 
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];

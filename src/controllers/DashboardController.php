@@ -61,7 +61,8 @@ class DashboardController extends AppController
             $suggestions = $this->eventRepository->getNearbyEvents(
                 (float)$currentUser->getLatitude(),
                 (float)$currentUser->getLongitude(),
-                3
+                3,
+                $currentUserId
             );
         }
 
