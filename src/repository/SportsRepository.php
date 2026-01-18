@@ -6,6 +6,10 @@ require_once __DIR__ . '/../config/AppConfig.php';
 
 class SportsRepository extends Repository
 {
+    protected function __construct()
+    {
+        parent::__construct();
+    }
 
     public function getAllSports(): array
     {

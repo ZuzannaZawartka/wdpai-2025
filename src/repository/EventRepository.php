@@ -9,7 +9,7 @@ require_once __DIR__ . '/../dto/EventSearchRequestDTO.php';
 
 class EventRepository extends Repository
 {
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
     }

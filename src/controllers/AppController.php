@@ -157,7 +157,7 @@ class AppController
         $uid = $this->getCurrentUserId();
         if ($uid) {
             try {
-                $repo = new UserRepository();
+                $repo = UserRepository::getInstance();
                 $dbUser = $repo->getUserProfileById($uid);
                 if (!empty($dbUser['avatar_url'])) {
                     $_SESSION['user_avatar'] = $dbUser['avatar_url'];

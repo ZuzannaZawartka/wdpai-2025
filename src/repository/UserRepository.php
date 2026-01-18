@@ -6,7 +6,7 @@ require_once __DIR__ . '/../entity/User.php';
 class UserRepository extends Repository
 {
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
     }

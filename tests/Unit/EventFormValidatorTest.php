@@ -60,6 +60,6 @@ class EventFormValidatorTest extends TestCase
         $this->assertEquals('Soccer Game', $result['data']['title']);
         $this->assertEquals(12, $result['data']['max_players']);
         $this->assertEquals(12, $result['data']['min_needed']);
-        $this->assertEquals(3, $result['data']['level_id']); // Advanced = 3
+        $this->assertEquals(3, $result['data']['level_id']); 
     }
 }

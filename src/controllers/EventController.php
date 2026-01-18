@@ -11,6 +11,10 @@ require_once __DIR__ . '/../valueobject/Location.php';
 
 class EventController extends AppController
 {
+    protected function __construct()
+    {
+        parent::__construct();
+    }
     public function showCreateForm(): void
     {
         if ($this->isAdmin()) {

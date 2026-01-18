@@ -3,8 +3,8 @@
 <section class="profile-page sports-page">
     <div class="section">
         <?php 
-            $title = 'My Profile';
-            $description = 'Manage your personal information and preferences.';
+            $title = $headerTitle ?? 'My Profile';
+            $description = ($isOwnProfile ?? true) ? 'Manage your personal information and preferences.' : 'Update user account settings and permissions.';
             include __DIR__ . '/components/page-header.html';
         ?>
     </div>

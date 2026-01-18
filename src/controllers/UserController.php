@@ -13,7 +13,7 @@ class UserController extends AppController
     private UserRepository $userRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();
@@ -90,8 +90,8 @@ class UserController extends AppController
             'firstname'  => $validated['firstName'],
             'lastname'   => $validated['lastName'],
             'birth_date' => $validated['birthDate'] ?: null,
-            'latitude'   => $location['lat'] ?? null,
-            'longitude'  => $location['lng'] ?? null,
+            'latitude'   => $location['lat'] ?? $existingUser['latitude'],
+            'longitude'  => $location['lng'] ?? $existingUser['longitude'],
             'avatar_url' => $avatarPath,
             'role'       => $existingUser['role'],
             'enabled'    => $existingUser['enabled'] ? 'true' : 'false'
@@ -159,11 +159,12 @@ class UserController extends AppController
     private function prepareProfileViewData(array $dbUser): array
     {
         $userId = (int)($dbUser['id'] ?? 0);
-
         $userEntity = new \User($dbUser);
+        $isOwnProfile = $this->isOwnProfile($userId);
 
         return [
-            'pageTitle' => 'Edycja Profilu',
+            'pageTitle' => $isOwnProfile ? 'Moja Profil' : 'Edycja Użytkownika',
+            'headerTitle' => $isOwnProfile ? 'My Profile' : 'Edit User',
             'user' => [
                 'id' => $userEntity->getId(),
                 'firstName' => $userEntity->getFirstname() ?? '',
@@ -173,12 +174,13 @@ class UserController extends AppController
                 'location' => ($userEntity->getLatitude() && $userEntity->getLongitude() ? "{$userEntity->getLatitude()}, {$userEntity->getLongitude()}" : ''),
                 'avatar' => $userEntity->getAvatarUrl() ?: AppConfig::DEFAULT_USER_AVATAR,
                 'role' => $userEntity->getRole() ?? 'user',
-
                 'enabled' => $dbUser['enabled'] ?? true,
                 'statistics' => $this->userRepository->getUserStatisticsById($userId),
             ],
             'allSports' => $this->sportsRepository->getAllSports(),
-            'selectedSportIds' => $this->sportsRepository->getFavouriteSportsIds($userId)
+            'selectedSportIds' => $this->sportsRepository->getFavouriteSportsIds($userId),
+            'isOwnProfile' => $isOwnProfile,
+            'isAdminViewer' => $this->isAdmin()
         ];
     }
 

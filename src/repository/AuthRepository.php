@@ -4,6 +4,10 @@ require_once __DIR__ . '/Repository.php';
 
 class AuthRepository extends Repository
 {
+    protected function __construct()
+    {
+        parent::__construct();
+    }
 
     public function logFailedLoginAttempt(
         ?string $email,

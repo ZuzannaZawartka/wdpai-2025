@@ -12,7 +12,7 @@ class DashboardController extends AppController
     private EventRepository $eventRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();

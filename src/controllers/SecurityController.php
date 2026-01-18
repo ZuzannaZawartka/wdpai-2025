@@ -25,7 +25,7 @@ class SecurityController extends AppController
     private AuthRepository $authRepository;
     private SportsRepository $sportsRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();

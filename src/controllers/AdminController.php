@@ -14,7 +14,7 @@ class AdminController extends AppController
     private UserRepository $userRepository;
     private EventRepository $eventRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->userRepository = UserRepository::getInstance();
@@ -59,7 +59,7 @@ class AdminController extends AppController
     public function editUser($id)
     {
         $this->requireRole('admin');
-        $userController = new UserController();
+        $userController = UserController::getInstance();
         return $userController->editUser($id);
     }
 }

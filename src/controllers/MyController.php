@@ -6,6 +6,10 @@ require_once __DIR__ . '/../entity/Event.php';
 
 class MyController extends AppController
 {
+    protected function __construct()
+    {
+        parent::__construct();
+    }
 
     public function index(): void
     {

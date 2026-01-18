@@ -10,7 +10,7 @@ class SportsController extends AppController
     private SportsRepository $sportsRepository;
     private EventRepository $eventRepository;
 
-    public function __construct()
+    protected function __construct()
     {
         parent::__construct();
         $this->sportsRepository = SportsRepository::getInstance();
