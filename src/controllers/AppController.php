@@ -52,7 +52,7 @@ class AppController
      * 
      * @return int|null User ID or null if not authenticated
      */
-    protected function getCurrentUserId(): ?int
+    public function getCurrentUserId(): ?int
     {
         $this->ensureSession();
         return isset($_SESSION['user_id']) && is_numeric($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : null;
@@ -73,7 +73,7 @@ class AppController
      * Requires user to be authenticated
      * Redirects to login if not authenticated
      */
-    protected function requireAuth(): void
+    public function requireAuth(): void
     {
         if (!$this->isAuthenticated()) {
             $this->respondUnauthorized();
