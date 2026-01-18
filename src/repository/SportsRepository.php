@@ -11,6 +11,11 @@ class SportsRepository extends Repository
         parent::__construct();
     }
 
+    /**
+     * Gets all sports
+     * 
+     * @return array Sport data arrays
+     */
     public function getAllSports(): array
     {
         $stmt = $this->database->connect()->prepare('SELECT id, name, icon FROM sports ORDER BY id');
@@ -19,12 +24,22 @@ class SportsRepository extends Repository
     }
 
 
+    /**
+     * Gets all sports as Sport entities
+     * 
+     * @return array Array of Sport objects
+     */
     public function getAllSportsEntities(): array
     {
         $rows = $this->getAllSports();
         return array_map(fn($r) => new \Sport($r), $rows);
     }
 
+    /**
+     * Gets all skill levels
+     * 
+     * @return array Level data arrays
+     */
     public function getAllLevels(): array
     {
         $stmt = $this->database->connect()->prepare('SELECT id, name, hex_color FROM levels ORDER BY id');
@@ -32,6 +47,12 @@ class SportsRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Gets user's favorite sport IDs
+     * 
+     * @param int $userId User ID
+     * @return array Array of sport IDs
+     */
     public function getFavouriteSportsIds(int $userId): array
     {
         $stmt = $this->database->connect()->prepare('SELECT sport_id FROM user_favourite_sports WHERE user_id = ?');
@@ -40,6 +61,12 @@ class SportsRepository extends Repository
         return array_map(fn($r) => (int)$r['sport_id'], $rows);
     }
 
+    /**
+     * Gets detailed favorite sports for user
+     * 
+     * @param int $userId User ID
+     * @return array Sport data with icons
+     */
     public function getDetailedFavouriteSports(int $userId): array
     {
         $stmt = $this->database->connect()->prepare('
@@ -56,6 +83,13 @@ class SportsRepository extends Repository
         }, $rows);
     }
 
+    /**
+     * Sets user's favorite sports
+     * Replaces existing favorites
+     * 
+     * @param int $userId User ID
+     * @param array $sportIds Array of sport IDs
+     */
     public function setFavouriteSports(int $userId, array $sportIds): void
     {
         $conn = $this->database->connect();

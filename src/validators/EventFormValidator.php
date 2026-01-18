@@ -2,9 +2,20 @@
 
 require_once __DIR__ . '/../dto/UpdateEventDTO.php';
 
+/**
+ * Event form validator
+ * Validates event creation and update forms
+ */
 class EventFormValidator
 {
 
+    /**
+     * Validates event form data
+     * 
+     * @param array $postData Form POST data
+     * @param int|null $currentParticipantsCount Current participants (for updates)
+     * @return array Validation result with errors, data, and DTO
+     */
     public static function validate(array $postData, ?int $currentParticipantsCount = null): array
     {
         $errors = [];
@@ -175,6 +186,12 @@ class EventFormValidator
     }
 
 
+    /**
+     * Validates datetime format and ensures it's in future
+     * 
+     * @param string $datetime Datetime string
+     * @return string|null Error message or null if valid
+     */
     private static function validateDateTime(string $datetime): ?string
     {
         try {
@@ -189,6 +206,12 @@ class EventFormValidator
         return null;
     }
 
+    /**
+     * Maps skill level name to database ID
+     * 
+     * @param string $skill Skill level name
+     * @return int Skill level ID
+     */
     private static function getSkillLevelId(string $skill): int
     {
         $skillMap = [

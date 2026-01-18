@@ -14,6 +14,11 @@ class EventRepository extends Repository
         parent::__construct();
     }
 
+    /**
+     * Sets audit user for database tracking
+     * 
+     * @param int $userId User ID for audit
+     */
     private function setAuditUser(int $userId): void
     {
         try {
@@ -23,6 +28,12 @@ class EventRepository extends Repository
         }
     }
 
+    /**
+     * Gets events owned by user
+     * 
+     * @param int $ownerId Owner user ID
+     * @return array Event data arrays
+     */
     public function getMyEvents(int $ownerId): array
     {
         $sql = "
@@ -43,6 +54,12 @@ class EventRepository extends Repository
     }
 
 
+    /**
+     * Gets events owned by user as Event entities
+     * 
+     * @param int $ownerId Owner user ID
+     * @return array Array of Event objects
+     */
     public function getMyEventsEntities(int $ownerId): array
     {
         require_once __DIR__ . '/../entity/Event.php';
@@ -65,6 +82,13 @@ class EventRepository extends Repository
         return array_map(fn($r) => new \Event($r), $rows);
     }
 
+    /**
+     * Deletes event if user is the owner
+     * 
+     * @param int $eventId Event ID
+     * @param int $ownerId Owner user ID
+     * @return bool true if deleted
+     */
     public function deleteEventByOwner(int $eventId, int $ownerId): bool
     {
         $stmt = $this->database->connect()->prepare('DELETE FROM events WHERE id = :id AND owner_id = :owner');
@@ -72,6 +96,12 @@ class EventRepository extends Repository
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Deletes event by ID (admin)
+     * 
+     * @param int $eventId Event ID
+     * @return bool true if deleted
+     */
     public function deleteEvent(int $eventId): bool
     {
         $stmt = $this->database->connect()->prepare('DELETE FROM events WHERE id = :id');
@@ -79,6 +109,12 @@ class EventRepository extends Repository
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Gets all events for listing
+     * 
+     * @param bool $includePast Include past events
+     * @return array Event data arrays
+     */
     public function getAllForListing(bool $includePast = true): array
     {
         $where = $includePast ? '' : 'WHERE e.start_time >= NOW()';
@@ -108,6 +144,12 @@ class EventRepository extends Repository
         return array_map(fn($r) => new \Event($r), $rows);
     }
 
+    /**
+     * Gets event by ID with all details
+     * 
+     * @param int $id Event ID
+     * @return array|null Event data or null
+     */
     public function getEventById(int $id): ?array
     {
         $sql = "
@@ -130,6 +172,12 @@ class EventRepository extends Repository
     }
 
 
+    /**
+     * Gets event by ID as Event entity
+     * 
+     * @param int $id Event ID
+     * @return Event|null Event object or null
+     */
     public function getEventEntityById(int $id): ?\Event
     {
         $row = $this->getEventById($id);
@@ -155,6 +203,13 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Gets user's upcoming events (joined + owned)
+     * 
+     * @param int $userId User ID
+     * @param bool $upcomingOnly Only future events
+     * @return array Event data arrays
+     */
     public function getUserUpcomingEvents(int $userId, bool $upcomingOnly = false): array
     {
         $whereTime = $upcomingOnly ? " AND e.start_time >= NOW()" : "";
@@ -183,6 +238,12 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Checks if event has passed
+     * 
+     * @param int $eventId Event ID
+     * @return bool true if event is in the past
+     */
     public function isEventPast(int $eventId): bool
     {
         $stmt = $this->database->connect()->prepare('SELECT start_time < NOW() AS past FROM events WHERE id = ?');
@@ -191,6 +252,12 @@ class EventRepository extends Repository
         return !empty($row['past']);
     }
 
+    /**
+     * Checks if event is full
+     * 
+     * @param int $eventId Event ID
+     * @return bool true if max participants reached
+     */
     public function isEventFull(int $eventId): bool
     {
         $stmt = $this->database->connect()->prepare('SELECT max_players FROM events WHERE id = ?');
@@ -203,6 +270,13 @@ class EventRepository extends Repository
         return $max > 0 && $c >= $max;
     }
 
+    /**
+     * Joins user to event
+     * 
+     * @param int $userId User ID
+     * @param int $eventId Event ID
+     * @return bool true if joined successfully
+     */
     public function joinEvent(int $userId, int $eventId): bool
     {
         try {
@@ -214,6 +288,13 @@ class EventRepository extends Repository
         }
     }
 
+    /**
+     * Checks if user is participant
+     * 
+     * @param int $userId User ID
+     * @param int $eventId Event ID
+     * @return bool true if user is participant
+     */
     public function isUserParticipant(int $userId, int $eventId): bool
     {
         $stmt = $this->database->connect()->prepare('SELECT 1 FROM event_participants WHERE event_id = ? AND user_id = ? LIMIT 1');
@@ -221,6 +302,13 @@ class EventRepository extends Repository
         return $stmt->fetch() !== false;
     }
 
+    /**
+     * Cancels user participation in event
+     * 
+     * @param int $userId User ID
+     * @param int $eventId Event ID
+     * @return bool true if cancelled
+     */
     public function cancelParticipation(int $userId, int $eventId): bool
     {
         $this->setAuditUser($userId);
@@ -229,6 +317,12 @@ class EventRepository extends Repository
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Gets participant count for event
+     * 
+     * @param int $eventId Event ID
+     * @return int Number of participants
+     */
     public function participantsCount(int $eventId): int
     {
         $stmt = $this->database->connect()->prepare('SELECT COUNT(*) AS c FROM event_participants WHERE event_id = ?');
@@ -236,6 +330,12 @@ class EventRepository extends Repository
         return (int)($stmt->fetch(PDO::FETCH_ASSOC)['c'] ?? 0);
     }
 
+    /**
+     * Creates new event
+     * 
+     * @param array $data Event data
+     * @return int|null Event ID or null on failure
+     */
     public function createEvent(array $data): ?int
     {
         try {
@@ -279,6 +379,13 @@ class EventRepository extends Repository
         }
     }
 
+    /**
+     * Updates event data
+     * 
+     * @param int $eventId Event ID
+     * @param array $data Fields to update
+     * @return bool true if updated
+     */
     public function updateEvent(int $eventId, array $data): bool
     {
         $fields = [];
@@ -339,6 +446,12 @@ class EventRepository extends Repository
         return $stmt->rowCount() > 0;
     }
 
+    /**
+     * Gets events from database view
+     * 
+     * @param int|null $limit Optional result limit
+     * @return array Event data arrays
+     */
     public function getEventsFromView(?int $limit = null): array
     {
         $sql = "SELECT * FROM vw_events_full";
@@ -353,6 +466,14 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Joins user to event with transaction
+     * Checks if event is full or past before joining
+     * 
+     * @param int $userId User ID
+     * @param int $eventId Event ID
+     * @return bool true if joined successfully
+     */
     public function joinEventWithTransaction(int $userId, int $eventId): bool
     {
         try {
@@ -383,6 +504,13 @@ class EventRepository extends Repository
     }
 
 
+    /**
+     * Cancels participation with transaction
+     * 
+     * @param int $userId User ID
+     * @param int $eventId Event ID
+     * @return bool true if cancelled
+     */
     public function cancelParticipationWithTransaction(int $userId, int $eventId): bool
     {
         try {
@@ -401,6 +529,14 @@ class EventRepository extends Repository
         }
     }
 
+    /**
+     * Gets filtered events for listing page
+     * Supports sport, level, and location filtering
+     * 
+     * @param array $filters Filter criteria
+     * @param bool $isAdmin Show past events for admin
+     * @return array Event data arrays
+     */
     public function getFilteredEventsListing(array $filters, bool $isAdmin = false): array
     {
         $params = [];
@@ -458,6 +594,16 @@ class EventRepository extends Repository
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Gets nearby events based on coordinates
+     * Excludes events owned by specified user
+     * 
+     * @param float $lat Latitude
+     * @param float $lng Longitude
+     * @param int $limit Max results
+     * @param int|null $excludeUserId Exclude events owned by this user
+     * @return array Formatted event data with distance
+     */
     public function getNearbyEvents(float $lat, float $lng, int $limit = 3, ?int $excludeUserId = null): array
     {
         $sql = "
@@ -516,6 +662,12 @@ class EventRepository extends Repository
             ];
         }, $results);
     }
+    /**
+     * Searches events with pagination
+     * 
+     * @param EventSearchRequestDTO $criteria Search criteria
+     * @return array Array of Event entities
+     */
     public function searchEvents(EventSearchRequestDTO $criteria): array
     {
         $params = [];

@@ -1,0 +1,28 @@
+graph TD
+    subgraph "Frontend"
+        HTML["HTML5 Templates"]
+        CSS["Vanilla CSS Variables"]
+        JS["Fetch API / Vanilla JS"]
+    end
+
+    subgraph "Backend (PHP 8.2+)"
+        Router["Routing.php"]
+        Controllers["Controllers (DTO Mapping)"]
+        Repositories["Repositories (PDO)"]
+        Entities["Entities / DTOs"]
+    end
+
+    subgraph "Database (PostgreSQL 16)"
+        Tables["Tables & Indexes"]
+        Views["Views (vw_events_full)"]
+        Triggers["Triggers (Audit/Stats)"]
+    end
+
+    JS --> Router
+    Router --> Controllers
+    Controllers --> Repositories
+    Repositories --> Entities
+    Repositories --> Database
+    Database --> Views
+    Database --> Triggers
+    Views --> Repositories

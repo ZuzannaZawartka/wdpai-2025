@@ -2,6 +2,10 @@
 
 require_once __DIR__ . '/../valueobject/Location.php';
 
+/**
+ * Event search request data transfer object
+ * Holds event search criteria with pagination
+ */
 class EventSearchRequestDTO
 {
     public array $sports;

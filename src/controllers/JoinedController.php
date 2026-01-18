@@ -12,6 +12,11 @@ class JoinedController extends AppController
         parent::__construct();
     }
 
+
+    /**
+     * Shows events that user has joined
+     * Displays upcoming events user is participating in
+     */
     public function index(): void
     {
         $this->ensureSession();

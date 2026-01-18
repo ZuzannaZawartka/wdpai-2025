@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Sport entity class
+ * Represents a sport type with icon
+ */
 class Sport
 {
     private ?int $id;

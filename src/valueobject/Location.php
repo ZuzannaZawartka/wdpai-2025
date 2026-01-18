@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Location value object
+ * Immutable geographic coordinates with validation
+ */
 class Location
 {
     private float $lat;
@@ -13,8 +17,17 @@ class Location
         $this->lng = $lng;
     }
 
-    public function lat(): float { return $this->lat; }
-    public function lng(): float { return $this->lng; }
+    public function lat(): float
+    {
+        return $this->lat;
+    }
+    public function lng(): float
+    {
+        return $this->lng;
+    }
 
-    public function toArray(): array { return ['lat' => $this->lat, 'lng' => $this->lng]; }
+    public function toArray(): array
+    {
+        return ['lat' => $this->lat, 'lng' => $this->lng];
+    }
 }

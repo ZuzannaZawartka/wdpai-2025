@@ -3,6 +3,10 @@
 require_once __DIR__ . '/../entity/Event.php';
 require_once __DIR__ . '/../config/AppConfig.php';
 
+/**
+ * Event response data transfer object
+ * Formats event data for API JSON responses
+ */
 class EventResponseDTO implements JsonSerializable
 {
     private int $id;

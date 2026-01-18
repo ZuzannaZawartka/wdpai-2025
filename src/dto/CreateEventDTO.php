@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Create event data transfer object
+ * Holds new event creation data
+ */
 class CreateEventDTO
 {
     public ?int $ownerId;

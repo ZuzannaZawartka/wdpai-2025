@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Update user data transfer object
+ * Holds validated user profile update data
+ */
 class UpdateUserDTO
 {
     public ?string $firstName = null;

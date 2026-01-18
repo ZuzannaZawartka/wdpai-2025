@@ -1,5 +1,9 @@
 <?php
 
+/**
+ * Create user data transfer object
+ * Holds new user registration data
+ */
 class CreateUserDTO
 {
     public string $email;
